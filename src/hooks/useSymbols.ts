@@ -85,7 +85,7 @@ function sortSymbols(rows: SymbolRow[], sortKey: SortKey, sortOrder: "asc" | "de
     if (sortKey === "price") return (a.price - b.price) * dir;
     if (sortKey === "volume") return (a.volume - b.volume) * dir;
     if (sortKey === "change24h") return (a.change24h - b.change24h) * dir;
-    return (a.time - b.time) * dir;
+    return (a.onboardDate - b.onboardDate) * dir;
   });
 
   return out;
