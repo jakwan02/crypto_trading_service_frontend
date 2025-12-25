@@ -56,7 +56,7 @@ type ChartCache = {
   data: Candle[];
 };
 
-const CHART_CACHE_TTL_MS = 30_000;
+const CHART_CACHE_TTL_MS = 20_000;
 const chartCache = new Map<string, ChartCache>();
 
 function normTf(tf: string): string {

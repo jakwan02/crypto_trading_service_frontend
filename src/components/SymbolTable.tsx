@@ -22,6 +22,8 @@ function LoadingBar() {
 
 const SORTABLE: Set<string> = new Set(["symbol", "price", "volume", "change24h", "time"]);
 const WIN_OPTS: MetricWindow[] = ["1m", "5m", "15m", "1h", "4h", "1d", "1w", "1M", "1Y"];
+const PRICE_FLASH_MS = 650;
+const BLINK_MS = 450;
 
 function winLabel(w: MetricWindow) {
   return String(w);
@@ -101,18 +103,18 @@ export default function SymbolTable() {
       if (prevRow) {
         if (row.price !== prevRow.price) {
           const dir = row.price > prevRow.price ? 1 : -1;
-          flash[sym] = { ...flash[sym], priceDir: dir, priceUntil: now + 650 };
-          nextTimerAt = Math.max(nextTimerAt, now + 650);
+          flash[sym] = { ...flash[sym], priceDir: dir, priceUntil: now + PRICE_FLASH_MS };
+          nextTimerAt = Math.max(nextTimerAt, now + PRICE_FLASH_MS);
           changed = true;
         }
         if (row.volume !== prevRow.volume || row.quoteVolume !== prevRow.quoteVolume) {
-          flash[sym] = { ...flash[sym], volumeUntil: now + 450 };
-          nextTimerAt = Math.max(nextTimerAt, now + 450);
+          flash[sym] = { ...flash[sym], volumeUntil: now + BLINK_MS };
+          nextTimerAt = Math.max(nextTimerAt, now + BLINK_MS);
           changed = true;
         }
         if (row.change24h !== prevRow.change) {
-          flash[sym] = { ...flash[sym], changeUntil: now + 450 };
-          nextTimerAt = Math.max(nextTimerAt, now + 450);
+          flash[sym] = { ...flash[sym], changeUntil: now + BLINK_MS };
+          nextTimerAt = Math.max(nextTimerAt, now + BLINK_MS);
           changed = true;
         }
       }
