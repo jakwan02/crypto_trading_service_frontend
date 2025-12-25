@@ -295,6 +295,65 @@ export function useSymbols(metricWindow: MetricWindow = "1d") {
     };
   }, [market, metricWindow]);
 
+  // 3-1) window 메트릭 실시간(ws_metrics)
+  useEffect(() => {
+    const m = String(market || "spot").trim().toLowerCase();
+    const w = String(metricWindow || "1d").trim();
+    const wsBase = toWsBase();
+    const url =
+      `${wsBase}/ws_metrics` +
+      `?market=${encodeURIComponent(m)}` +
+      `&window=${encodeURIComponent(w)}`;
+
+    let ws: WebSocket | null = null;
+    let closed = false;
+
+    try {
+      ws = new WebSocket(url);
+    } catch {
+      return () => {};
+    }
+
+    ws.onmessage = (ev) => {
+      if (closed) return;
+      let msg: any;
+      try {
+        msg = JSON.parse(ev.data as string);
+      } catch {
+        return;
+      }
+
+      const items = Array.isArray(msg?.items) ? msg.items : [];
+      if (!items.length) return;
+
+      setMetrics((prev) => {
+        const next = { ...prev };
+        for (const it of items) {
+          const sym = String(it.symbol || "").toUpperCase();
+          if (!sym) continue;
+          next[sym] = {
+            volume: num(it.volume ?? it.volume_sum ?? 0),
+            quoteVolume: num(it.quote_volume ?? it.quoteVolume ?? 0),
+            pctChange: num(it.pct_change ?? it.pctChange ?? 0),
+          };
+        }
+        return next;
+      });
+    };
+
+    ws.onclose = () => {
+      closed = true;
+    };
+
+    return () => {
+      closed = true;
+      try {
+        ws?.close(1000, "cleanup");
+      } catch {}
+      ws = null;
+    };
+  }, [market, metricWindow]);
+
   // 4) 병합 + 정렬
   const merged = useMemo(() => {
     const base = query.data ?? [];

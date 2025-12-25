@@ -46,7 +46,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
   const lastTimeRef = useRef<number>(0);
   const lastLenRef = useRef<number>(0);
 
-  const { data: candles, error } = useChart(symbol, timeframe);
+  const { data: candles, error, loadMore, loadingMore } = useChart(symbol, timeframe);
 
   // 마지막 종가로 precision/minMove 동적 선택
   const pf = useMemo(() => {
@@ -188,5 +188,19 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
     );
   }
 
-  return <div ref={containerRef} className="w-full" />;
+  return (
+    <div className="w-full">
+      <div className="mb-2 flex justify-end">
+        <button
+          type="button"
+          onClick={() => loadMore?.()}
+          disabled={loadingMore}
+          className="rounded bg-slate-800 px-3 py-1 text-xs text-slate-200 ring-1 ring-slate-700 hover:bg-slate-700 disabled:opacity-50"
+        >
+          {loadingMore ? "로딩 중..." : "이전 데이터 불러오기"}
+        </button>
+      </div>
+      <div ref={containerRef} className="w-full" />
+    </div>
+  );
 }

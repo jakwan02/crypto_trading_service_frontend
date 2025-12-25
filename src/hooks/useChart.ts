@@ -70,6 +70,12 @@ function stripApiSuffix(url: string): string {
   return u.replace(/\/api$/i, "");
 }
 
+function toApiBase(): string {
+  const apiEnv = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const base = stripApiSuffix(apiEnv || "http://localhost:8000");
+  return base.endsWith("/api") ? base : `${base}/api`;
+}
+
 function toWsBase(): string {
   const wsEnv = process.env.NEXT_PUBLIC_WS_BASE_URL;
   const apiEnv = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -156,6 +162,7 @@ export function useChart(symbol: string | null, timeframe: string) {
 
   const [data, setData] = useState<Candle[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const aliveRef = useRef(true);
@@ -324,5 +331,57 @@ export function useChart(symbol: string | null, timeframe: string) {
     };
   }, [symbol, market, tf]);
 
-  return { data, error };
+  const loadMore = async () => {
+    const sym = String(symbol || "").trim().toUpperCase();
+    const m = String(market || "").trim().toLowerCase();
+    const tfNorm = normTf(tf);
+    if (!sym || loadingMore) return;
+
+    const oldest = data && data.length > 0 ? data[0].time : 0;
+    if (!oldest) return;
+
+    setLoadingMore(true);
+    try {
+      const api = toApiBase();
+      const url =
+        `${api}/chart/history` +
+        `?market=${encodeURIComponent(m)}` +
+        `&symbol=${encodeURIComponent(sym)}` +
+        `&tf=${encodeURIComponent(tfNorm)}` +
+        `&before=${encodeURIComponent(String(oldest))}` +
+        `&limit=300`;
+
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`history_http_${res.status}`);
+      const js = await res.json();
+      const items = Array.isArray(js?.items) ? js.items : [];
+
+      const older: Candle[] = [];
+      for (const it of items) {
+        const c = parseCandle(it);
+        if (c) older.push(c);
+      }
+
+      if (older.length > 0) {
+        const merged = [...older, ...data];
+        const out: Candle[] = [];
+        const seen = new Set<number>();
+        for (const c of merged) {
+          if (seen.has(c.time)) continue;
+          seen.add(c.time);
+          out.push(c);
+        }
+        out.sort((a, b) => a.time - b.time);
+        setData(out);
+        const cacheKey = `${m}:${sym}:${tfNorm}`;
+        chartCache.set(cacheKey, { ts: Date.now(), data: out });
+      }
+    } catch (e) {
+      setError("history_error");
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  return { data, error, loadMore, loadingMore };
 }
