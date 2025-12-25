@@ -46,7 +46,7 @@ type SymbolCache = {
   data: SymbolRow[];
 };
 
-const SYMBOLS_CACHE_TTL_MS = 20_000;
+const SYMBOLS_CACHE_TTL_MS = 15_000;
 const symbolsCache: Record<string, SymbolCache> = {};
 
 function stripSlash(u: string) {

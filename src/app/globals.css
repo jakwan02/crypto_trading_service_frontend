@@ -88,13 +88,13 @@ td {
 }
 
 .flash-price-up {
-  animation: flashPriceUp 0.65s ease;
+  animation: flashPriceUp 0.52s ease;
 }
 
 .flash-price-down {
-  animation: flashPriceDown 0.65s ease;
+  animation: flashPriceDown 0.52s ease;
 }
 
 .flash-blink {
-  animation: flashBlink 0.45s ease;
+  animation: flashBlink 0.32s ease;
 }

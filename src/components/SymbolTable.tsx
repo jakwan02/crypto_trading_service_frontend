@@ -22,8 +22,8 @@ function LoadingBar() {
 
 const SORTABLE: Set<string> = new Set(["symbol", "price", "volume", "change24h", "time"]);
 const WIN_OPTS: MetricWindow[] = ["1m", "5m", "15m", "1h", "4h", "1d", "1w", "1M", "1Y"];
-const PRICE_FLASH_MS = 650;
-const BLINK_MS = 450;
+const PRICE_FLASH_MS = 520;
+const BLINK_MS = 320;
 
 function winLabel(w: MetricWindow) {
   return String(w);
