@@ -51,6 +51,14 @@ type WsUpd = {
   volume?: number;
 };
 
+type ChartCache = {
+  ts: number;
+  data: Candle[];
+};
+
+const CHART_CACHE_TTL_MS = 30_000;
+const chartCache = new Map<string, ChartCache>();
+
 function normTf(tf: string): string {
   const v = String(tf || "").trim().toLowerCase();
   if (!v) return "1m";
@@ -169,6 +177,7 @@ export function useChart(symbol: string | null, timeframe: string) {
     const sym = String(symbol || "").trim().toUpperCase();
     const m = String(market || "").trim().toLowerCase();
     const tfNorm = normTf(tf);
+    const cacheKey = `${m}:${sym}:${tfNorm}`;
 
     if (!sym) {
       setData([]);
@@ -185,7 +194,12 @@ export function useChart(symbol: string | null, timeframe: string) {
     } catch {}
     wsRef.current = null;
 
-    setData([]);
+    const cached = chartCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts <= CHART_CACHE_TTL_MS) {
+      setData(cached.data);
+    } else {
+      setData([]);
+    }
     setError(null);
     retryRef.current = 0;
 
@@ -254,6 +268,7 @@ export function useChart(symbol: string | null, timeframe: string) {
           if (temp) merged = upsert(out, temp, 1200);
 
           setData(merged);
+          chartCache.set(cacheKey, { ts: Date.now(), data: merged });
           return;
         }
 
@@ -273,7 +288,11 @@ export function useChart(symbol: string | null, timeframe: string) {
         if (!c) c = parseCandle(upd);
         if (!c) return;
 
-        setData((prev) => upsert(prev, c as Candle, 1200));
+        setData((prev) => {
+          const next = upsert(prev, c as Candle, 1200);
+          chartCache.set(cacheKey, { ts: Date.now(), data: next });
+          return next;
+        });
       };
 
       ws.onerror = () => {

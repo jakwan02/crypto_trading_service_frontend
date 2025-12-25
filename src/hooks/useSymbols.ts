@@ -18,6 +18,7 @@ export type SymbolRow = {
 
   price: number;
   volume: number;
+  quoteVolume: number;
   change24h: number;
   time: number; // ms
 };
@@ -30,12 +31,23 @@ type TickerItem = {
   p?: number;
   volume?: number;
   v?: number;
+  quote_volume?: number;
+  quoteVolume?: number;
+  q?: number;
   time?: number;
   t?: number;
   final?: boolean;
 };
 
-type MetricMap = Record<string, { volume: number; pctChange: number }>;
+type MetricMap = Record<string, { volume: number; quoteVolume: number; pctChange: number }>;
+
+type SymbolCache = {
+  ts: number;
+  data: SymbolRow[];
+};
+
+const SYMBOLS_CACHE_TTL_MS = 30_000;
+const symbolsCache: Record<string, SymbolCache> = {};
 
 function stripSlash(u: string) {
   return String(u || "").trim().replace(/\/+$/, "");
@@ -117,6 +129,7 @@ async function fetchSymbols(market: string): Promise<SymbolRow[]> {
 
       price: 0,
       volume: 0,
+      quoteVolume: 0,
       change24h: 0,
       time: onboard,
     };
@@ -128,16 +141,30 @@ export function useSymbols(metricWindow: MetricWindow = "1d") {
   const sortKey = useSymbolsStore((s: any) => (s.sortKey as SortKey) || "volume");
   const sortOrder = useSymbolsStore((s: any) => (s.sortOrder as "asc" | "desc") || "desc");
 
+  const cacheKey = String(market || "spot").trim().toLowerCase();
+  const cached = symbolsCache[cacheKey];
+  const cachedData =
+    cached && Date.now() - cached.ts <= SYMBOLS_CACHE_TTL_MS ? cached.data : undefined;
+
   // 1) 심볼 목록(REST)
   const query = useQuery<SymbolRow[]>({
     queryKey: ["symbols", market],
     queryFn: () => fetchSymbols(market),
+    initialData: cachedData,
+    initialDataUpdatedAt: cached?.ts,
     refetchInterval: 60_000,
     staleTime: 55_000,
   });
 
+  useEffect(() => {
+    if (!query.data) return;
+    symbolsCache[cacheKey] = { ts: Date.now(), data: query.data };
+  }, [cacheKey, query.data]);
+
   // 2) 실시간 티커(ws_ticker)
-  const tickRef = useRef<Record<string, { price: number; volume: number; time: number }>>({});
+  const tickRef = useRef<
+    Record<string, { price: number; volume: number; quoteVolume: number; time: number }>
+  >({});
   const [tickVer, setTickVer] = useState(0);
 
   useEffect(() => {
@@ -159,12 +186,14 @@ export function useSymbols(metricWindow: MetricWindow = "1d") {
 
       const price = num(it.price ?? it.p, NaN);
       const volume = num(it.volume ?? it.v, NaN);
+      const quoteVolume = num(it.quoteVolume ?? it.quote_volume ?? it.q, NaN);
       const time = num(it.time ?? it.t, 0);
 
-      const prev = tickRef.current[sym] || { price: NaN, volume: NaN, time: 0 };
+      const prev = tickRef.current[sym] || { price: NaN, volume: NaN, quoteVolume: NaN, time: 0 };
       tickRef.current[sym] = {
         price: Number.isFinite(price) ? price : prev.price,
         volume: Number.isFinite(volume) ? volume : prev.volume,
+        quoteVolume: Number.isFinite(quoteVolume) ? quoteVolume : prev.quoteVolume,
         time: time > 0 ? time : prev.time,
       };
     };
@@ -250,6 +279,7 @@ export function useSymbols(metricWindow: MetricWindow = "1d") {
 
           map[sym] = {
             volume: num(it.volume ?? it.volume_sum ?? 0),
+            quoteVolume: num(it.quote_volume ?? it.quoteVolume ?? 0),
             pctChange: num(it.pct_change ?? it.pctChange ?? 0),
           };
         }
@@ -281,9 +311,10 @@ export function useSymbols(metricWindow: MetricWindow = "1d") {
       const time = t ? t.time : row.time;
 
       const volume = m ? m.volume : t ? t.volume : row.volume;
+      const quoteVolume = m ? m.quoteVolume : t ? t.quoteVolume : row.quoteVolume;
       const change24h = m ? m.pctChange : row.change24h;
 
-      return { ...row, price, time, volume, change24h };
+      return { ...row, price, time, volume, quoteVolume, change24h };
     });
   }, [query.data, tickVer, metrics]);
 

@@ -56,3 +56,45 @@ td {
 ::-webkit-scrollbar-track {
   background-color: transparent;
 }
+
+@keyframes flashPriceUp {
+  0% {
+    color: #22c55e;
+  }
+  100% {
+    color: inherit;
+  }
+}
+
+@keyframes flashPriceDown {
+  0% {
+    color: #ef4444;
+  }
+  100% {
+    color: inherit;
+  }
+}
+
+@keyframes flashBlink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.flash-price-up {
+  animation: flashPriceUp 0.65s ease;
+}
+
+.flash-price-down {
+  animation: flashPriceDown 0.65s ease;
+}
+
+.flash-blink {
+  animation: flashBlink 0.45s ease;
+}

@@ -1,7 +1,7 @@
 // filename: frontend/components/SymbolTable.tsx
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ColumnDef,
   createColumnHelper,
@@ -47,11 +47,96 @@ function fmtPrice(x: number): string {
   });
 }
 
+function fmtCompact(x: number): string {
+  if (!Number.isFinite(x)) return "-";
+  const ax = Math.abs(x);
+  if (ax === 0) return "0";
+  if (ax >= 1_000_000_000_000) return (x / 1_000_000_000_000).toFixed(2) + "T";
+  if (ax >= 1_000_000_000) return (x / 1_000_000_000).toFixed(2) + "B";
+  if (ax >= 1_000_000) return (x / 1_000_000).toFixed(2) + "M";
+  if (ax >= 1_000) return (x / 1_000).toFixed(2) + "K";
+  return x.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
 export default function SymbolTable() {
   const router = useRouter();
 
   const [win, setWin] = useState<MetricWindow>("1d");
   const { data, isLoading, isError } = useSymbols(win);
+  const [flashTick, setFlashTick] = useState(0);
+
+  const prevRef = useRef<Record<string, { price: number; volume: number; quoteVolume: number; change: number }>>({});
+  const flashRef = useRef<
+    Record<
+      string,
+      {
+        priceDir?: number;
+        priceUntil?: number;
+        volumeUntil?: number;
+        changeUntil?: number;
+      }
+    >
+  >({});
+  const flashTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!data || data.length === 0) return;
+    const now = Date.now();
+    let nextTimerAt = 0;
+    const prev = prevRef.current;
+    const flash = flashRef.current;
+    const nextPrev: typeof prev = {};
+    let changed = false;
+
+    for (const row of data) {
+      const sym = row.symbol;
+      const prevRow = prev[sym];
+
+      if (prevRow) {
+        if (row.price !== prevRow.price) {
+          const dir = row.price > prevRow.price ? 1 : -1;
+          flash[sym] = { ...flash[sym], priceDir: dir, priceUntil: now + 650 };
+          nextTimerAt = Math.max(nextTimerAt, now + 650);
+          changed = true;
+        }
+        if (row.volume !== prevRow.volume || row.quoteVolume !== prevRow.quoteVolume) {
+          flash[sym] = { ...flash[sym], volumeUntil: now + 450 };
+          nextTimerAt = Math.max(nextTimerAt, now + 450);
+          changed = true;
+        }
+        if (row.change24h !== prevRow.change) {
+          flash[sym] = { ...flash[sym], changeUntil: now + 450 };
+          nextTimerAt = Math.max(nextTimerAt, now + 450);
+          changed = true;
+        }
+      }
+
+      nextPrev[sym] = {
+        price: row.price,
+        volume: row.volume,
+        quoteVolume: row.quoteVolume,
+        change: row.change24h
+      };
+    }
+
+    prevRef.current = nextPrev;
+
+    if (changed) setFlashTick((v) => v + 1);
+
+    if (nextTimerAt > 0) {
+      if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
+      const delay = Math.max(0, nextTimerAt - Date.now());
+      flashTimerRef.current = window.setTimeout(() => {
+        setFlashTick((v) => v + 1);
+      }, delay + 20);
+    }
+  }, [data]);
 
   const sortKey = useSymbolsStore((s) => s.sortKey);
   const sortOrder = useSymbolsStore((s) => s.sortOrder);
@@ -74,7 +159,14 @@ export default function SymbolTable() {
         cell: (info) => {
           const value = info.getValue() as number;
           if (isLoading && (!value || value === 0)) return <LoadingBar />;
-          return <span className="tabular-nums">{fmtPrice(value)}</span>;
+          const sym = info.row.original.symbol;
+          const flash = flashRef.current[sym];
+          const now = Date.now();
+          let cls = "tabular-nums";
+          if (flash?.priceUntil && flash.priceUntil > now) {
+            cls += flash.priceDir && flash.priceDir > 0 ? " flash-price-up" : " flash-price-down";
+          }
+          return <span className={cls}>{fmtPrice(value)}</span>;
         }
       }),
 
@@ -84,10 +176,22 @@ export default function SymbolTable() {
         cell: (info) => {
           const value = info.getValue() as number;
           if (isLoading && (!value || value === 0)) return <LoadingBar />;
+          const sym = info.row.original.symbol;
+          const quoteVolume = info.row.original.quoteVolume;
+          const flash = flashRef.current[sym];
+          const now = Date.now();
+          const cls =
+            flash?.volumeUntil && flash.volumeUntil > now ? "tabular-nums flash-blink" : "tabular-nums";
           return (
-            <span className="tabular-nums">
-              {value.toLocaleString(undefined, { notation: "compact", maximumFractionDigits: 2 })}
-            </span>
+            <div className={cls}>
+              <div>
+                <span className="text-[11px] text-slate-500">B </span>
+                {fmtCompact(value)}
+              </div>
+              <div className="text-[11px] text-slate-500">
+                Q {fmtCompact(quoteVolume)}
+              </div>
+            </div>
           );
         }
       }),
@@ -99,8 +203,12 @@ export default function SymbolTable() {
           const value = info.getValue() as number;
           if (isLoading && (!value && value !== 0)) return <LoadingBar />;
           const isUp = value >= 0;
+          const sym = info.row.original.symbol;
+          const flash = flashRef.current[sym];
+          const now = Date.now();
+          const blink = flash?.changeUntil && flash.changeUntil > now ? " flash-blink" : "";
           return (
-            <span className={`tabular-nums ${isUp ? "text-emerald-400" : "text-red-400"}`}>
+            <span className={`tabular-nums${blink} ${isUp ? "text-emerald-400" : "text-red-400"}`}>
               {value.toFixed(2)}%
             </span>
           );
@@ -117,7 +225,7 @@ export default function SymbolTable() {
         }
       })
     ];
-  }, [isLoading, win]);
+  }, [isLoading, win, flashTick]);
 
   const table = useReactTable({
     data: data ?? [],
