@@ -1,4 +1,4 @@
-// filename: src/app/chart/[symbol]/SymbolChartClient.tsx
+// filename: frontend/app/chart/[symbol]/SymbolChartClient.tsx
 "use client";
 
 import { useState } from "react";
@@ -12,17 +12,29 @@ type Props = {
 
 export default function SymbolChartClient({ symbol }: Props) {
   const [tf, setTf] = useState<string>("1d");
+  const sym = (symbol || "").toUpperCase();
+
+  if (!sym) {
+    return (
+      <main className="min-h-screen">
+        <div className="mx-auto w-full max-w-6xl px-4 py-6 text-sm text-slate-400">
+          심볼이 올바르지 않습니다.
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen">
       <div className="mx-auto w-full max-w-6xl px-4 py-6">
         <header className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">{symbol} Chart</h1>
+            <h1 className="text-2xl font-semibold">{sym} Chart</h1>
             <p className="mt-1 text-sm text-slate-400">
               타임프레임별 과거 데이터와 실시간 흐름을 확인할 수 있습니다.
             </p>
           </div>
+
           <div className="inline-flex flex-wrap items-center gap-1 rounded-full bg-slate-900/80 p-1 ring-1 ring-slate-800">
             {TIMEFRAMES.map((item) => (
               <button
@@ -42,7 +54,7 @@ export default function SymbolChartClient({ symbol }: Props) {
         </header>
 
         <section className="rounded-xl bg-slate-900/80 p-4 ring-1 ring-slate-800">
-          <ChartContainer symbol={symbol} timeframe={tf} />
+          <ChartContainer symbol={sym} timeframe={tf} />
         </section>
       </div>
     </main>

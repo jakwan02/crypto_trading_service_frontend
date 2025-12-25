@@ -1,16 +1,21 @@
-// filename: src/app/chart/[symbol]/page.tsx
-
+// filename: frontend/app/chart/[symbol]/page.tsx
 import SymbolChartClient from "./SymbolChartClient";
 
-type PageProps = {
-  params: Promise<{
-    symbol: string;
-  }>;
-};
+type ParamsObj = { symbol?: string };
+type PageProps = { params?: ParamsObj | Promise<ParamsObj> };
+
+async function unwrapParams(p: PageProps["params"]): Promise<ParamsObj> {
+  if (!p) return {};
+  const anyP = p as any;
+  if (anyP && typeof anyP.then === "function") {
+    return (await anyP) || {};
+  }
+  return (p as ParamsObj) || {};
+}
 
 export default async function SymbolChartPage({ params }: PageProps) {
-  // Next 16: params 는 Promise 이므로 await 로 언랩
-  const { symbol } = await params;
+  const p = await unwrapParams(params);
+  const symbol = (p.symbol || "").trim();
 
   return <SymbolChartClient symbol={symbol} />;
 }

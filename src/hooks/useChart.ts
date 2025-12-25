@@ -1,11 +1,11 @@
 // filename: frontend/hooks/useChart.ts
 "use client";
 
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import { useSymbolsStore } from "@/store/useSymbolStore";
 
 export type Candle = {
-  time: number; // ms 단위 UNIX 시간
+  time: number; // ms
   open: number;
   high: number;
   low: number;
@@ -13,64 +13,297 @@ export type Candle = {
   volume: number;
 };
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
+type WsSnap = {
+  type?: string;
+  market?: string;
+  symbol?: string;
+  tf?: string;
+  candles?: any[];
+  final?: any[];
+  temp?: any | null;
+};
 
-// 백엔드 /api/chart 에서 캔들 데이터를 받아온다.
-async function fetchChart(params: {
-  market: string;
-  symbol: string;
-  timeframe: string;
-  limit?: number;
-}): Promise<Candle[]> {
-  if (!API_BASE) {
-    throw new Error("NEXT_PUBLIC_API_BASE_URL 이 설정되지 않았습니다.");
-  }
+type WsUpd = {
+  type?: string;
+  market?: string;
+  symbol?: string;
+  tf?: string;
 
-  const { market, symbol, timeframe, limit = 300 } = params;
+  // 레거시 키 지원
+  m?: string;
+  s?: string;
+  k?: string;
 
-  const url =
-    `${API_BASE}/api/chart` +
-    `?market=${encodeURIComponent(market)}` +
-    `&symbol=${encodeURIComponent(symbol)}` +
-    `&tf=${encodeURIComponent(timeframe)}` +
-    `&limit=${limit}`;
+  candle?: any;
+  t?: number;
+  o?: number;
+  h?: number;
+  l?: number;
+  c?: number;
+  v?: number;
+  x?: boolean;
 
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error("캔들 데이터를 불러오지 못했습니다.");
-  }
+  time?: number;
+  open?: number;
+  high?: number;
+  low?: number;
+  close?: number;
+  volume?: number;
+};
 
-  const json = await res.json();
-  const items = (json.items || []) as any[];
-
-  const candles: Candle[] = items.map((c: any) => ({
-    time: Number(c.time),          // backend에서 ms 로 내려줌
-    open: Number(c.open),
-    high: Number(c.high),
-    low: Number(c.low),
-    close: Number(c.close),
-    volume: Number(c.volume)
-  }));
-
-  return candles;
+function normTf(tf: string): string {
+  const v = String(tf || "").trim().toLowerCase();
+  if (!v) return "1m";
+  return v;
 }
 
-// 선택된 market(spot/um)에 따라 해당 마켓의 캔들을 조회한다.
-export function useChart(symbol: string, timeframe: string) {
-  const market = useSymbolsStore((s) => s.market); // "spot" | "um"
+function stripApiSuffix(url: string): string {
+  const u = String(url || "").trim().replace(/\/+$/, "");
+  return u.replace(/\/api$/i, "");
+}
 
-  return useInfiniteQuery<Candle[]>({
-    queryKey: ["chart", market, symbol, timeframe],
-    queryFn: async () => {
-      return fetchChart({
-        market,
-        symbol,
-        timeframe,
-        limit: 300
-      });
-    },
-    initialPageParam: 0,
-    // backend에 페이지 개념이 없으므로 추가 페이지는 없음
-    getNextPageParam: () => undefined
-  });
+function toWsBase(): string {
+  const wsEnv = process.env.NEXT_PUBLIC_WS_BASE_URL;
+  const apiEnv = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  const base = stripApiSuffix(wsEnv || apiEnv || "http://localhost:8000");
+  if (base.startsWith("ws://") || base.startsWith("wss://")) return base;
+  if (base.startsWith("https://")) return "wss://" + base.slice("https://".length);
+  if (base.startsWith("http://")) return "ws://" + base.slice("http://".length);
+  return base;
+}
+
+function toMs(t: number): number {
+  // 2025년 기준 ms epoch은 1e12 이상, seconds epoch은 1e9대
+  if (!Number.isFinite(t) || t <= 0) return 0;
+  if (t < 100_000_000_000) return Math.floor(t * 1000);
+  return Math.floor(t);
+}
+
+function parseCandle(x: any): Candle | null {
+  if (!x || typeof x !== "object") return null;
+
+  const tRaw = Number(x.t ?? x.time ?? 0);
+  const t = toMs(tRaw);
+  if (!Number.isFinite(t) || t <= 0) return null;
+
+  const o = Number(x.o ?? x.open ?? 0);
+  const h = Number(x.h ?? x.high ?? 0);
+  const l = Number(x.l ?? x.low ?? 0);
+  const c = Number(x.c ?? x.close ?? 0);
+  const v = Number(x.v ?? x.volume ?? 0);
+
+  return {
+    time: t,
+    open: Number.isFinite(o) ? o : 0,
+    high: Number.isFinite(h) ? h : 0,
+    low: Number.isFinite(l) ? l : 0,
+    close: Number.isFinite(c) ? c : 0,
+    volume: Number.isFinite(v) ? v : 0
+  };
+}
+
+function upsert(arr: Candle[], it: Candle, maxLen: number): Candle[] {
+  if (arr.length === 0) return [it];
+
+  const last = arr[arr.length - 1];
+
+  if (it.time === last.time) {
+    const out = arr.slice(0, -1);
+    out.push(it);
+    return out;
+  }
+
+  if (it.time > last.time) {
+    const out = arr.concat(it);
+    if (out.length > maxLen) return out.slice(out.length - maxLen);
+    return out;
+  }
+
+  // 과거 시점 업데이트 방어: 정렬+중복 제거
+  const m = new Map<number, Candle>();
+  for (const c of arr) m.set(c.time, c);
+  m.set(it.time, it);
+
+  const out = Array.from(m.values()).sort((a, b) => a.time - b.time);
+  if (out.length > maxLen) return out.slice(out.length - maxLen);
+  return out;
+}
+
+function isSnapshotMsg(msg: any): boolean {
+  if (!msg || typeof msg !== "object") return false;
+  const tp = String(msg.type || "").toLowerCase();
+  if (tp === "snapshot") return true;
+
+  // type이 없어도 스냅샷은 배열을 포함한다
+  if (Array.isArray(msg.candles)) return true;
+  if (Array.isArray(msg.final)) return true;
+
+  return false;
+}
+
+export function useChart(symbol: string | null, timeframe: string) {
+  const tf = normTf(timeframe);
+  const market = useSymbolsStore((s: any) => (s?.market ?? s?.activeMarket ?? s?.selMarket ?? "spot")) as string;
+
+  const [data, setData] = useState<Candle[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const wsRef = useRef<WebSocket | null>(null);
+  const aliveRef = useRef(true);
+  const connIdRef = useRef(0);
+  const retryRef = useRef(0);
+
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+      try {
+        wsRef.current?.close();
+      } catch {}
+      wsRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const sym = String(symbol || "").trim().toUpperCase();
+    const m = String(market || "").trim().toLowerCase();
+    const tfNorm = normTf(tf);
+
+    if (!sym) {
+      setData([]);
+      setError(null);
+      return;
+    }
+
+    connIdRef.current += 1;
+    const myConnId = connIdRef.current;
+
+    // 기존 소켓 종료
+    try {
+      wsRef.current?.close();
+    } catch {}
+    wsRef.current = null;
+
+    setData([]);
+    setError(null);
+    retryRef.current = 0;
+
+    const wsBase = toWsBase();
+    const url =
+      `${wsBase}/ws_chart` +
+      `?market=${encodeURIComponent(m)}` +
+      `&symbol=${encodeURIComponent(sym)}` +
+      `&tf=${encodeURIComponent(tfNorm)}` +
+      `&limit=${encodeURIComponent(String(300))}`;
+
+    let ws: WebSocket | null = null;
+    let stopped = false;
+
+    const connect = () => {
+      if (!aliveRef.current || stopped) return;
+      if (connIdRef.current !== myConnId) return;
+
+      ws = new WebSocket(url);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        if (!aliveRef.current || stopped || connIdRef.current !== myConnId) {
+          try {
+            ws?.close();
+          } catch {}
+          return;
+        }
+      };
+
+      ws.onmessage = (ev) => {
+        if (!aliveRef.current || stopped || connIdRef.current !== myConnId) return;
+
+        let msg: any;
+        try {
+          msg = JSON.parse(ev.data);
+        } catch {
+          return;
+        }
+
+        // SNAPSHOT(type 유무 모두 지원)
+        if (isSnapshotMsg(msg)) {
+          const snap = msg as WsSnap;
+
+          if (snap.tf && normTf(String(snap.tf)) !== tfNorm) return;
+          if (snap.market && String(snap.market).toLowerCase() !== m) return;
+          if (snap.symbol && String(snap.symbol).toUpperCase() !== sym) return;
+
+          const raw = Array.isArray(snap.candles) ? snap.candles : Array.isArray(snap.final) ? snap.final : [];
+          const out: Candle[] = [];
+          const seen = new Set<number>();
+
+          for (const x of raw) {
+            const c = parseCandle(x);
+            if (!c) continue;
+            if (seen.has(c.time)) continue;
+            seen.add(c.time);
+            out.push(c);
+          }
+
+          out.sort((a, b) => a.time - b.time);
+
+          // temp가 있으면 마지막 캔들에 합친다
+          const temp = parseCandle(snap.temp);
+          let merged = out;
+          if (temp) merged = upsert(out, temp, 1200);
+
+          setData(merged);
+          return;
+        }
+
+        // UPDATE
+        const upd = msg as WsUpd;
+
+        const uSym = String(upd.symbol ?? upd.s ?? "").trim().toUpperCase();
+        if (uSym && uSym !== sym) return;
+
+        const uMkt = String(upd.market ?? upd.m ?? "").trim().toLowerCase();
+        if (uMkt && uMkt !== m) return;
+
+        const mtf = upd.tf ? normTf(String(upd.tf)) : tfNorm;
+        if (mtf !== tfNorm) return;
+
+        let c = parseCandle(upd.candle);
+        if (!c) c = parseCandle(upd);
+        if (!c) return;
+
+        setData((prev) => upsert(prev, c as Candle, 1200));
+      };
+
+      ws.onerror = () => {
+        if (!aliveRef.current || stopped || connIdRef.current !== myConnId) return;
+        setError("ws_error");
+      };
+
+      ws.onclose = () => {
+        if (!aliveRef.current || stopped || connIdRef.current !== myConnId) return;
+
+        const n = Math.min(6, retryRef.current);
+        const delay = Math.round(250 * Math.pow(2, n));
+        retryRef.current += 1;
+
+        window.setTimeout(() => {
+          if (!aliveRef.current || stopped || connIdRef.current !== myConnId) return;
+          connect();
+        }, delay);
+      };
+    };
+
+    connect();
+
+    return () => {
+      stopped = true;
+      try {
+        ws?.close();
+      } catch {}
+    };
+  }, [symbol, market, tf]);
+
+  return { data, error };
 }
