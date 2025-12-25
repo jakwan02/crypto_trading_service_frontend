@@ -45,6 +45,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
   const fittedRef = useRef(false);
   const lastTimeRef = useRef<number>(0);
   const lastLenRef = useRef<number>(0);
+  const autoLoadRef = useRef<number>(0);
 
   const { data: candles, error, loadMore, loadingMore } = useChart(symbol, timeframe);
 
@@ -171,6 +172,27 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
       lastLenRef.current = mapped.length;
     }
   }, [candles]);
+
+  // 스크롤로 좌측 끝 접근 시 자동으로 과거 데이터 로드
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !loadMore) return;
+
+    const onRange = (range: { from: number; to: number } | null) => {
+      if (!range || loadingMore) return;
+      if (range.from > 5) return;
+      const now = Date.now();
+      if (now - autoLoadRef.current < 1200) return;
+      autoLoadRef.current = now;
+      loadMore();
+    };
+
+    const ts = chart.timeScale();
+    ts.subscribeVisibleLogicalRangeChange(onRange);
+    return () => {
+      ts.unsubscribeVisibleLogicalRangeChange(onRange);
+    };
+  }, [loadMore, loadingMore]);
 
   if (!symbol) {
     return (
