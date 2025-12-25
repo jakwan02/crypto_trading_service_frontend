@@ -168,6 +168,7 @@ export function useChart(symbol: string | null, timeframe: string) {
   const aliveRef = useRef(true);
   const connIdRef = useRef(0);
   const retryRef = useRef(0);
+  const dataRef = useRef<Candle[]>([]);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -179,6 +180,10 @@ export function useChart(symbol: string | null, timeframe: string) {
       wsRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
 
   useEffect(() => {
     const sym = String(symbol || "").trim().toUpperCase();
@@ -211,6 +216,7 @@ export function useChart(symbol: string | null, timeframe: string) {
     retryRef.current = 0;
 
     const wsBase = toWsBase();
+    const apiBase = toApiBase();
     const url =
       `${wsBase}/ws_chart` +
       `?market=${encodeURIComponent(m)}` +
@@ -220,6 +226,70 @@ export function useChart(symbol: string | null, timeframe: string) {
 
     let ws: WebSocket | null = null;
     let stopped = false;
+    let restReqId = 0;
+
+    const buildSnapshot = (raw: any[], tempRaw?: any | null): Candle[] => {
+      const out: Candle[] = [];
+      const seen = new Set<number>();
+
+      for (const x of raw) {
+        const c = parseCandle(x);
+        if (!c) continue;
+        if (seen.has(c.time)) continue;
+        seen.add(c.time);
+        out.push(c);
+      }
+
+      out.sort((a, b) => a.time - b.time);
+
+      const temp = parseCandle(tempRaw);
+      if (temp) return upsert(out, temp, 1200);
+      return out;
+    };
+
+    const applySnapshot = (next: Candle[], source: "ws" | "rest") => {
+      if (!next.length) return;
+
+      const cur = dataRef.current || [];
+      const curLast = cur.length ? cur[cur.length - 1].time : 0;
+      const nextLast = next[next.length - 1].time;
+
+      if (curLast && nextLast < curLast) {
+        if (source === "rest") return;
+        return;
+      }
+
+      setData(next);
+      chartCache.set(cacheKey, { ts: Date.now(), data: next });
+    };
+
+    const fetchSnapshot = async (reason: "init" | "ws_error") => {
+      restReqId += 1;
+      const rid = restReqId;
+
+      const snapUrl =
+        `${apiBase}/chart` +
+        `?market=${encodeURIComponent(m)}` +
+        `&symbol=${encodeURIComponent(sym)}` +
+        `&tf=${encodeURIComponent(tfNorm)}` +
+        `&limit=${encodeURIComponent(String(300))}`;
+
+      try {
+        const res = await fetch(snapUrl, { cache: "no-store" });
+        if (!res.ok) throw new Error(`chart_http_${res.status}`);
+        const js = await res.json();
+        const items = Array.isArray(js?.items) ? js.items : [];
+        const snap = buildSnapshot(items);
+        if (rid !== restReqId) return;
+        if (!aliveRef.current || stopped || connIdRef.current !== myConnId) return;
+        if (reason === "ws_error" && dataRef.current.length > 0) return;
+        applySnapshot(snap, "rest");
+      } catch {
+        if (reason === "ws_error" && dataRef.current.length === 0) {
+          setError("snapshot_error");
+        }
+      }
+    };
 
     const connect = () => {
       if (!aliveRef.current || stopped) return;
@@ -256,26 +326,8 @@ export function useChart(symbol: string | null, timeframe: string) {
           if (snap.symbol && String(snap.symbol).toUpperCase() !== sym) return;
 
           const raw = Array.isArray(snap.candles) ? snap.candles : Array.isArray(snap.final) ? snap.final : [];
-          const out: Candle[] = [];
-          const seen = new Set<number>();
-
-          for (const x of raw) {
-            const c = parseCandle(x);
-            if (!c) continue;
-            if (seen.has(c.time)) continue;
-            seen.add(c.time);
-            out.push(c);
-          }
-
-          out.sort((a, b) => a.time - b.time);
-
-          // temp가 있으면 마지막 캔들에 합친다
-          const temp = parseCandle(snap.temp);
-          let merged = out;
-          if (temp) merged = upsert(out, temp, 1200);
-
-          setData(merged);
-          chartCache.set(cacheKey, { ts: Date.now(), data: merged });
+          const merged = buildSnapshot(raw, snap.temp);
+          applySnapshot(merged, "ws");
           return;
         }
 
@@ -305,6 +357,7 @@ export function useChart(symbol: string | null, timeframe: string) {
       ws.onerror = () => {
         if (!aliveRef.current || stopped || connIdRef.current !== myConnId) return;
         setError("ws_error");
+        fetchSnapshot("ws_error");
       };
 
       ws.onclose = () => {
@@ -321,6 +374,7 @@ export function useChart(symbol: string | null, timeframe: string) {
       };
     };
 
+    fetchSnapshot("init");
     connect();
 
     return () => {

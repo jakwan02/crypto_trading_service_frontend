@@ -45,6 +45,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
   const fittedRef = useRef(false);
   const lastTimeRef = useRef<number>(0);
   const lastLenRef = useRef<number>(0);
+  const firstTimeRef = useRef<number>(0);
   const autoLoadRef = useRef<number>(0);
 
   const { data: candles, error, loadMore, loadingMore } = useChart(symbol, timeframe);
@@ -118,6 +119,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
       fittedRef.current = false;
       lastTimeRef.current = 0;
       lastLenRef.current = 0;
+      firstTimeRef.current = 0;
     };
     // pf 포함: 심볼/TF 변경 또는 precision 변경 시 새로 생성
   }, [symbol, timeframe, pf.precision, pf.minMove]);
@@ -133,6 +135,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
       fittedRef.current = false;
       lastTimeRef.current = 0;
       lastLenRef.current = 0;
+      firstTimeRef.current = 0;
       return;
     }
 
@@ -148,13 +151,19 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
 
     const last = mapped[mapped.length - 1];
     const lastTime = last ? (last.time as number) : 0;
+    const firstTime = mapped[0] ? (mapped[0].time as number) : 0;
 
     // 첫 로딩/대량 변경은 전체 setData
-    const needFull =
+    let needFull =
       !fittedRef.current ||
       mapped.length < lastLenRef.current ||
-      (mapped[0]?.time as number) === 0 ||
-      (lastTimeRef.current > 0 && mapped[0] && (mapped[0].time as number) > lastTimeRef.current);
+      firstTime <= 0 ||
+      lastTime <= 0;
+
+    if (!needFull) {
+      if (firstTimeRef.current && firstTime !== firstTimeRef.current) needFull = true;
+      if (lastTimeRef.current && lastTime < lastTimeRef.current) needFull = true;
+    }
 
     if (needFull) {
       series.setData(mapped);
@@ -162,6 +171,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
       fittedRef.current = true;
       lastTimeRef.current = lastTime;
       lastLenRef.current = mapped.length;
+      firstTimeRef.current = firstTime;
       return;
     }
 
@@ -170,6 +180,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
       series.update(last);
       lastTimeRef.current = lastTime;
       lastLenRef.current = mapped.length;
+      firstTimeRef.current = firstTime;
     }
   }, [candles]);
 
@@ -202,7 +213,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
     );
   }
 
-  if (error) {
+  if (error && (!candles || candles.length === 0)) {
     return (
       <div className="w-full h-[420px] flex items-center justify-center text-sm text-red-400">
         차트 로딩 중 오류가 발생했습니다.
