@@ -9,6 +9,7 @@ import {
   getCoreRowModel,
   useReactTable
 } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSymbols, type SymbolRow, type MetricWindow } from "@/hooks/useSymbols";
@@ -77,6 +78,7 @@ export default function SymbolTable({
   filterFn
 }: Props) {
   const router = useRouter();
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const [win, setWin] = useState<MetricWindow>("1d");
   const { data, isLoading, isError } = useSymbols(win);
@@ -275,6 +277,13 @@ export default function SymbolTable({
     columns,
     getCoreRowModel: getCoreRowModel()
   });
+  const rows = table.getRowModel().rows;
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 44,
+    overscan: 10
+  });
 
   const handleSort = (id: string) => {
     if (!SORTABLE.has(id)) return;
@@ -343,9 +352,9 @@ export default function SymbolTable({
         </div>
       ) : null}
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-gray-900">
-          <thead>
+      <div ref={scrollRef} className="max-h-[560px] overflow-auto rounded-xl border border-gray-100">
+        <table className="min-w-full table-fixed text-left text-gray-900">
+          <thead className="sticky top-0 z-10 bg-white">
             {table.getHeaderGroups().map((hg) => (
               <tr
                 key={hg.id}
@@ -372,20 +381,34 @@ export default function SymbolTable({
             ))}
           </thead>
 
-          <tbody className="divide-y divide-gray-200 text-sm">
-            {table.getRowModel().rows.map((row) => (
-              <tr
-                key={row.id}
-                className="cursor-pointer transition hover:bg-primary/10"
-                onClick={() => router.push(`/chart/${row.original.symbol}`)}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-3 py-2">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
+          <tbody
+            className="relative block divide-y divide-gray-200 text-sm"
+            style={{ height: rowVirtualizer.getTotalSize() }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const row = rows[virtualRow.index];
+              if (!row) return null;
+              return (
+                <tr
+                  key={row.id}
+                  data-index={virtualRow.index}
+                  ref={rowVirtualizer.measureElement}
+                  className="absolute left-0 right-0 w-full cursor-pointer border-b border-gray-200 transition hover:bg-primary/10"
+                  style={{
+                    transform: `translateY(${virtualRow.start}px)`,
+                    display: "table",
+                    tableLayout: "fixed"
+                  }}
+                  onClick={() => router.push(`/chart/${row.original.symbol}`)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-3 py-2">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
