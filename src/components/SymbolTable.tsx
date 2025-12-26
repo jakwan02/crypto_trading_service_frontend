@@ -16,6 +16,14 @@ import { useSymbolsStore, SortKey } from "@/store/useSymbolStore";
 
 const columnHelper = createColumnHelper<SymbolRow>();
 
+type Props = {
+  searchTerm?: string;
+  onSearchTermChange?: (value: string) => void;
+  limit?: number;
+  showToolbar?: boolean;
+  filterFn?: (row: SymbolRow) => boolean;
+};
+
 function LoadingBar() {
   return <span className="inline-block h-3 w-10 animate-pulse rounded bg-gray-200" />;
 }
@@ -61,12 +69,19 @@ function fmtCompact(x: number): string {
   return x.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
-export default function SymbolTable() {
+export default function SymbolTable({
+  searchTerm,
+  onSearchTermChange,
+  limit,
+  showToolbar = true,
+  filterFn
+}: Props) {
   const router = useRouter();
 
   const [win, setWin] = useState<MetricWindow>("1d");
   const { data, isLoading, isError } = useSymbols(win);
   const [flashTick, setFlashTick] = useState(0);
+  const [localQuery, setLocalQuery] = useState("");
 
   const prevRef = useRef<Record<string, { price: number; volume: number; quoteVolume: number; change: number }>>({});
   const flashRef = useRef<
@@ -145,6 +160,25 @@ export default function SymbolTable() {
   const sortOrder = useSymbolsStore((s) => s.sortOrder);
   const setSortKey = useSymbolsStore((s) => s.setSortKey);
   const toggleSortOrder = useSymbolsStore((s) => s.toggleSortOrder);
+
+  const query = typeof searchTerm === "string" ? searchTerm : localQuery;
+  const handleQueryChange = (value: string) => {
+    if (onSearchTermChange) onSearchTermChange(value);
+    else setLocalQuery(value);
+  };
+
+  const filtered = useMemo(() => {
+    const base = data ?? [];
+    const prefiltered = filterFn ? base.filter(filterFn) : base;
+    const q = query.trim().toUpperCase();
+    if (!q) return prefiltered;
+    return prefiltered.filter((row) => row.symbol.includes(q) || row.baseAsset.toUpperCase().includes(q));
+  }, [data, query, filterFn]);
+
+  const displayData = useMemo(() => {
+    if (!limit || limit <= 0) return filtered;
+    return filtered.slice(0, limit);
+  }, [filtered, limit]);
 
   const columns = useMemo<ColumnDef<SymbolRow, any>[]>(() => {
     const wl = winLabel(win);
@@ -237,7 +271,7 @@ export default function SymbolTable() {
   }, [isLoading, win, flashTick]);
 
   const table = useReactTable({
-    data: data ?? [],
+    data: displayData ?? [],
     columns,
     getCoreRowModel: getCoreRowModel()
   });
@@ -278,24 +312,36 @@ export default function SymbolTable() {
 
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">Metrics window</span>
-          <select
-            className="rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700"
-            value={win}
-            onChange={(e) => setWin(e.target.value as MetricWindow)}
-          >
-            {WIN_OPTS.map((w) => (
-              <option key={w} value={w}>
-                {w}
-              </option>
-            ))}
-          </select>
-        </div>
+      {showToolbar ? (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">Metrics window</span>
+              <select
+                className="rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700"
+                value={win}
+                onChange={(e) => setWin(e.target.value as MetricWindow)}
+              >
+                {WIN_OPTS.map((w) => (
+                  <option key={w} value={w}>
+                    {w}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <span className="text-xs text-gray-400">정렬 가능한 열만 클릭됩니다.</span>
-      </div>
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => handleQueryChange(event.target.value)}
+              placeholder="심볼 검색"
+              className="w-40 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          <span className="text-xs text-gray-400">정렬 가능한 열만 클릭됩니다.</span>
+        </div>
+      ) : null}
 
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-gray-900">
@@ -330,7 +376,7 @@ export default function SymbolTable() {
             {table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className="cursor-pointer transition hover:bg-blue-50/70"
+                className="cursor-pointer transition hover:bg-primary/10"
                 onClick={() => router.push(`/chart/${row.original.symbol}`)}
               >
                 {row.getVisibleCells().map((cell) => (
@@ -343,6 +389,11 @@ export default function SymbolTable() {
           </tbody>
         </table>
       </div>
+      {limit && filtered.length > limit ? (
+        <p className="mt-3 text-xs text-gray-400">
+          무료 플랜은 상위 {limit}개까지만 표시됩니다.
+        </p>
+      ) : null}
     </div>
   );
 }

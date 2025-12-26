@@ -2,6 +2,8 @@
 
 import { ReactNode, createContext, useCallback, useMemo, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { LocaleProvider } from "@/contexts/LocaleContext";
 
 export type ThemeMode = "light" | "dark";
 
@@ -44,7 +46,11 @@ export function AppProviders({ children }: Props) {
 
   return (
     <ThemeContext.Provider value={themeValue}>
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <QueryClientProvider client={client}>
+        <LocaleProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </LocaleProvider>
+      </QueryClientProvider>
     </ThemeContext.Provider>
   );
 }

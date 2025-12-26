@@ -3,6 +3,9 @@
 /* 전체 라이트 테마 기본값 */
 :root {
   color-scheme: light;
+  --coindash-primary: #2f8f9d;
+  --coindash-ink: #0f172a;
+  --coindash-muted: #5b667a;
 }
 
 *,
@@ -21,7 +24,7 @@ body {
 body {
   background-color: #ffffff;
   color: #111827;
-  font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont,
+  font-family: var(--font-manrope), system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
 }
 

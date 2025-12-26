@@ -18,8 +18,8 @@ const lessons = [
 
 export default function EducationPage() {
   return (
-    <main className="min-h-screen bg-white">
-      <div className="mx-auto w-full max-w-6xl px-4 py-8">
+    <main className="min-h-screen bg-transparent">
+      <div className="mx-auto w-full max-w-6xl px-4 py-10">
         <header className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Education</h1>
           <p className="mt-1 text-sm text-gray-500">
@@ -31,7 +31,7 @@ export default function EducationPage() {
           {lessons.map((lesson) => (
             <article
               key={lesson.title}
-              className="fade-up rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+              className="fade-up rounded-3xl border border-gray-200 bg-white p-5 shadow-sm"
             >
               <span className="text-xs font-semibold uppercase tracking-wide text-secondary">
                 {lesson.level}
@@ -48,9 +48,9 @@ export default function EducationPage() {
           ))}
         </section>
 
-        <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-50 p-6 text-sm text-gray-600">
+        <div className="mt-8 rounded-3xl border border-gray-200 bg-gray-50 p-6 text-sm text-gray-600">
           더 많은 콘텐츠는 곧 업데이트됩니다. 최신 자료는 뉴스레터로 안내드립니다.
-          <a href="mailto:newsletter@coindash.com" className="ml-2 font-medium text-primary hover:text-blue-600">
+          <a href="mailto:newsletter@coindash.com" className="ml-2 font-medium text-primary hover:text-primary-dark">
             뉴스레터 신청
           </a>
         </div>
