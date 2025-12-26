@@ -51,7 +51,11 @@ type UseSymbolsOptions = {
 };
 
 const SYMBOLS_CACHE_TTL_MS = 15_000;
+const METRICS_CACHE_TTL_MS = 15_000;
+const TICK_FLUSH_MS = 500;
+const METRICS_FLUSH_MS = 800;
 const symbolsCache: Record<string, SymbolCache> = {};
+const metricsCache: Record<string, { ts: number; data: MetricMap }> = {};
 
 function stripSlash(u: string) {
   return String(u || "").trim().replace(/\/+$/, "");
@@ -169,6 +173,9 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
   const cachedData =
     cached && Date.now() - cached.ts <= SYMBOLS_CACHE_TTL_MS ? cached.data : undefined;
 
+  const metricsKey = `${cacheKey}:${metricWindow}`;
+  const metricsCached = metricsCache[metricsKey];
+
   // 1) 심볼 목록(REST)
   const query = useQuery<SymbolRow[]>({
     queryKey: ["symbols", market],
@@ -189,6 +196,7 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
     Record<string, { price: number; volume: number; quoteVolume: number; time: number }>
   >({});
   const [tickVer, setTickVer] = useState(0);
+  const tickFlushRef = useRef<number | null>(null);
 
   useEffect(() => {
     tickRef.current = {};
@@ -204,6 +212,7 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
     let ws: WebSocket | null = null;
     let closed = false;
     let lastFlush = 0;
+    let flushTimer: number | null = null;
 
     // 배치/단일 모두 반영
     const applyOne = (it: TickerItem) => {
@@ -256,9 +265,19 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
       }
 
       const now = Date.now();
-      if (now - lastFlush >= 200) {
+      const elapsed = now - lastFlush;
+      if (elapsed >= TICK_FLUSH_MS) {
         lastFlush = now;
         setTickVer((v) => v + 1);
+        return;
+      }
+
+      if (!flushTimer) {
+        flushTimer = window.setTimeout(() => {
+          lastFlush = Date.now();
+          flushTimer = null;
+          setTickVer((v) => v + 1);
+        }, TICK_FLUSH_MS - elapsed);
       }
     };
 
@@ -268,6 +287,7 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
 
     return () => {
       closed = true;
+      if (flushTimer) window.clearTimeout(flushTimer);
       try {
         ws?.close(1000, "cleanup");
       } catch {}
@@ -276,10 +296,23 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
   }, [market, tickerKey, useAllTickers, enableTicker]);
 
   // 3) window 메트릭(거래량/변동률) - REST
-  const [metrics, setMetrics] = useState<MetricMap>({});
+  const metricsRef = useRef<MetricMap>({});
+  const [metricsVer, setMetricsVer] = useState(0);
+  const metricsFlushRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (metricsCached && Date.now() - metricsCached.ts <= METRICS_CACHE_TTL_MS) {
+      metricsRef.current = metricsCached.data;
+      setMetricsVer((v) => v + 1);
+      return;
+    }
+    metricsRef.current = {};
+    setMetricsVer((v) => v + 1);
+  }, [metricsKey]);
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
 
     (async () => {
       try {
@@ -292,7 +325,7 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
           `&tf=1m` +
           `&window=${encodeURIComponent(metricWindow)}`;
 
-        const res = await fetch(url, { cache: "no-store" });
+        const res = await fetch(url, { cache: "no-store", signal: controller.signal });
         if (!res.ok) throw new Error(`metrics_http_${res.status}`);
 
         const js = await res.json();
@@ -310,16 +343,24 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
           };
         }
 
-        if (!cancelled) setMetrics(map);
+        if (!cancelled) {
+          metricsRef.current = map;
+          metricsCache[metricsKey] = { ts: Date.now(), data: map };
+          setMetricsVer((v) => v + 1);
+        }
       } catch {
-        if (!cancelled) setMetrics({});
+        if (!cancelled) {
+          metricsRef.current = {};
+          setMetricsVer((v) => v + 1);
+        }
       }
     })();
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [market, metricWindow]);
+  }, [market, metricWindow, metricsKey]);
 
   // 3-1) window 메트릭 실시간(ws_metrics)
   useEffect(() => {
@@ -352,19 +393,25 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
       const items = Array.isArray(msg?.items) ? msg.items : [];
       if (!items.length) return;
 
-      setMetrics((prev) => {
-        const next = { ...prev };
-        for (const it of items) {
-          const sym = String(it.symbol || "").toUpperCase();
-          if (!sym) continue;
-          next[sym] = {
-            volume: num(it.volume ?? it.volume_sum ?? 0),
-            quoteVolume: num(it.quote_volume ?? it.quoteVolume ?? 0),
-            pctChange: num(it.pct_change ?? it.pctChange ?? 0),
-          };
-        }
-        return next;
-      });
+      const next = { ...metricsRef.current };
+      for (const it of items) {
+        const sym = String(it.symbol || "").toUpperCase();
+        if (!sym) continue;
+        next[sym] = {
+          volume: num(it.volume ?? it.volume_sum ?? 0),
+          quoteVolume: num(it.quote_volume ?? it.quoteVolume ?? 0),
+          pctChange: num(it.pct_change ?? it.pctChange ?? 0),
+        };
+      }
+      metricsRef.current = next;
+
+      if (!metricsFlushRef.current) {
+        metricsFlushRef.current = window.setTimeout(() => {
+          metricsFlushRef.current = null;
+          metricsCache[metricsKey] = { ts: Date.now(), data: metricsRef.current };
+          setMetricsVer((v) => v + 1);
+        }, METRICS_FLUSH_MS);
+      }
     };
 
     ws.onclose = () => {
@@ -373,6 +420,10 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
 
     return () => {
       closed = true;
+      if (metricsFlushRef.current) {
+        window.clearTimeout(metricsFlushRef.current);
+        metricsFlushRef.current = null;
+      }
       try {
         ws?.close(1000, "cleanup");
       } catch {}
@@ -384,7 +435,7 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
   const merged = useMemo(() => {
     const base = query.data ?? [];
     const tick = tickRef.current;
-    const met = metrics;
+    const met = metricsRef.current;
 
     return base.map((row) => {
       const sym = row.symbol;
@@ -402,7 +453,7 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
 
       return { ...row, price, time, volume, quoteVolume, change24h };
     });
-  }, [query.data, tickVer, metrics]);
+  }, [query.data, tickVer, metricsVer]);
 
   const sorted = useMemo(() => sortSymbols(merged, sortKey, sortOrder), [merged, sortKey, sortOrder]);
 
