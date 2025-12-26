@@ -47,6 +47,9 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
   const lastLenRef = useRef<number>(0);
   const firstTimeRef = useRef<number>(0);
   const autoLoadRef = useRef<number>(0);
+  const rangeInitRef = useRef(false);
+  const prevRangeRef = useRef<{ from: number; to: number } | null>(null);
+  const prevSpanRef = useRef<number>(0);
 
   const { data: candles, error, loadMore, loadingMore } = useChart(symbol, timeframe);
 
@@ -64,11 +67,11 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
       height: 420,
-      layout: { background: { color: "#020617" }, textColor: "#e5e7eb" },
-      grid: { vertLines: { color: "#1f2937" }, horzLines: { color: "#111827" } },
-      timeScale: { timeVisible: true, secondsVisible: false, borderColor: "#1f2937" },
+      layout: { background: { color: "#ffffff" }, textColor: "#1f2937" },
+      grid: { vertLines: { color: "#e5e7eb" }, horzLines: { color: "#f3f4f6" } },
+      timeScale: { timeVisible: true, secondsVisible: false, borderColor: "#e5e7eb" },
       rightPriceScale: {
-        borderColor: "#1f2937",
+        borderColor: "#e5e7eb",
         autoScale: true,
         scaleMargins: { top: 0.1, bottom: 0.1 }
       },
@@ -120,6 +123,9 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
       lastTimeRef.current = 0;
       lastLenRef.current = 0;
       firstTimeRef.current = 0;
+      rangeInitRef.current = false;
+      prevRangeRef.current = null;
+      prevSpanRef.current = 0;
     };
     // pf 포함: 심볼/TF 변경 또는 precision 변경 시 새로 생성
   }, [symbol, timeframe, pf.precision, pf.minMove]);
@@ -136,6 +142,9 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
       lastTimeRef.current = 0;
       lastLenRef.current = 0;
       firstTimeRef.current = 0;
+      rangeInitRef.current = false;
+      prevRangeRef.current = null;
+      prevSpanRef.current = 0;
       return;
     }
 
@@ -206,7 +215,32 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
 
     const onRange = (range: { from: number; to: number } | null) => {
       if (!range || loadingMore) return;
-      if (range.from > 5) return;
+      if (!fittedRef.current) return;
+
+      const span = range.to - range.from;
+      if (!Number.isFinite(span) || span <= 0) return;
+
+      if (!rangeInitRef.current) {
+        rangeInitRef.current = true;
+        prevRangeRef.current = range;
+        prevSpanRef.current = span;
+        return;
+      }
+
+      const prev = prevRangeRef.current;
+      const prevSpan = prevSpanRef.current || span;
+      prevRangeRef.current = range;
+      prevSpanRef.current = span;
+
+      // 줌 아웃(축소) 시에는 자동 로드 금지
+      if (span > prevSpan + 2) return;
+
+      // 좌측 이동(팬)으로 왼쪽 끝 근접 시에만 로드
+      const isPan = Math.abs(span - prevSpan) <= 2;
+      if (!isPan) return;
+      if (range.from > 2) return;
+
+      if (prev && range.from >= prev.from) return;
       const now = Date.now();
       if (now - autoLoadRef.current < 1200) return;
       autoLoadRef.current = now;
@@ -222,7 +256,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
 
   if (!symbol) {
     return (
-      <div className="w-full h-[420px] flex items-center justify-center text-sm text-slate-400">
+      <div className="w-full h-[420px] flex items-center justify-center text-sm text-gray-500">
         심볼을 선택해주세요.
       </div>
     );
@@ -230,7 +264,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
 
   if (error && (!candles || candles.length === 0)) {
     return (
-      <div className="w-full h-[420px] flex items-center justify-center text-sm text-red-400">
+      <div className="w-full h-[420px] flex items-center justify-center text-sm text-red-500">
         차트 로딩 중 오류가 발생했습니다.
       </div>
     );
@@ -243,7 +277,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
           type="button"
           onClick={() => loadMore?.()}
           disabled={loadingMore}
-          className="rounded bg-slate-800 px-3 py-1 text-xs text-slate-200 ring-1 ring-slate-700 hover:bg-slate-700 disabled:opacity-50"
+          className="rounded border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-600 transition hover:bg-gray-100 disabled:opacity-50"
         >
           {loadingMore ? "로딩 중..." : "이전 데이터 불러오기"}
         </button>
