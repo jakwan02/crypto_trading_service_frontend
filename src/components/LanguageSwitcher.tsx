@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
+import { ensureLocaleResources } from "@/i18n/i18n";
 
 const LABELS: Record<string, string> = {
   ko: "KR",
@@ -20,7 +21,10 @@ export default function LanguageSwitcher() {
         <button
           key={code}
           type="button"
-          onClick={() => i18n.changeLanguage(code)}
+          onClick={async () => {
+            await ensureLocaleResources(code);
+            i18n.changeLanguage(code);
+          }}
           className={`rounded-full px-2 py-1 text-[11px] font-semibold transition ${
             locale === code ? "bg-primary/10 text-primary" : "text-gray-500 hover:text-gray-900"
           }`}
