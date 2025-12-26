@@ -1,3 +1,7 @@
+"use client";
+
+import { useTranslation } from "react-i18next";
+
 const lessons = [
   {
     title: "시장 기초 읽기",
@@ -17,14 +21,14 @@ const lessons = [
 ];
 
 export default function EducationPage() {
+  const { t } = useTranslation();
+
   return (
     <main className="min-h-screen bg-transparent">
       <div className="mx-auto w-full max-w-6xl px-4 py-10">
         <header className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">Education</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            투자 결정을 돕는 핵심 가이드를 단계별로 제공합니다.
-          </p>
+          <h1 className="text-2xl font-semibold text-gray-900">{t("education.title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("education.desc")}</p>
         </header>
 
         <section className="grid gap-4 md:grid-cols-3">
@@ -42,16 +46,16 @@ export default function EducationPage() {
                 type="button"
                 className="mt-4 rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700"
               >
-                자세히 보기
+                {t("education.more")}
               </button>
             </article>
           ))}
         </section>
 
         <div className="mt-8 rounded-3xl border border-gray-200 bg-gray-50 p-6 text-sm text-gray-600">
-          더 많은 콘텐츠는 곧 업데이트됩니다. 최신 자료는 뉴스레터로 안내드립니다.
+          {t("education.notice")}
           <a href="mailto:newsletter@coindash.com" className="ml-2 font-medium text-primary hover:text-primary-dark">
-            뉴스레터 신청
+            {t("education.newsletter")}
           </a>
         </div>
       </div>

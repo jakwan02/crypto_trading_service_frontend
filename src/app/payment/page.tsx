@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const METHOD_LABELS: Record<string, string> = {
   card: "신용카드",
@@ -12,6 +13,7 @@ export default function PaymentPage() {
   const [amount, setAmount] = useState<string>("");
   const [method, setMethod] = useState<string>("card");
   const [status, setStatus] = useState<string>("");
+  const { t } = useTranslation();
 
   const numericAmount = useMemo(() => Number(amount), [amount]);
   const fee = useMemo(() => (Number.isFinite(numericAmount) ? numericAmount * 0.015 : 0), [numericAmount]);
@@ -32,10 +34,8 @@ export default function PaymentPage() {
     <main className="min-h-screen bg-transparent">
       <div className="mx-auto w-full max-w-6xl px-4 py-10">
         <header className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">Payment</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            잔액이 부족할 때 빠르게 충전하고 거래를 이어가세요.
-          </p>
+          <h1 className="text-2xl font-semibold text-gray-900">{t("common.payment")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("common.paymentDesc")}</p>
         </header>
 
         <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">

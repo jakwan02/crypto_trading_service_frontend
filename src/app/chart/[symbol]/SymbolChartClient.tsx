@@ -4,6 +4,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Bell, Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import ChartContainer from "@/components/ChartContainer";
 import { useSymbols, type MetricWindow } from "@/hooks/useSymbols";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +21,7 @@ export default function SymbolChartClient({ symbol }: Props) {
   const tfWin = tf as MetricWindow;
   const { data: symbols } = useSymbols(tfWin, { tickerSymbols: sym ? [sym] : [] });
   const { isPro } = useAuth();
+  const { t } = useTranslation();
   const info = useMemo(() => symbols?.find((row) => row.symbol === sym), [symbols, sym]);
   const changeValue = info?.change24h;
   const changeIsNumber = Number.isFinite(changeValue);
@@ -45,7 +47,7 @@ export default function SymbolChartClient({ symbol }: Props) {
     return (
       <main className="min-h-screen">
         <div className="mx-auto w-full max-w-6xl px-4 py-6 text-sm text-gray-500">
-          심볼이 올바르지 않습니다.
+          {t("chart.invalidSymbol")}
         </div>
       </main>
     );
@@ -59,11 +61,11 @@ export default function SymbolChartClient({ symbol }: Props) {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold text-gray-900">{sym}</h1>
               <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">
-                LIVE
+                {t("common.live")}
               </span>
             </div>
             <p className="mt-2 text-sm text-gray-500">
-              실시간 차트와 AI 분석 요약을 함께 확인할 수 있습니다.
+              {t("chart.chartDesc")}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -71,26 +73,26 @@ export default function SymbolChartClient({ symbol }: Props) {
               href="/alerts"
               className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700"
             >
-              <Bell className="h-4 w-4" /> 알림 설정
+              <Bell className="h-4 w-4" /> {t("chart.alertCta")}
             </Link>
             <Link
               href="/indicators"
               className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary"
             >
-              <Sparkles className="h-4 w-4" /> AI 인사이트
+              <Sparkles className="h-4 w-4" /> {t("chart.aiCta")}
             </Link>
           </div>
         </header>
 
         <section className="mb-6 grid gap-4 sm:grid-cols-4">
           <div className="fade-up rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p className="text-xs text-gray-500">Current Price</p>
+            <p className="text-xs text-gray-500">{t("chart.currentPrice")}</p>
             <p className="mt-2 text-xl font-semibold text-gray-900">
               {Number.isFinite(info?.price) ? fmtPrice(info?.price ?? NaN) : "-"}
             </p>
           </div>
           <div className="fade-up rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p className="text-xs text-gray-500">{tfLabel} Change</p>
+            <p className="text-xs text-gray-500">{t("chart.change", { tf: tfLabel })}</p>
             <p
               className={`mt-2 text-xl font-semibold ${
                 !changeIsNumber
@@ -104,13 +106,13 @@ export default function SymbolChartClient({ symbol }: Props) {
             </p>
           </div>
           <div className="fade-up rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p className="text-xs text-gray-500">{tfLabel} 거래량</p>
+            <p className="text-xs text-gray-500">{t("chart.volume", { tf: tfLabel })}</p>
             <p className="mt-2 text-xl font-semibold text-gray-900">
               {Number.isFinite(info?.volume) ? fmtCompact(info?.volume ?? NaN) : "-"}
             </p>
           </div>
           <div className="fade-up rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p className="text-xs text-gray-500">{tfLabel} 거래대금</p>
+            <p className="text-xs text-gray-500">{t("chart.quoteVolume", { tf: tfLabel })}</p>
             <p className="mt-2 text-xl font-semibold text-gray-900">
               {Number.isFinite(info?.quoteVolume) ? fmtCompact(info?.quoteVolume ?? NaN) : "-"}
             </p>
@@ -136,7 +138,7 @@ export default function SymbolChartClient({ symbol }: Props) {
               </div>
               {!isPro ? (
                 <span className="rounded-full border border-dashed border-gray-200 px-3 py-1 text-xs text-gray-400">
-                  무료 플랜은 최근 1개월 히스토리만 제공됩니다.
+                  {t("chart.freeHistory")}
                 </span>
               ) : null}
             </div>
@@ -146,9 +148,9 @@ export default function SymbolChartClient({ symbol }: Props) {
           <aside className="flex flex-col gap-4">
             <div className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-900">AI Signal</h3>
+                <h3 className="text-sm font-semibold text-gray-900">{t("chart.aiSignal")}</h3>
                 <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary">
-                  PRO
+                  {t("common.pro")}
                 </span>
               </div>
               <div className="mt-3 space-y-3 text-sm text-gray-600">
@@ -163,16 +165,16 @@ export default function SymbolChartClient({ symbol }: Props) {
               </div>
               {!isPro ? (
                 <div className="mt-3 rounded-xl border border-dashed border-gray-200 bg-white px-3 py-2 text-xs text-gray-500">
-                  Pro로 업그레이드하면 상세 신호와 리포트를 제공합니다.
+                  {t("chart.aiUpsell")}
                   <Link href="/upgrade" className="ml-2 font-semibold text-primary">
-                    업그레이드
+                    {t("home.aiHighlights.upgrade")}
                   </Link>
                 </div>
               ) : null}
             </div>
 
             <div className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
-              <h3 className="text-sm font-semibold text-gray-900">Tech Indicators</h3>
+              <h3 className="text-sm font-semibold text-gray-900">{t("chart.techIndicators")}</h3>
               <ul className="mt-3 space-y-2 text-sm text-gray-600">
                 <li className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
                   <span>RSI</span>
@@ -191,9 +193,9 @@ export default function SymbolChartClient({ symbol }: Props) {
 
             <div className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-900">News</h3>
+                <h3 className="text-sm font-semibold text-gray-900">{t("chart.news")}</h3>
                 <Link href="/news" className="text-xs font-semibold text-primary">
-                  더보기
+                  {t("common.more")}
                 </Link>
               </div>
               <ul className="mt-3 space-y-2 text-xs text-gray-600">

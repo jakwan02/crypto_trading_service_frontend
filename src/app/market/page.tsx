@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import SymbolTable from "@/components/SymbolTable";
 import { useSymbolsStore } from "@/store/useSymbolStore";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +14,7 @@ export default function MarketPage() {
   const setMarket = useSymbolsStore((s) => s.setMarket);
   const { isPro } = useAuth();
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
+  const { t } = useTranslation();
 
   const filterFn = useMemo(() => {
     if (filterMode === "gainers") return (row: SymbolRow) => row.change24h > 0;
@@ -25,10 +27,8 @@ export default function MarketPage() {
       <div className="mx-auto w-full max-w-6xl px-4 py-10">
         <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Market Overview</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              실시간 가격, 거래량, 변동률을 기준으로 시장을 스크리닝합니다.
-            </p>
+            <h1 className="text-2xl font-semibold text-gray-900">{t("market.title")}</h1>
+            <p className="mt-1 text-sm text-gray-500">{t("market.desc")}</p>
           </div>
           <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 p-1">
             <button
@@ -38,7 +38,7 @@ export default function MarketPage() {
                 market === "spot" ? "bg-primary text-white" : "text-gray-600 hover:bg-white"
               }`}
             >
-              Spot
+              {t("common.marketSpot")}
             </button>
             <button
               type="button"
@@ -47,7 +47,7 @@ export default function MarketPage() {
                 market === "um" ? "bg-primary text-white" : "text-gray-600 hover:bg-white"
               }`}
             >
-              UM
+              {t("common.marketUm")}
             </button>
           </div>
         </header>
@@ -63,7 +63,11 @@ export default function MarketPage() {
                   filterMode === mode ? "bg-primary/10 text-primary" : "bg-gray-100 text-gray-500"
                 }`}
               >
-                {mode === "all" ? "전체" : mode === "gainers" ? "상승" : "하락"}
+                {mode === "all"
+                  ? t("market.filterAll")
+                  : mode === "gainers"
+                    ? t("market.filterGainers")
+                    : t("market.filterLosers")}
               </button>
             ))}
           </div>
@@ -76,7 +80,7 @@ export default function MarketPage() {
 
         {!isPro ? (
           <div className="mt-4 rounded-2xl border border-dashed border-gray-200 bg-white p-4 text-sm text-gray-500">
-            무료 플랜은 상위 50개 심볼만 제공합니다. 전체 심볼과 실시간 업데이트는 Pro에서 이용할 수 있습니다.
+            {t("market.freeLimit")}
           </div>
         ) : null}
       </div>

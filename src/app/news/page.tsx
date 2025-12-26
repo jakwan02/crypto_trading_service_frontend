@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const SOURCES = ["전체", "CoinDesk", "Cointelegraph", "Bloomberg", "The Block"] as const;
 
@@ -45,6 +46,7 @@ const NEWS = [
 export default function NewsPage() {
   const [source, setSource] = useState<(typeof SOURCES)[number]>("전체");
   const [query, setQuery] = useState("");
+  const { t } = useTranslation();
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -59,10 +61,8 @@ export default function NewsPage() {
     <main className="min-h-screen bg-transparent">
       <div className="mx-auto w-full max-w-6xl px-4 py-10">
         <header className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">News Hub</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            주요 뉴스와 시장 이슈를 한눈에 확인하고 빠르게 대응하세요.
-          </p>
+          <h1 className="text-2xl font-semibold text-gray-900">{t("news.title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("news.desc")}</p>
         </header>
 
         <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -84,7 +84,7 @@ export default function NewsPage() {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="뉴스 검색"
+            placeholder={t("news.search")}
             className="w-full rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none sm:w-64"
           />
         </div>
@@ -103,7 +103,7 @@ export default function NewsPage() {
                 주요 내용 요약이 여기에 표시됩니다. 상세 뉴스는 클릭하여 원문으로 이동할 수 있습니다.
               </p>
               <button type="button" className="mt-4 text-xs font-semibold text-primary">
-                전문 보기
+                {t("news.viewFull")}
               </button>
             </article>
           ))}

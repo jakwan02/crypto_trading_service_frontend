@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSymbols } from "@/hooks/useSymbols";
 import { useSymbolsStore } from "@/store/useSymbolStore";
 
@@ -10,6 +11,7 @@ export default function ChartLandingPage() {
   const setMarket = useSymbolsStore((s) => s.setMarket);
   const { data } = useSymbols("1d");
   const [query, setQuery] = useState("");
+  const { t } = useTranslation();
 
   const filtered = useMemo(() => {
     const list = data ?? [];
@@ -23,8 +25,8 @@ export default function ChartLandingPage() {
       <div className="mx-auto w-full max-w-6xl px-4 py-10">
         <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Chart Hub</h1>
-            <p className="mt-1 text-sm text-gray-500">심볼을 선택해 상세 차트와 분석을 확인하세요.</p>
+            <h1 className="text-2xl font-semibold text-gray-900">{t("chart.hubTitle")}</h1>
+            <p className="mt-1 text-sm text-gray-500">{t("chart.hubDesc")}</p>
           </div>
           <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 p-1">
             <button
@@ -34,7 +36,7 @@ export default function ChartLandingPage() {
                 market === "spot" ? "bg-primary text-white" : "text-gray-600 hover:bg-white"
               }`}
             >
-              Spot
+              {t("common.marketSpot")}
             </button>
             <button
               type="button"
@@ -43,7 +45,7 @@ export default function ChartLandingPage() {
                 market === "um" ? "bg-primary text-white" : "text-gray-600 hover:bg-white"
               }`}
             >
-              UM
+              {t("common.marketUm")}
             </button>
           </div>
         </header>
@@ -53,7 +55,7 @@ export default function ChartLandingPage() {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="심볼 또는 베이스 자산 검색"
+            placeholder={t("market.searchPlaceholder")}
             className="w-full rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
           />
         </div>
@@ -71,7 +73,7 @@ export default function ChartLandingPage() {
                   {row.change24h.toFixed(2)}%
                 </span>
               </div>
-              <p className="mt-2 text-xs text-gray-500">실시간 차트 & 지표 요약 보기</p>
+              <p className="mt-2 text-xs text-gray-500">{t("chart.chartDesc")}</p>
             </Link>
           ))}
         </div>

@@ -3,7 +3,8 @@
 import { ReactNode, createContext, useCallback, useMemo, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { LocaleProvider } from "@/contexts/LocaleContext";
+import { I18nextProvider } from "react-i18next";
+import i18n from "@/i18n/i18n";
 
 export type ThemeMode = "light" | "dark";
 
@@ -47,9 +48,9 @@ export function AppProviders({ children }: Props) {
   return (
     <ThemeContext.Provider value={themeValue}>
       <QueryClientProvider client={client}>
-        <LocaleProvider>
+        <I18nextProvider i18n={i18n}>
           <AuthProvider>{children}</AuthProvider>
-        </LocaleProvider>
+        </I18nextProvider>
       </QueryClientProvider>
     </ThemeContext.Provider>
   );

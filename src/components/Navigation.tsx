@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 
 const NAV_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/market", label: "Market" },
-  { href: "/chart", label: "Charts" },
-  { href: "/indicators", label: "AI Insights", pro: true },
-  { href: "/news", label: "News" },
-  { href: "/alerts", label: "Alerts" }
+  { href: "/", labelKey: "nav.home" },
+  { href: "/market", labelKey: "nav.market" },
+  { href: "/chart", labelKey: "nav.charts" },
+  { href: "/indicators", labelKey: "nav.ai", pro: true },
+  { href: "/news", labelKey: "nav.news" },
+  { href: "/alerts", labelKey: "nav.alerts" }
 ];
 
 type Props = {
@@ -21,6 +22,7 @@ type Props = {
 export default function Navigation({ className = "", onNavigate }: Props) {
   const pathname = usePathname() || "/";
   const { isPro } = useAuth();
+  const { t } = useTranslation();
 
   return (
     <nav className={className} aria-label="Main navigation">
@@ -38,7 +40,7 @@ export default function Navigation({ className = "", onNavigate }: Props) {
             className={`${base} ${isActive ? active : idle}`}
             aria-current={isActive ? "page" : undefined}
           >
-            {link.label}
+            {t(link.labelKey)}
             {link.pro ? (
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide ${

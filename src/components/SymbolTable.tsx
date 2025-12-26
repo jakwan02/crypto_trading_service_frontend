@@ -12,6 +12,7 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import { useSymbols, type SymbolRow, type MetricWindow } from "@/hooks/useSymbols";
 import { useSymbolsStore, SortKey } from "@/store/useSymbolStore";
 
@@ -79,6 +80,7 @@ export default function SymbolTable({
 }: Props) {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const { t } = useTranslation();
 
   const [win, setWin] = useState<MetricWindow>("1d");
   const { data, isLoading, isError } = useSymbols(win);
@@ -188,13 +190,13 @@ export default function SymbolTable({
     return [
       columnHelper.accessor("symbol", {
         id: "symbol",
-        header: () => "Symbol",
+        header: () => t("table.symbol"),
         cell: (info) => <span className="font-medium text-gray-900">{info.getValue()}</span>
       }),
 
       columnHelper.accessor("price", {
         id: "price",
-        header: () => "Price",
+        header: () => t("table.price"),
         cell: (info) => {
           const value = info.getValue() as number;
           if (isLoading && (!value || value === 0)) return <LoadingBar />;
@@ -211,7 +213,7 @@ export default function SymbolTable({
 
       columnHelper.accessor("volume", {
         id: "volume",
-        header: () => `${wl} 거래량`,
+        header: () => `${wl} ${t("table.volume")}`,
         cell: (info) => {
           const value = info.getValue() as number;
           if (isLoading && (!value || value === 0)) return <LoadingBar />;
@@ -226,7 +228,7 @@ export default function SymbolTable({
 
       columnHelper.accessor((row) => row.quoteVolume, {
         id: "turnover",
-        header: () => `${wl} 거래대금`,
+        header: () => `${wl} ${t("table.turnover")}`,
         cell: (info) => {
           const value = info.getValue() as number;
           if (isLoading && (!value || value === 0)) return <LoadingBar />;
@@ -243,7 +245,7 @@ export default function SymbolTable({
 
       columnHelper.accessor("change24h", {
         id: "change24h",
-        header: () => `${wl} Change`,
+        header: () => `${wl} ${t("table.change")}`,
         cell: (info) => {
           const value = info.getValue() as number;
           if (isLoading && (!value && value !== 0)) return <LoadingBar />;
@@ -262,7 +264,7 @@ export default function SymbolTable({
 
       columnHelper.accessor((row) => row.onboardDate, {
         id: "time",
-        header: () => "Onboard Date",
+        header: () => t("table.onboardDate"),
         cell: (info) => {
           const value = info.getValue() as number;
           if (!value || value <= 0) return <span className="text-xs text-gray-400">-</span>;
@@ -300,13 +302,13 @@ export default function SymbolTable({
   };
 
   if (isLoading) {
-    return <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">로딩 중...</div>;
+    return <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">{t("table.loading")}</div>;
   }
 
   if (isError) {
     return (
       <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">
-        심볼 데이터를 불러오는 중 오류가 발생했습니다.
+        {t("table.error")}
       </div>
     );
   }
@@ -314,7 +316,7 @@ export default function SymbolTable({
   if (!data || data.length === 0) {
     return (
       <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">
-        표시할 심볼이 없습니다.
+        {t("table.empty")}
       </div>
     );
   }
@@ -325,7 +327,7 @@ export default function SymbolTable({
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">Metrics window</span>
+              <span className="text-xs text-gray-500">{t("table.metricsWindow")}</span>
               <select
                 className="rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700"
                 value={win}
@@ -343,12 +345,12 @@ export default function SymbolTable({
               type="search"
               value={query}
               onChange={(event) => handleQueryChange(event.target.value)}
-              placeholder="심볼 검색"
+              placeholder={t("common.searchSymbol")}
               className="w-40 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 focus:border-primary focus:outline-none"
             />
           </div>
 
-          <span className="text-xs text-gray-400">정렬 가능한 열만 클릭됩니다.</span>
+          <span className="text-xs text-gray-400">{t("table.sortableHint")}</span>
         </div>
       ) : null}
 
@@ -414,7 +416,7 @@ export default function SymbolTable({
       </div>
       {limit && filtered.length > limit ? (
         <p className="mt-3 text-xs text-gray-400">
-          무료 플랜은 상위 {limit}개까지만 표시됩니다.
+          {t("table.limitNotice", { count: limit })}
         </p>
       ) : null}
     </div>

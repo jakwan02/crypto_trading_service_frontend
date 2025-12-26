@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSymbolsStore } from "@/store/useSymbolStore";
+import { nextBackoff } from "@/lib/backoff";
 
 export type Candle = {
   time: number; // ms
@@ -85,6 +86,27 @@ function toWsBase(): string {
   if (base.startsWith("https://")) return "wss://" + base.slice("https://".length);
   if (base.startsWith("http://")) return "ws://" + base.slice("http://".length);
   return base;
+}
+
+function getApiToken(): string {
+  return String(process.env.NEXT_PUBLIC_API_TOKEN || "").trim();
+}
+
+function getWsToken(): string {
+  return String(process.env.NEXT_PUBLIC_WS_TOKEN || "").trim();
+}
+
+function withApiToken(headers?: HeadersInit): HeadersInit | undefined {
+  const token = getApiToken();
+  if (!token) return headers;
+  return { ...(headers || {}), "X-API-Token": token };
+}
+
+function withWsToken(url: string): string {
+  const token = getWsToken() || getApiToken();
+  if (!token) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}token=${encodeURIComponent(token)}`;
 }
 
 function toMs(t: number): number {
@@ -171,6 +193,7 @@ export function useChart(symbol: string | null, timeframe: string) {
   const retryRef = useRef(0);
   const dataRef = useRef<Candle[]>([]);
   const noticeTimerRef = useRef<number | null>(null);
+  const reconnectTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -183,6 +206,10 @@ export function useChart(symbol: string | null, timeframe: string) {
       if (noticeTimerRef.current) {
         window.clearTimeout(noticeTimerRef.current);
         noticeTimerRef.current = null;
+      }
+      if (reconnectTimerRef.current) {
+        window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
       }
     };
   }, []);
@@ -231,12 +258,13 @@ export function useChart(symbol: string | null, timeframe: string) {
 
     const wsBase = toWsBase();
     const apiBase = toApiBase();
-    const url =
+    const url = withWsToken(
       `${wsBase}/ws_chart` +
-      `?market=${encodeURIComponent(m)}` +
-      `&symbol=${encodeURIComponent(sym)}` +
-      `&tf=${encodeURIComponent(tfNorm)}` +
-      `&limit=${encodeURIComponent(String(300))}`;
+        `?market=${encodeURIComponent(m)}` +
+        `&symbol=${encodeURIComponent(sym)}` +
+        `&tf=${encodeURIComponent(tfNorm)}` +
+        `&limit=${encodeURIComponent(String(300))}`
+    );
 
     let ws: WebSocket | null = null;
     let stopped = false;
@@ -289,7 +317,7 @@ export function useChart(symbol: string | null, timeframe: string) {
         `&limit=${encodeURIComponent(String(300))}`;
 
       try {
-        const res = await fetch(snapUrl, { cache: "no-store" });
+        const res = await fetch(snapUrl, { cache: "no-store", headers: withApiToken() });
         if (!res.ok) throw new Error(`chart_http_${res.status}`);
         const js = await res.json();
         const items = Array.isArray(js?.items) ? js.items : [];
@@ -319,6 +347,8 @@ export function useChart(symbol: string | null, timeframe: string) {
           } catch {}
           return;
         }
+        retryRef.current = 0;
+        setError(null);
       };
 
       ws.onmessage = (ev) => {
@@ -377,11 +407,11 @@ export function useChart(symbol: string | null, timeframe: string) {
       ws.onclose = () => {
         if (!aliveRef.current || stopped || connIdRef.current !== myConnId) return;
 
-        const n = Math.min(6, retryRef.current);
-        const delay = Math.round(250 * Math.pow(2, n));
+        const delay = nextBackoff(retryRef.current);
         retryRef.current += 1;
 
-        window.setTimeout(() => {
+        if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = window.setTimeout(() => {
           if (!aliveRef.current || stopped || connIdRef.current !== myConnId) return;
           connect();
         }, delay);
@@ -396,6 +426,10 @@ export function useChart(symbol: string | null, timeframe: string) {
       try {
         ws?.close();
       } catch {}
+      if (reconnectTimerRef.current) {
+        window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       chartCache.delete(cacheKey);
     };
   }, [symbol, market, tf]);
@@ -420,7 +454,7 @@ export function useChart(symbol: string | null, timeframe: string) {
         `&before=${encodeURIComponent(String(oldest))}` +
         `&limit=300`;
 
-      const res = await fetch(url, { cache: "no-store" });
+      const res = await fetch(url, { cache: "no-store", headers: withApiToken() });
       if (!res.ok) throw new Error(`history_http_${res.status}`);
       const js = await res.json();
       const items = Array.isArray(js?.items) ? js.items : [];

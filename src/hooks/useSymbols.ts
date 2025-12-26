@@ -4,6 +4,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSymbolsStore } from "@/store/useSymbolStore";
+import { nextBackoff } from "@/lib/backoff";
+import { MetricItemSchema, SymbolItemSchema } from "@/lib/schemas";
 
 export type MetricWindow = "1m" | "5m" | "15m" | "1h" | "4h" | "1d" | "1w" | "1M" | "1Y";
 type SortKey = "symbol" | "price" | "volume" | "change24h" | "time";
@@ -84,6 +86,27 @@ function toWsBase(): string {
   return base;
 }
 
+function getApiToken(): string {
+  return String(process.env.NEXT_PUBLIC_API_TOKEN || "").trim();
+}
+
+function getWsToken(): string {
+  return String(process.env.NEXT_PUBLIC_WS_TOKEN || "").trim();
+}
+
+function withApiToken(headers?: HeadersInit): HeadersInit | undefined {
+  const token = getApiToken();
+  if (!token) return headers;
+  return { ...(headers || {}), "X-API-Token": token };
+}
+
+function withWsToken(url: string): string {
+  const token = getWsToken() || getApiToken();
+  if (!token) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}token=${encodeURIComponent(token)}`;
+}
+
 function num(x: any, d = 0): number {
   const v = Number(x);
   return Number.isFinite(v) ? v : d;
@@ -125,14 +148,16 @@ async function fetchSymbols(market: string): Promise<SymbolRow[]> {
 
   // 실제 확인된 엔드포인트: /api/symbols?market=spot (응답에 items 포함)
   const url = `${api}/symbols?market=${encodeURIComponent(m)}`;
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetch(url, { cache: "no-store", headers: withApiToken() });
   if (!res.ok) throw new Error(`symbols_http_${res.status}`);
 
   const js = await res.json();
   const items: any[] =
     Array.isArray(js?.items) ? js.items : Array.isArray(js) ? js : Array.isArray(js?.data) ? js.data : [];
+  const parsed = SymbolItemSchema.array().safeParse(items);
+  const safeItems = parsed.success ? parsed.data : [];
 
-  return items.map((r: any) => {
+  return safeItems.map((r) => {
     const onboard = toMs(r.onboard_date ?? r.onboardDate ?? r.onboard_date_ms ?? 0);
 
     return {
@@ -196,7 +221,6 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
     Record<string, { price: number; volume: number; quoteVolume: number; time: number }>
   >({});
   const [tickVer, setTickVer] = useState(0);
-  const tickFlushRef = useRef<number | null>(null);
 
   useEffect(() => {
     tickRef.current = {};
@@ -207,12 +231,14 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
     const m = String(market || "spot").trim().toLowerCase();
     const wsBase = toWsBase();
     const symbolsParam = useAllTickers ? "" : `&symbols=${encodeURIComponent(tickerKey)}`;
-    const url = `${wsBase}/ws_ticker?market=${encodeURIComponent(m)}${symbolsParam}`;
+    const url = withWsToken(`${wsBase}/ws_ticker?market=${encodeURIComponent(m)}${symbolsParam}`);
 
     let ws: WebSocket | null = null;
     let closed = false;
     let lastFlush = 0;
     let flushTimer: number | null = null;
+    let reconnectTimer: number | null = null;
+    let retry = 0;
 
     // 배치/단일 모두 반영
     const applyOne = (it: TickerItem) => {
@@ -233,61 +259,81 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
       };
     };
 
-    try {
-      ws = new WebSocket(url);
-    } catch {
-      return () => {};
-    }
-
-    ws.onmessage = (ev) => {
+    const connect = () => {
       if (closed) return;
-
-      let msg: any;
       try {
-        msg = JSON.parse(ev.data as string);
+        ws = new WebSocket(url);
       } catch {
         return;
       }
 
-      // 1) { items:[...] }
-      if (Array.isArray(msg?.items)) {
-        for (const it of msg.items) applyOne(it);
-      }
-      // 2) [...]
-      else if (Array.isArray(msg)) {
-        for (const it of msg) applyOne(it);
-      }
-      // 3) 단일 객체
-      else if (msg && typeof msg === "object") {
-        applyOne(msg);
-      } else {
-        return;
-      }
+      ws.onopen = () => {
+        retry = 0;
+      };
 
-      const now = Date.now();
-      const elapsed = now - lastFlush;
-      if (elapsed >= TICK_FLUSH_MS) {
-        lastFlush = now;
-        setTickVer((v) => v + 1);
-        return;
-      }
+      ws.onmessage = (ev) => {
+        if (closed) return;
 
-      if (!flushTimer) {
-        flushTimer = window.setTimeout(() => {
-          lastFlush = Date.now();
-          flushTimer = null;
+        let msg: any;
+        try {
+          msg = JSON.parse(ev.data as string);
+        } catch {
+          return;
+        }
+
+        // 1) { items:[...] }
+        if (Array.isArray(msg?.items)) {
+          for (const it of msg.items) applyOne(it);
+        }
+        // 2) [...]
+        else if (Array.isArray(msg)) {
+          for (const it of msg) applyOne(it);
+        }
+        // 3) 단일 객체
+        else if (msg && typeof msg === "object") {
+          applyOne(msg);
+        } else {
+          return;
+        }
+
+        const now = Date.now();
+        const elapsed = now - lastFlush;
+        if (elapsed >= TICK_FLUSH_MS) {
+          lastFlush = now;
           setTickVer((v) => v + 1);
-        }, TICK_FLUSH_MS - elapsed);
-      }
+          return;
+        }
+
+        if (!flushTimer) {
+          flushTimer = window.setTimeout(() => {
+            lastFlush = Date.now();
+            flushTimer = null;
+            setTickVer((v) => v + 1);
+          }, TICK_FLUSH_MS - elapsed);
+        }
+      };
+
+      ws.onerror = () => {
+        try {
+          ws?.close();
+        } catch {}
+      };
+
+      ws.onclose = () => {
+        if (closed) return;
+        const delay = nextBackoff(retry);
+        retry += 1;
+        if (reconnectTimer) window.clearTimeout(reconnectTimer);
+        reconnectTimer = window.setTimeout(connect, delay);
+      };
     };
 
-    ws.onclose = () => {
-      closed = true;
-    };
+    connect();
 
     return () => {
       closed = true;
       if (flushTimer) window.clearTimeout(flushTimer);
+      if (reconnectTimer) window.clearTimeout(reconnectTimer);
       try {
         ws?.close(1000, "cleanup");
       } catch {}
@@ -325,14 +371,20 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
           `&tf=1m` +
           `&window=${encodeURIComponent(metricWindow)}`;
 
-        const res = await fetch(url, { cache: "no-store", signal: controller.signal });
+        const res = await fetch(url, {
+          cache: "no-store",
+          signal: controller.signal,
+          headers: withApiToken(),
+        });
         if (!res.ok) throw new Error(`metrics_http_${res.status}`);
 
         const js = await res.json();
         const items = Array.isArray(js?.items) ? js.items : [];
+        const parsed = MetricItemSchema.array().safeParse(items);
+        const safeItems = parsed.success ? parsed.data : [];
 
         const map: MetricMap = {};
-        for (const it of items) {
+        for (const it of safeItems) {
           const sym = String(it.symbol || "").toUpperCase();
           if (!sym) continue;
 
@@ -367,56 +419,80 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
     const m = String(market || "spot").trim().toLowerCase();
     const w = String(metricWindow || "1d").trim();
     const wsBase = toWsBase();
-    const url =
+    const url = withWsToken(
       `${wsBase}/ws_metrics` +
-      `?market=${encodeURIComponent(m)}` +
-      `&window=${encodeURIComponent(w)}`;
+        `?market=${encodeURIComponent(m)}` +
+        `&window=${encodeURIComponent(w)}`
+    );
 
     let ws: WebSocket | null = null;
     let closed = false;
+    let reconnectTimer: number | null = null;
+    let retry = 0;
 
-    try {
-      ws = new WebSocket(url);
-    } catch {
-      return () => {};
-    }
-
-    ws.onmessage = (ev) => {
+    const connect = () => {
       if (closed) return;
-      let msg: any;
       try {
-        msg = JSON.parse(ev.data as string);
+        ws = new WebSocket(url);
       } catch {
         return;
       }
 
-      const items = Array.isArray(msg?.items) ? msg.items : [];
-      if (!items.length) return;
+      ws.onopen = () => {
+        retry = 0;
+      };
 
-      const next = { ...metricsRef.current };
-      for (const it of items) {
-        const sym = String(it.symbol || "").toUpperCase();
-        if (!sym) continue;
-        next[sym] = {
-          volume: num(it.volume ?? it.volume_sum ?? 0),
-          quoteVolume: num(it.quote_volume ?? it.quoteVolume ?? 0),
-          pctChange: num(it.pct_change ?? it.pctChange ?? 0),
-        };
-      }
-      metricsRef.current = next;
+      ws.onmessage = (ev) => {
+        if (closed) return;
+        let msg: any;
+        try {
+          msg = JSON.parse(ev.data as string);
+        } catch {
+          return;
+        }
 
-      if (!metricsFlushRef.current) {
-        metricsFlushRef.current = window.setTimeout(() => {
-          metricsFlushRef.current = null;
-          metricsCache[metricsKey] = { ts: Date.now(), data: metricsRef.current };
-          setMetricsVer((v) => v + 1);
-        }, METRICS_FLUSH_MS);
-      }
+        const items = Array.isArray(msg?.items) ? msg.items : [];
+        const parsed = MetricItemSchema.array().safeParse(items);
+        const safeItems = parsed.success ? parsed.data : [];
+        if (!safeItems.length) return;
+
+        const next = { ...metricsRef.current };
+        for (const it of safeItems) {
+          const sym = String(it.symbol || "").toUpperCase();
+          if (!sym) continue;
+          next[sym] = {
+            volume: num(it.volume ?? it.volume_sum ?? 0),
+            quoteVolume: num(it.quote_volume ?? it.quoteVolume ?? 0),
+            pctChange: num(it.pct_change ?? it.pctChange ?? 0),
+          };
+        }
+        metricsRef.current = next;
+
+        if (!metricsFlushRef.current) {
+          metricsFlushRef.current = window.setTimeout(() => {
+            metricsFlushRef.current = null;
+            metricsCache[metricsKey] = { ts: Date.now(), data: metricsRef.current };
+            setMetricsVer((v) => v + 1);
+          }, METRICS_FLUSH_MS);
+        }
+      };
+
+      ws.onerror = () => {
+        try {
+          ws?.close();
+        } catch {}
+      };
+
+      ws.onclose = () => {
+        if (closed) return;
+        const delay = nextBackoff(retry);
+        retry += 1;
+        if (reconnectTimer) window.clearTimeout(reconnectTimer);
+        reconnectTimer = window.setTimeout(connect, delay);
+      };
     };
 
-    ws.onclose = () => {
-      closed = true;
-    };
+    connect();
 
     return () => {
       closed = true;
@@ -424,6 +500,7 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
         window.clearTimeout(metricsFlushRef.current);
         metricsFlushRef.current = null;
       }
+      if (reconnectTimer) window.clearTimeout(reconnectTimer);
       try {
         ws?.close(1000, "cleanup");
       } catch {}

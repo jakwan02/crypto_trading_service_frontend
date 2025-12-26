@@ -29,4 +29,20 @@ npm run dev
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
+선택 (API/WS 토큰 보호 사용 시):
+
+- `NEXT_PUBLIC_API_TOKEN`
+- `NEXT_PUBLIC_WS_TOKEN`
+
+선택 (모니터링 - Sentry):
+
+- `NEXT_PUBLIC_SENTRY_DSN`
+- `SENTRY_AUTH_TOKEN` (소스맵 업로드 시)
+
 Supabase 변수가 없으면 Google 로그인이 비활성화되며, UI는 그대로 렌더됩니다.
+
+## Tests
+
+```bash
+npm run test
+```

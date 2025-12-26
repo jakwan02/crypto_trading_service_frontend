@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 
 const FEATURES = [
@@ -13,6 +14,7 @@ const FEATURES = [
 export default function UpgradePage() {
   const { isPro, setPlan } = useAuth();
   const [status, setStatus] = useState("");
+  const { t } = useTranslation();
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -24,13 +26,13 @@ export default function UpgradePage() {
     <main className="min-h-screen bg-transparent">
       <div className="mx-auto w-full max-w-6xl px-4 py-10">
         <header className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">Pro 업그레이드</h1>
-          <p className="mt-1 text-sm text-gray-500">월 단위 구독으로 고급 데이터를 실시간으로 받아보세요.</p>
+          <h1 className="text-2xl font-semibold text-gray-900">{t("upgrade.title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("upgrade.desc")}</p>
         </header>
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
           <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">Pro 플랜 혜택</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t("upgrade.planTitle")}</h2>
             <ul className="mt-4 space-y-3 text-sm text-gray-600">
               {FEATURES.map((item) => (
                 <li key={item} className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-2">
@@ -40,13 +42,13 @@ export default function UpgradePage() {
             </ul>
 
             <div className="mt-6 rounded-2xl border border-primary/20 bg-primary/5 p-4">
-              <p className="text-sm font-semibold text-gray-900">월 29,000원</p>
-              <p className="mt-1 text-xs text-gray-500">VAT 포함 · 언제든 해지 가능</p>
+              <p className="text-sm font-semibold text-gray-900">{t("upgrade.price")}</p>
+              <p className="mt-1 text-xs text-gray-500">{t("upgrade.priceNote")}</p>
             </div>
           </section>
 
           <form onSubmit={handleSubmit} className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">결제 정보</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t("upgrade.payTitle")}</h2>
             <div className="mt-4 space-y-3 text-sm text-gray-600">
               <div>
                 <label className="text-xs font-semibold text-gray-600">카드 번호</label>
@@ -80,11 +82,11 @@ export default function UpgradePage() {
               type="submit"
               className="mt-6 w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark"
             >
-              월 구독 시작하기
+              {t("upgrade.cta")}
             </button>
             {status ? <p className="mt-3 text-xs text-primary">{status}</p> : null}
             {isPro ? (
-              <p className="mt-3 text-xs text-emerald-600">이미 Pro 플랜이 활성화되어 있습니다.</p>
+              <p className="mt-3 text-xs text-emerald-600">{t("upgrade.active")}</p>
             ) : null}
           </form>
         </div>

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Bell, ChevronDown, Crown, Menu, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import Navigation from "./Navigation";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,13 +34,14 @@ export default function Header() {
   const [accountOpen, setAccountOpen] = useState(false);
   const [noticeOpen, setNoticeOpen] = useState(false);
   const { user, signInWithGoogle, signOut, isPro } = useAuth();
+  const { t } = useTranslation();
   const displayName = useMemo(() => {
-    if (!user) return "게스트";
+    if (!user) return t("common.guest");
     return (
       String(user.user_metadata?.full_name || user.user_metadata?.name || "").trim() ||
-      String(user.email || "사용자")
+      String(user.email || t("common.user"))
     );
-  }, [user]);
+  }, [user, t]);
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur">
@@ -49,8 +51,8 @@ export default function Header() {
             CD
           </span>
           <div className="leading-tight">
-            <span className="block text-base font-semibold text-gray-900">CoinDash</span>
-            <span className="block text-xs text-secondary">AI crypto intelligence</span>
+            <span className="block text-base font-semibold text-gray-900">{t("common.appName")}</span>
+            <span className="block text-xs text-secondary">{t("common.tagline")}</span>
           </div>
         </Link>
 
@@ -69,9 +71,9 @@ export default function Header() {
               <Bell className="h-4 w-4" />
               <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
             </button>
-            {noticeOpen ? (
-              <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-gray-200 bg-white p-3 shadow-lg">
-                <p className="text-xs font-semibold text-gray-500">최근 알림</p>
+              {noticeOpen ? (
+                <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-gray-200 bg-white p-3 shadow-lg">
+                <p className="text-xs font-semibold text-gray-500">{t("common.recentAlerts")}</p>
                 <div className="mt-3 space-y-2">
                   {NOTIFICATIONS.map((item) => (
                     <Link
@@ -95,12 +97,12 @@ export default function Header() {
               className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary/20"
             >
               <Crown className="h-4 w-4" />
-              Pro 업그레이드
+              {t("common.proUpgrade")}
             </Link>
           ) : (
             <span className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-white">
               <Crown className="h-4 w-4" />
-              PRO
+              {t("common.pro")}
             </span>
           )}
 
@@ -110,7 +112,7 @@ export default function Header() {
               onClick={signInWithGoogle}
               className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark"
             >
-              Google 로그인
+              {t("common.loginGoogle")}
             </button>
           ) : (
             <div className="relative">
@@ -129,14 +131,14 @@ export default function Header() {
                     onClick={() => setAccountOpen(false)}
                     className="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   >
-                    계정 관리
+                    {t("common.account")}
                   </Link>
                   <Link
                     href="/alerts"
                     onClick={() => setAccountOpen(false)}
                     className="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   >
-                    알림 관리
+                    {t("common.alerts")}
                   </Link>
                   <button
                     type="button"
@@ -146,7 +148,7 @@ export default function Header() {
                     }}
                     className="w-full rounded-lg px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
                   >
-                    로그아웃
+                    {t("common.logout")}
                   </button>
                 </div>
               ) : null}
@@ -181,7 +183,7 @@ export default function Header() {
           }`}
         >
           <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4">
-            <span className="text-sm font-semibold text-gray-900">Navigation</span>
+            <span className="text-sm font-semibold text-gray-900">{t("common.navigation")}</span>
             <button
               type="button"
               aria-label="Close menu"
@@ -201,12 +203,12 @@ export default function Header() {
                   onClick={() => setMobileOpen(false)}
                   className="rounded-full bg-primary/10 px-4 py-2 text-xs font-semibold text-primary"
                 >
-                  Pro 업그레이드
+                  {t("common.proUpgrade")}
                 </Link>
               ) : (
                 <span className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-white">
                   <Crown className="h-4 w-4" />
-                  PRO
+                  {t("common.pro")}
                 </span>
               )}
 
@@ -219,7 +221,7 @@ export default function Header() {
                   }}
                   className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white"
                 >
-                  Google 로그인
+                  {t("common.loginGoogle")}
                 </button>
               ) : (
                 <div className="flex flex-col gap-2">
@@ -228,7 +230,7 @@ export default function Header() {
                     onClick={() => setMobileOpen(false)}
                     className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700"
                   >
-                    계정 관리
+                    {t("common.account")}
                   </Link>
                   <button
                     type="button"
@@ -238,7 +240,7 @@ export default function Header() {
                     }}
                     className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700"
                   >
-                    로그아웃
+                    {t("common.logout")}
                   </button>
                 </div>
               )}

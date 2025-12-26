@@ -2,38 +2,38 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function SignupPage() {
   const [status, setStatus] = useState<string>("");
   const { signInWithGoogle } = useAuth();
+  const { t } = useTranslation();
 
   return (
     <main className="min-h-screen bg-transparent">
       <div className="mx-auto w-full max-w-md px-4 py-12">
         <div className="fade-up rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-semibold text-gray-900">가입 안내</h1>
-          <p className="mt-2 text-sm text-gray-500">
-            CoinDash는 Google 소셜 로그인만 제공합니다. 클릭 한 번으로 계정이 생성됩니다.
-          </p>
+          <h1 className="text-2xl font-semibold text-gray-900">{t("auth.signupTitle")}</h1>
+          <p className="mt-2 text-sm text-gray-500">{t("auth.signupDesc")}</p>
 
           <button
             type="button"
             onClick={async () => {
-              setStatus("Google 로그인으로 이동합니다.");
+              setStatus(t("auth.redirecting"));
               await signInWithGoogle();
             }}
             className="mt-6 w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark"
           >
-            Google로 가입하기
+            {t("auth.signupCta")}
           </button>
 
           {status ? <p className="mt-4 text-xs text-primary">{status}</p> : null}
 
           <div className="mt-6 text-sm text-gray-500">
-            이미 계정이 있으신가요?{" "}
+            {t("auth.hasAccount")}{" "}
             <Link href="/login" className="font-medium text-primary hover:text-primary-dark">
-              로그인
+              {t("auth.loginLink")}
             </Link>
           </div>
         </div>
