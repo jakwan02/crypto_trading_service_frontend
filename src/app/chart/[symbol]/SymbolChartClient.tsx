@@ -25,7 +25,7 @@ export default function SymbolChartClient({ symbol }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const info = useMemo(() => symbols?.find((row) => row.symbol === sym), [symbols, sym]);
-  const changeValue = info?.change24h;
+  const changeValue = info?.change24h ?? NaN;
   const changeIsNumber = Number.isFinite(changeValue);
   const tfLabel = tf;
 

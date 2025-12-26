@@ -3,7 +3,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ColumnDef,
   createColumnHelper,
   flexRender,
   getCoreRowModel,
@@ -174,7 +173,7 @@ export default function SymbolTable({
     return filtered.slice(0, limit);
   }, [filtered, limit]);
 
-  const columns = useMemo<ColumnDef<SymbolRow, any>[]>(() => {
+  const columns = useMemo(() => {
     const wl = winLabel(win);
 
     return [

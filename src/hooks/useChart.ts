@@ -19,9 +19,9 @@ type WsSnap = {
   market?: string;
   symbol?: string;
   tf?: string;
-  candles?: any[];
-  final?: any[];
-  temp?: any | null;
+  candles?: unknown[];
+  final?: unknown[];
+  temp?: unknown | null;
 };
 
 type WsUpd = {
@@ -35,7 +35,7 @@ type WsUpd = {
   s?: string;
   k?: string;
 
-  candle?: any;
+  candle?: unknown;
   t?: number;
   o?: number;
   h?: number;
@@ -115,18 +115,19 @@ function toMs(t: number): number {
   return Math.floor(t);
 }
 
-function parseCandle(x: any): Candle | null {
+function parseCandle(x: unknown): Candle | null {
   if (!x || typeof x !== "object") return null;
 
-  const tRaw = Number(x.t ?? x.time ?? 0);
+  const obj = x as Record<string, unknown>;
+  const tRaw = Number(obj.t ?? obj.time ?? 0);
   const t = toMs(tRaw);
   if (!Number.isFinite(t) || t <= 0) return null;
 
-  const o = Number(x.o ?? x.open ?? 0);
-  const h = Number(x.h ?? x.high ?? 0);
-  const l = Number(x.l ?? x.low ?? 0);
-  const c = Number(x.c ?? x.close ?? 0);
-  const v = Number(x.v ?? x.volume ?? 0);
+  const o = Number(obj.o ?? obj.open ?? 0);
+  const h = Number(obj.h ?? obj.high ?? 0);
+  const l = Number(obj.l ?? obj.low ?? 0);
+  const c = Number(obj.c ?? obj.close ?? 0);
+  const v = Number(obj.v ?? obj.volume ?? 0);
 
   return {
     time: t,
@@ -165,21 +166,22 @@ function upsert(arr: Candle[], it: Candle, maxLen: number): Candle[] {
   return out;
 }
 
-function isSnapshotMsg(msg: any): boolean {
+function isSnapshotMsg(msg: unknown): boolean {
   if (!msg || typeof msg !== "object") return false;
-  const tp = String(msg.type || "").toLowerCase();
+  const obj = msg as Record<string, unknown>;
+  const tp = String(obj.type || "").toLowerCase();
   if (tp === "snapshot") return true;
 
   // type이 없어도 스냅샷은 배열을 포함한다
-  if (Array.isArray(msg.candles)) return true;
-  if (Array.isArray(msg.final)) return true;
+  if (Array.isArray(obj.candles)) return true;
+  if (Array.isArray(obj.final)) return true;
 
   return false;
 }
 
 export function useChart(symbol: string | null, timeframe: string) {
   const tf = normTf(timeframe);
-  const market = useSymbolsStore((s: any) => (s?.market ?? s?.activeMarket ?? s?.selMarket ?? "spot")) as string;
+  const market = useSymbolsStore((s) => s.market);
 
   const [data, setData] = useState<Candle[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -268,7 +270,7 @@ export function useChart(symbol: string | null, timeframe: string) {
     let stopped = false;
     let restReqId = 0;
 
-    const buildSnapshot = (raw: any[], tempRaw?: any | null): Candle[] => {
+    const buildSnapshot = (raw: unknown[], tempRaw?: unknown | null): Candle[] => {
       const out: Candle[] = [];
       const seen = new Set<number>();
 
@@ -352,9 +354,9 @@ export function useChart(symbol: string | null, timeframe: string) {
       ws.onmessage = (ev) => {
         if (!aliveRef.current || stopped || connIdRef.current !== myConnId) return;
 
-        let msg: any;
+        let msg: unknown;
         try {
-          msg = JSON.parse(ev.data);
+          msg = JSON.parse(ev.data) as unknown;
         } catch {
           return;
         }
@@ -479,7 +481,7 @@ export function useChart(symbol: string | null, timeframe: string) {
       } else {
         pushNotice("end", "과거 데이터가 더 없습니다.");
       }
-    } catch (e) {
+    } catch {
       setError("history_error");
       pushNotice("error", "이전 데이터 로드에 실패했습니다. 잠시 후 다시 시도해주세요.");
     } finally {

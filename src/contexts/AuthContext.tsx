@@ -40,20 +40,15 @@ const AuthContext = createContext<AuthContextValue>({
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [sessionReady, setSessionReady] = useState(false);
-  const [plan, setPlanState] = useState<Plan>("free");
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+  const [sessionReady, setSessionReady] = useState(() => !supabase);
+  const [plan, setPlanState] = useState<Plan>(() => {
+    if (typeof window === "undefined") return "free";
     const saved = window.localStorage.getItem("coindash_plan");
-    if (saved === "free" || saved === "pro") setPlanState(saved);
-  }, []);
+    return saved === "free" || saved === "pro" ? saved : "free";
+  });
 
   useEffect(() => {
-    if (!supabase) {
-      setSessionReady(true);
-      return;
-    }
+    if (!supabase) return;
 
     let alive = true;
     supabase.auth

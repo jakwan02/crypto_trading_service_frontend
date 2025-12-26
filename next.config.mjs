@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -8,10 +10,6 @@ const nextConfig = {
 const hasSentryToken = Boolean(process.env.SENTRY_AUTH_TOKEN);
 const hasSentryDsn = Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN);
 
-if (hasSentryToken || hasSentryDsn) {
-  // eslint-disable-next-line global-require
-  const { withSentryConfig } = require("@sentry/nextjs");
-  module.exports = withSentryConfig(nextConfig, { silent: true });
-} else {
-  module.exports = nextConfig;
-}
+const config = hasSentryToken || hasSentryDsn ? withSentryConfig(nextConfig, { silent: true }) : nextConfig;
+
+export default config;

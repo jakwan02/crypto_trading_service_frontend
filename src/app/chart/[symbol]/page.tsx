@@ -6,9 +6,9 @@ type PageProps = { params?: ParamsObj | Promise<ParamsObj> };
 
 async function unwrapParams(p: PageProps["params"]): Promise<ParamsObj> {
   if (!p) return {};
-  const anyP = p as any;
-  if (anyP && typeof anyP.then === "function") {
-    return (await anyP) || {};
+  const maybePromise = p as { then?: unknown } | undefined;
+  if (maybePromise && typeof maybePromise.then === "function") {
+    return (await (p as Promise<ParamsObj>)) || {};
   }
   return (p as ParamsObj) || {};
 }

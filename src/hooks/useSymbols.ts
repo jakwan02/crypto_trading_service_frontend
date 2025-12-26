@@ -106,7 +106,7 @@ function getWsProtocols(): string[] | undefined {
   return [`token.${token}`];
 }
 
-function num(x: any, d = 0): number {
+function num(x: unknown, d = 0): number {
   const v = Number(x);
   return Number.isFinite(v) ? v : d;
 }
@@ -119,7 +119,7 @@ function safeQuoteVolume(q: number, volume: number, price: number): number {
   return Number.isFinite(q) ? q : 0;
 }
 
-function toMs(x: any): number {
+function toMs(x: unknown): number {
   if (!x) return 0;
   if (typeof x === "number") return x;
   const t = new Date(String(x)).getTime();
@@ -150,9 +150,15 @@ async function fetchSymbols(market: string): Promise<SymbolRow[]> {
   const res = await fetch(url, { cache: "no-store", headers: withApiToken() });
   if (!res.ok) throw new Error(`symbols_http_${res.status}`);
 
-  const js = await res.json();
-  const items: any[] =
-    Array.isArray(js?.items) ? js.items : Array.isArray(js) ? js : Array.isArray(js?.data) ? js.data : [];
+  const js = (await res.json()) as { items?: unknown[]; data?: unknown[] } | unknown[];
+  const items: unknown[] =
+    Array.isArray((js as { items?: unknown[] }).items)
+      ? (js as { items?: unknown[] }).items ?? []
+      : Array.isArray(js)
+        ? js
+        : Array.isArray((js as { data?: unknown[] }).data)
+          ? (js as { data?: unknown[] }).data ?? []
+          : [];
   const parsed = SymbolItemSchema.array().safeParse(items);
   const safeItems = parsed.success ? parsed.data : [];
 
@@ -177,9 +183,9 @@ async function fetchSymbols(market: string): Promise<SymbolRow[]> {
 }
 
 export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbolsOptions = {}) {
-  const market = useSymbolsStore((s: any) => String(s.market || "spot"));
-  const sortKey = useSymbolsStore((s: any) => (s.sortKey as SortKey) || "volume");
-  const sortOrder = useSymbolsStore((s: any) => (s.sortOrder as "asc" | "desc") || "desc");
+  const market = useSymbolsStore((s) => s.market);
+  const sortKey = useSymbolsStore((s) => s.sortKey);
+  const sortOrder = useSymbolsStore((s) => s.sortOrder);
   const tickerOverride = options.tickerSymbols;
   const tickerKey = useMemo(() => {
     if (!tickerOverride || tickerOverride.length === 0) return "";
@@ -240,7 +246,8 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
     let retry = 0;
 
     // 배치/단일 모두 반영
-    const applyOne = (it: TickerItem) => {
+    const applyOne = (raw: unknown) => {
+      const it = (raw && typeof raw === "object" ? (raw as TickerItem) : {}) as TickerItem;
       const sym = String(it.symbol || it.s || "").toUpperCase();
       if (!sym) return;
 
@@ -273,16 +280,16 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
       ws.onmessage = (ev) => {
         if (closed) return;
 
-        let msg: any;
+        let msg: unknown;
         try {
-          msg = JSON.parse(ev.data as string);
+          msg = JSON.parse(ev.data as string) as unknown;
         } catch {
           return;
         }
 
         // 1) { items:[...] }
-        if (Array.isArray(msg?.items)) {
-          for (const it of msg.items) applyOne(it);
+        if (msg && typeof msg === "object" && Array.isArray((msg as { items?: unknown[] }).items)) {
+          for (const it of (msg as { items?: unknown[] }).items ?? []) applyOne(it);
         }
         // 2) [...]
         else if (Array.isArray(msg)) {
@@ -377,8 +384,10 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
         });
         if (!res.ok) throw new Error(`metrics_http_${res.status}`);
 
-        const js = await res.json();
-        const items = Array.isArray(js?.items) ? js.items : [];
+        const js = (await res.json()) as { items?: unknown[] } | unknown[];
+        const items = Array.isArray((js as { items?: unknown[] }).items)
+          ? (js as { items?: unknown[] }).items ?? []
+          : [];
         const parsed = MetricItemSchema.array().safeParse(items);
         const safeItems = parsed.success ? parsed.data : [];
 
@@ -442,14 +451,17 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
 
       ws.onmessage = (ev) => {
         if (closed) return;
-        let msg: any;
+        let msg: unknown;
         try {
-          msg = JSON.parse(ev.data as string);
+          msg = JSON.parse(ev.data as string) as unknown;
         } catch {
           return;
         }
 
-        const items = Array.isArray(msg?.items) ? msg.items : [];
+        const items =
+          msg && typeof msg === "object" && Array.isArray((msg as { items?: unknown[] }).items)
+            ? (msg as { items?: unknown[] }).items ?? []
+            : [];
         const parsed = MetricItemSchema.array().safeParse(items);
         const safeItems = parsed.success ? parsed.data : [];
         if (!safeItems.length) return;
