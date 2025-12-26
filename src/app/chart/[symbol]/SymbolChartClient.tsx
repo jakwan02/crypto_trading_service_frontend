@@ -15,7 +15,7 @@ export default function SymbolChartClient({ symbol }: Props) {
   const [tf, setTf] = useState<string>("1d");
   const sym = (symbol || "").toUpperCase();
   const tfWin = tf as MetricWindow;
-  const { data: symbols } = useSymbols(tfWin);
+  const { data: symbols } = useSymbols(tfWin, { tickerSymbols: sym ? [sym] : [] });
   const info = useMemo(() => symbols?.find((row) => row.symbol === sym), [symbols, sym]);
   const changeValue = info?.change24h;
   const changeIsNumber = Number.isFinite(changeValue);

@@ -46,6 +46,10 @@ type SymbolCache = {
   data: SymbolRow[];
 };
 
+type UseSymbolsOptions = {
+  tickerSymbols?: string[];
+};
+
 const SYMBOLS_CACHE_TTL_MS = 15_000;
 const symbolsCache: Record<string, SymbolCache> = {};
 
@@ -144,10 +148,21 @@ async function fetchSymbols(market: string): Promise<SymbolRow[]> {
   });
 }
 
-export function useSymbols(metricWindow: MetricWindow = "1d") {
+export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbolsOptions = {}) {
   const market = useSymbolsStore((s: any) => String(s.market || "spot"));
   const sortKey = useSymbolsStore((s: any) => (s.sortKey as SortKey) || "volume");
   const sortOrder = useSymbolsStore((s: any) => (s.sortOrder as "asc" | "desc") || "desc");
+  const tickerOverride = options.tickerSymbols;
+  const tickerKey = useMemo(() => {
+    if (!tickerOverride || tickerOverride.length === 0) return "";
+    const uniq = Array.from(
+      new Set(tickerOverride.map((s) => String(s || "").trim().toUpperCase()).filter(Boolean))
+    );
+    uniq.sort();
+    return uniq.join(",");
+  }, [tickerOverride ? tickerOverride.join(",") : ""]);
+  const useAllTickers = tickerOverride === undefined;
+  const enableTicker = useAllTickers || tickerKey.length > 0;
 
   const cacheKey = String(market || "spot").trim().toLowerCase();
   const cached = symbolsCache[cacheKey];
@@ -179,9 +194,12 @@ export function useSymbols(metricWindow: MetricWindow = "1d") {
     tickRef.current = {};
     setTickVer((v) => v + 1);
 
+    if (!enableTicker) return;
+
     const m = String(market || "spot").trim().toLowerCase();
     const wsBase = toWsBase();
-    const url = `${wsBase}/ws_ticker?market=${encodeURIComponent(m)}`;
+    const symbolsParam = useAllTickers ? "" : `&symbols=${encodeURIComponent(tickerKey)}`;
+    const url = `${wsBase}/ws_ticker?market=${encodeURIComponent(m)}${symbolsParam}`;
 
     let ws: WebSocket | null = null;
     let closed = false;
@@ -255,7 +273,7 @@ export function useSymbols(metricWindow: MetricWindow = "1d") {
       } catch {}
       ws = null;
     };
-  }, [market]);
+  }, [market, tickerKey, useAllTickers, enableTicker]);
 
   // 3) window 메트릭(거래량/변동률) - REST
   const [metrics, setMetrics] = useState<MetricMap>({});
