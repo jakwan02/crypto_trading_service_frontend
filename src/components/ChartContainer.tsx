@@ -51,7 +51,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
   const prevRangeRef = useRef<{ from: number; to: number } | null>(null);
   const prevSpanRef = useRef<number>(0);
 
-  const { data: candles, error, loadMore, loadingMore } = useChart(symbol, timeframe);
+  const { data: candles, error, loadMore, loadingMore, historyNotice } = useChart(symbol, timeframe);
 
   // 마지막 종가로 precision/minMove 동적 선택
   const pf = useMemo(() => {
@@ -238,7 +238,9 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
       // 좌측 이동(팬)으로 왼쪽 끝 근접 시에만 로드
       const isPan = Math.abs(span - prevSpan) <= 2;
       if (!isPan) return;
-      if (range.from > 2) return;
+
+      const threshold = 0.5;
+      if (range.from > threshold) return;
 
       if (prev && range.from >= prev.from) return;
       const now = Date.now();
@@ -272,6 +274,19 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
 
   return (
     <div className="w-full">
+      {historyNotice ? (
+        <div className="mb-2 flex justify-end">
+          <div
+            className={`rounded px-3 py-1 text-xs ring-1 ${
+              historyNotice.kind === "error"
+                ? "bg-rose-500/10 text-rose-300 ring-rose-500/30"
+                : "bg-emerald-500/10 text-emerald-200 ring-emerald-500/30"
+            }`}
+          >
+            {historyNotice.text}
+          </div>
+        </div>
+      ) : null}
       <div className="mb-2 flex justify-end">
         <button
           type="button"

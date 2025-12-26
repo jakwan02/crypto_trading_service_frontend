@@ -163,12 +163,14 @@ export function useChart(symbol: string | null, timeframe: string) {
   const [data, setData] = useState<Candle[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [historyNotice, setHistoryNotice] = useState<{ kind: "error" | "end"; text: string } | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const aliveRef = useRef(true);
   const connIdRef = useRef(0);
   const retryRef = useRef(0);
   const dataRef = useRef<Candle[]>([]);
+  const noticeTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -178,12 +180,24 @@ export function useChart(symbol: string | null, timeframe: string) {
         wsRef.current?.close();
       } catch {}
       wsRef.current = null;
+      if (noticeTimerRef.current) {
+        window.clearTimeout(noticeTimerRef.current);
+        noticeTimerRef.current = null;
+      }
     };
   }, []);
 
   useEffect(() => {
     dataRef.current = data;
   }, [data]);
+
+  const pushNotice = (kind: "error" | "end", text: string) => {
+    setHistoryNotice({ kind, text });
+    if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
+    noticeTimerRef.current = window.setTimeout(() => {
+      setHistoryNotice(null);
+    }, 2400);
+  };
 
   useEffect(() => {
     const sym = String(symbol || "").trim().toUpperCase();
@@ -385,14 +399,14 @@ export function useChart(symbol: string | null, timeframe: string) {
     };
   }, [symbol, market, tf]);
 
-  const loadMore = async () => {
-    const sym = String(symbol || "").trim().toUpperCase();
-    const m = String(market || "").trim().toLowerCase();
-    const tfNorm = normTf(tf);
-    if (!sym || loadingMore) return;
+    const loadMore = async () => {
+      const sym = String(symbol || "").trim().toUpperCase();
+      const m = String(market || "").trim().toLowerCase();
+      const tfNorm = normTf(tf);
+      if (!sym || loadingMore) return;
 
-    const oldest = data && data.length > 0 ? data[0].time : 0;
-    if (!oldest) return;
+      const oldest = data && data.length > 0 ? data[0].time : 0;
+      if (!oldest) return;
 
     setLoadingMore(true);
     try {
@@ -429,13 +443,16 @@ export function useChart(symbol: string | null, timeframe: string) {
         setData(out);
         const cacheKey = `${m}:${sym}:${tfNorm}`;
         chartCache.set(cacheKey, { ts: Date.now(), data: out });
+      } else {
+        pushNotice("end", "과거 데이터가 더 없습니다.");
       }
     } catch (e) {
       setError("history_error");
+      pushNotice("error", "이전 데이터 로드에 실패했습니다. 잠시 후 다시 시도해주세요.");
     } finally {
       setLoadingMore(false);
     }
   };
 
-  return { data, error, loadMore, loadingMore };
+  return { data, error, loadMore, loadingMore, historyNotice };
 }
