@@ -28,10 +28,12 @@ if (!i18n.isInitialized) {
         "auth",
         "account",
         "upgrade",
+        "payment",
         "education",
         "legal",
         "footer"
       ],
+      nsSeparator: ".",
       detection: {
         order: ["localStorage", "navigator", "htmlTag"],
         caches: ["localStorage"]

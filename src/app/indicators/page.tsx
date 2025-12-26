@@ -6,54 +6,72 @@ import { Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 
-const CATEGORIES = ["전체", "모멘텀", "온체인", "파생", "리스크"] as const;
+const CATEGORIES = [
+  { id: "all", labelKey: "ai.categories.all" },
+  { id: "momentum", labelKey: "ai.categories.momentum" },
+  { id: "onchain", labelKey: "ai.categories.onchain" },
+  { id: "derivatives", labelKey: "ai.categories.derivatives" },
+  { id: "risk", labelKey: "ai.categories.risk" }
+] as const;
 
-const SIGNALS = [
+type SignalItem = {
+  id: string;
+  category: (typeof CATEGORIES)[number]["id"];
+  titleKey: string;
+  summaryKey: string;
+  value: string;
+  valueKey?: string;
+  pro: boolean;
+};
+
+const SIGNALS: SignalItem[] = [
   {
     id: "sig-1",
-    category: "모멘텀",
-    title: "AI 모멘텀 스코어",
-    summary: "시장 모멘텀 강세 전환 신호",
+    category: "momentum",
+    titleKey: "ai.signals.momentumScore.title",
+    summaryKey: "ai.signals.momentumScore.summary",
     value: "72/100",
     pro: true
   },
   {
     id: "sig-2",
-    category: "파생",
-    title: "펀딩비 컨디션",
-    summary: "롱 포지션 우위, 과열 주의",
+    category: "derivatives",
+    titleKey: "ai.signals.funding.title",
+    summaryKey: "ai.signals.funding.summary",
     value: "+0.018%",
     pro: true
   },
   {
     id: "sig-3",
-    category: "온체인",
-    title: "고래 지갑 순유입",
-    summary: "순유입 확대, 매집 가능성",
+    category: "onchain",
+    titleKey: "ai.signals.whaleFlow.title",
+    summaryKey: "ai.signals.whaleFlow.summary",
     value: "↑ 6.2%",
     pro: true
   },
   {
     id: "sig-4",
-    category: "리스크",
-    title: "변동성 경보",
-    summary: "변동성 확장 구간 진입",
+    category: "risk",
+    titleKey: "ai.signals.volatility.title",
+    summaryKey: "ai.signals.volatility.summary",
     value: "High",
+    valueKey: "ai.values.high",
     pro: false
   },
   {
     id: "sig-5",
-    category: "모멘텀",
-    title: "섹터 로테이션",
-    summary: "메이저 알트 순환 매수 강화",
+    category: "momentum",
+    titleKey: "ai.signals.sectorRotation.title",
+    summaryKey: "ai.signals.sectorRotation.summary",
     value: "Alt +",
+    valueKey: "ai.values.altPlus",
     pro: false
   },
   {
     id: "sig-6",
-    category: "파생",
-    title: "청산 히트맵",
-    summary: "상단 4% 구간 집중",
+    category: "derivatives",
+    titleKey: "ai.signals.liquidationHeatmap.title",
+    summaryKey: "ai.signals.liquidationHeatmap.summary",
     value: "Heat",
     pro: true
   }
@@ -61,11 +79,11 @@ const SIGNALS = [
 
 export default function IndicatorsPage() {
   const { isPro } = useAuth();
-  const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("전체");
+  const [category, setCategory] = useState<(typeof CATEGORIES)[number]["id"]>("all");
   const { t } = useTranslation();
 
   const filtered = useMemo(() => {
-    if (category === "전체") return SIGNALS;
+    if (category === "all") return SIGNALS;
     return SIGNALS.filter((item) => item.category === category);
   }, [category]);
 
@@ -86,14 +104,14 @@ export default function IndicatorsPage() {
         <div className="mb-6 flex flex-wrap items-center gap-2">
           {CATEGORIES.map((item) => (
             <button
-              key={item}
+              key={item.id}
               type="button"
-              onClick={() => setCategory(item)}
+              onClick={() => setCategory(item.id)}
               className={`rounded-full px-4 py-1 text-xs font-semibold ${
-                category === item ? "bg-primary/10 text-primary" : "bg-gray-100 text-gray-600"
+                category === item.id ? "bg-primary/10 text-primary" : "bg-gray-100 text-gray-600"
               }`}
             >
-              {item}
+              {t(item.labelKey)}
             </button>
           ))}
         </div>
@@ -108,7 +126,7 @@ export default function IndicatorsPage() {
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  {signal.category}
+                  {t(`ai.categories.${signal.category}`)}
                 </span>
                 {signal.pro ? (
                 <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary">
@@ -116,11 +134,13 @@ export default function IndicatorsPage() {
                 </span>
               ) : null}
             </div>
-            <h3 className="mt-3 text-lg font-semibold text-gray-900">{signal.title}</h3>
-            <p className="mt-2 text-sm text-gray-500">{signal.summary}</p>
+            <h3 className="mt-3 text-lg font-semibold text-gray-900">{t(signal.titleKey)}</h3>
+            <p className="mt-2 text-sm text-gray-500">{t(signal.summaryKey)}</p>
               <div className="mt-4 flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
-                <span className="text-xs text-gray-500">현재 값</span>
-                <span className="text-sm font-semibold text-gray-900">{signal.value}</span>
+                <span className="text-xs text-gray-500">{t("ai.valueLabel")}</span>
+                <span className="text-sm font-semibold text-gray-900">
+                  {signal.valueKey ? t(signal.valueKey) : signal.value}
+                </span>
               </div>
               <button
                 type="button"

@@ -3,59 +3,66 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const SOURCES = ["전체", "CoinDesk", "Cointelegraph", "Bloomberg", "The Block"] as const;
+const SOURCES = [
+  { id: "all", labelKey: "news.sources.all" },
+  { id: "coindesk", labelKey: "news.sources.coindesk" },
+  { id: "cointelegraph", labelKey: "news.sources.cointelegraph" },
+  { id: "bloomberg", labelKey: "news.sources.bloomberg" },
+  { id: "theBlock", labelKey: "news.sources.theBlock" }
+] as const;
 
 const NEWS = [
   {
     id: "news-1",
-    title: "비트코인 현물 ETF 자금 유입 확대",
-    source: "CoinDesk",
-    time: "10분 전",
-    tag: "시장"
+    titleKey: "news.items.news1.title",
+    sourceId: "coindesk",
+    timeKey: "news.items.news1.time",
+    tagKey: "news.tags.market"
   },
   {
     id: "news-2",
-    title: "알트코인 거래량 급증, 변동성 확대",
-    source: "Cointelegraph",
-    time: "35분 전",
-    tag: "알트"
+    titleKey: "news.items.news2.title",
+    sourceId: "cointelegraph",
+    timeKey: "news.items.news2.time",
+    tagKey: "news.tags.alt"
   },
   {
     id: "news-3",
-    title: "거래소 유동성 지표 개선",
-    source: "The Block",
-    time: "1시간 전",
-    tag: "거래소"
+    titleKey: "news.items.news3.title",
+    sourceId: "theBlock",
+    timeKey: "news.items.news3.time",
+    tagKey: "news.tags.exchange"
   },
   {
     id: "news-4",
-    title: "규제 당국, 스테이블코인 가이드라인 발표",
-    source: "Bloomberg",
-    time: "2시간 전",
-    tag: "규제"
+    titleKey: "news.items.news4.title",
+    sourceId: "bloomberg",
+    timeKey: "news.items.news4.time",
+    tagKey: "news.tags.regulation"
   },
   {
     id: "news-5",
-    title: "고래 지갑 대규모 이동 감지",
-    source: "CoinDesk",
-    time: "3시간 전",
-    tag: "온체인"
+    titleKey: "news.items.news5.title",
+    sourceId: "coindesk",
+    timeKey: "news.items.news5.time",
+    tagKey: "news.tags.onchain"
   }
 ];
 
 export default function NewsPage() {
-  const [source, setSource] = useState<(typeof SOURCES)[number]>("전체");
+  const [source, setSource] = useState<(typeof SOURCES)[number]["id"]>("all");
   const [query, setQuery] = useState("");
   const { t } = useTranslation();
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return NEWS.filter((item) => {
-      const matchesSource = source === "전체" || item.source === source;
-      const matchesQuery = q === "" || item.title.toLowerCase().includes(q);
+      const matchesSource = source === "all" || item.sourceId === source;
+      const title = t(item.titleKey).toLowerCase();
+      const matchesQuery = q === "" || title.includes(q);
       return matchesSource && matchesQuery;
     });
-  }, [source, query]);
+  }, [source, query, t]);
 
   return (
     <main className="min-h-screen bg-transparent">
@@ -69,14 +76,14 @@ export default function NewsPage() {
           <div className="flex flex-wrap items-center gap-2">
             {SOURCES.map((item) => (
               <button
-                key={item}
+                key={item.id}
                 type="button"
-                onClick={() => setSource(item)}
+                onClick={() => setSource(item.id)}
                 className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                  source === item ? "bg-primary/10 text-primary" : "bg-gray-100 text-gray-600"
+                  source === item.id ? "bg-primary/10 text-primary" : "bg-gray-100 text-gray-600"
                 }`}
               >
-                {item}
+                {t(item.labelKey)}
               </button>
             ))}
           </div>
@@ -93,14 +100,16 @@ export default function NewsPage() {
           {filtered.map((item) => (
             <article key={item.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
               <div className="flex items-center gap-2 text-xs text-gray-400">
-                <span className="rounded-full bg-gray-100 px-2 py-1 font-semibold text-gray-500">{item.tag}</span>
-                <span>{item.source}</span>
+                <span className="rounded-full bg-gray-100 px-2 py-1 font-semibold text-gray-500">
+                  {t(item.tagKey)}
+                </span>
+                <span>{t(`news.sources.${item.sourceId}`)}</span>
                 <span>·</span>
-                <span>{item.time}</span>
+                <span>{t(item.timeKey)}</span>
               </div>
-              <h2 className="mt-3 text-lg font-semibold text-gray-900">{item.title}</h2>
+              <h2 className="mt-3 text-lg font-semibold text-gray-900">{t(item.titleKey)}</h2>
               <p className="mt-2 text-sm text-gray-500">
-                주요 내용 요약이 여기에 표시됩니다. 상세 뉴스는 클릭하여 원문으로 이동할 수 있습니다.
+                {t("news.summary")}
               </p>
               <button type="button" className="mt-4 text-xs font-semibold text-primary">
                 {t("news.viewFull")}

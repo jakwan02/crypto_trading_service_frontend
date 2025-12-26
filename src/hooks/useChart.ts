@@ -102,11 +102,10 @@ function withApiToken(headers?: HeadersInit): HeadersInit | undefined {
   return { ...(headers || {}), "X-API-Token": token };
 }
 
-function withWsToken(url: string): string {
+function getWsProtocols(): string[] | undefined {
   const token = getWsToken() || getApiToken();
-  if (!token) return url;
-  const sep = url.includes("?") ? "&" : "?";
-  return `${url}${sep}token=${encodeURIComponent(token)}`;
+  if (!token) return undefined;
+  return [`token.${token}`];
 }
 
 function toMs(t: number): number {
@@ -258,13 +257,12 @@ export function useChart(symbol: string | null, timeframe: string) {
 
     const wsBase = toWsBase();
     const apiBase = toApiBase();
-    const url = withWsToken(
+    const url =
       `${wsBase}/ws_chart` +
-        `?market=${encodeURIComponent(m)}` +
-        `&symbol=${encodeURIComponent(sym)}` +
-        `&tf=${encodeURIComponent(tfNorm)}` +
-        `&limit=${encodeURIComponent(String(300))}`
-    );
+      `?market=${encodeURIComponent(m)}` +
+      `&symbol=${encodeURIComponent(sym)}` +
+      `&tf=${encodeURIComponent(tfNorm)}` +
+      `&limit=${encodeURIComponent(String(300))}`;
 
     let ws: WebSocket | null = null;
     let stopped = false;
@@ -337,7 +335,7 @@ export function useChart(symbol: string | null, timeframe: string) {
       if (!aliveRef.current || stopped) return;
       if (connIdRef.current !== myConnId) return;
 
-      ws = new WebSocket(url);
+      ws = new WebSocket(url, getWsProtocols());
       wsRef.current = ws;
 
       ws.onopen = () => {

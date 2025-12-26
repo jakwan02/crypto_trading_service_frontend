@@ -14,6 +14,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useSymbols, type SymbolRow, type MetricWindow } from "@/hooks/useSymbols";
+import { formatCompactNumber } from "@/lib/format";
 import { useSymbolsStore, SortKey } from "@/store/useSymbolStore";
 
 const columnHelper = createColumnHelper<SymbolRow>();
@@ -50,25 +51,13 @@ function priceFrac(x: number): number {
   return 10;
 }
 
-function fmtPrice(x: number): string {
+function fmtPrice(x: number, locale: string): string {
   if (!Number.isFinite(x)) return "-";
   const frac = priceFrac(x);
-  return x.toLocaleString(undefined, {
+  return x.toLocaleString(locale, {
     minimumFractionDigits: 0,
     maximumFractionDigits: frac
   });
-}
-
-function fmtCompact(x: number): string {
-  if (!Number.isFinite(x)) return "-";
-  const ax = Math.abs(x);
-  if (ax === 0) return "0";
-  if (ax >= 1_000_000_000_000) return (x / 1_000_000_000_000).toFixed(2).replace(/\.00$/, "") + "조";
-  if (ax >= 100_000_000) return (x / 100_000_000).toFixed(2).replace(/\.00$/, "") + "억";
-  if (ax >= 10_000) return (x / 10_000).toFixed(2).replace(/\.00$/, "") + "만";
-  if (ax >= 1_000) return (x / 1_000).toFixed(2).replace(/\.00$/, "") + "천";
-  if (ax >= 100) return (x / 100).toFixed(2).replace(/\.00$/, "") + "백";
-  return x.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
 export default function SymbolTable({
@@ -80,7 +69,8 @@ export default function SymbolTable({
 }: Props) {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language;
 
   const [win, setWin] = useState<MetricWindow>("1d");
   const { data, isLoading, isError } = useSymbols(win);
@@ -207,7 +197,7 @@ export default function SymbolTable({
           if (flash?.priceUntil && flash.priceUntil > now) {
             cls += flash.priceDir && flash.priceDir > 0 ? " flash-price-up" : " flash-price-down";
           }
-          return <span className={cls}>{fmtPrice(value)}</span>;
+          return <span className={cls}>{fmtPrice(value, locale)}</span>;
         }
       }),
 
@@ -222,7 +212,7 @@ export default function SymbolTable({
           const now = Date.now();
           const cls =
             flash?.volumeUntil && flash.volumeUntil > now ? "tabular-nums flash-blink" : "tabular-nums";
-          return <span className={cls}>{fmtCompact(value)}</span>;
+          return <span className={cls}>{formatCompactNumber(value, locale)}</span>;
         }
       }),
 
@@ -239,7 +229,7 @@ export default function SymbolTable({
             flash?.volumeUntil && flash.volumeUntil > now
               ? "tabular-nums text-gray-700 flash-blink"
               : "tabular-nums text-gray-700";
-          return <span className={cls}>{fmtCompact(value)}</span>;
+          return <span className={cls}>{formatCompactNumber(value, locale)}</span>;
         }
       }),
 
@@ -268,11 +258,11 @@ export default function SymbolTable({
         cell: (info) => {
           const value = info.getValue() as number;
           if (!value || value <= 0) return <span className="text-xs text-gray-400">-</span>;
-          return <span className="text-xs text-gray-500">{new Date(value).toLocaleDateString()}</span>;
+          return <span className="text-xs text-gray-500">{new Date(value).toLocaleDateString(locale)}</span>;
         }
       })
     ];
-  }, [isLoading, win, flashTick]);
+  }, [isLoading, win, flashTick, t, locale]);
 
   const table = useReactTable({
     data: displayData ?? [],

@@ -11,20 +11,20 @@ import { useAuth } from "@/contexts/AuthContext";
 const NOTIFICATIONS = [
   {
     id: "n1",
-    title: "BTC 1시간 내 +5.2% 급등",
-    time: "방금",
+    titleKey: "common.notifications.item1.title",
+    timeKey: "common.notifications.item1.time",
     href: "/chart/BTCUSDT"
   },
   {
     id: "n2",
-    title: "ETH 거래량 급증 감지",
-    time: "12분 전",
+    titleKey: "common.notifications.item2.title",
+    timeKey: "common.notifications.item2.time",
     href: "/chart/ETHUSDT"
   },
   {
     id: "n3",
-    title: "시장 변동성 알림",
-    time: "1시간 전",
+    titleKey: "common.notifications.item3.title",
+    timeKey: "common.notifications.item3.time",
     href: "/alerts"
   }
 ];
@@ -66,7 +66,7 @@ export default function Header() {
               type="button"
               onClick={() => setNoticeOpen((prev) => !prev)}
               className="relative rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:text-gray-900"
-              aria-label="Notifications"
+              aria-label={t("common.notifications.label")}
             >
               <Bell className="h-4 w-4" />
               <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
@@ -82,8 +82,8 @@ export default function Header() {
                       onClick={() => setNoticeOpen(false)}
                       className="block rounded-xl border border-gray-100 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
                     >
-                      <p className="font-medium text-gray-900">{item.title}</p>
-                      <p className="mt-1 text-[11px] text-gray-400">{item.time}</p>
+                      <p className="font-medium text-gray-900">{t(item.titleKey)}</p>
+                      <p className="mt-1 text-[11px] text-gray-400">{t(item.timeKey)}</p>
                     </Link>
                   ))}
                 </div>

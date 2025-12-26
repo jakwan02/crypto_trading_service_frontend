@@ -8,26 +8,38 @@ import { useAuth } from "@/contexts/AuthContext";
 type AlertItem = {
   id: string;
   symbol: string;
-  condition: string;
+  condition: "priceUp" | "priceDown" | "changeSpike" | "volumeSpike" | "newsKeyword";
   value: string;
   window: string;
   enabled: boolean;
 };
 
 const INITIAL_ALERTS: AlertItem[] = [
-  { id: "a1", symbol: "BTCUSDT", condition: "가격 상승", value: "5%", window: "1h", enabled: true },
-  { id: "a2", symbol: "ETHUSDT", condition: "거래량 급증", value: "2배", window: "24h", enabled: true }
+  { id: "a1", symbol: "BTCUSDT", condition: "priceUp", value: "5%", window: "1h", enabled: true },
+  { id: "a2", symbol: "ETHUSDT", condition: "volumeSpike", value: "2x", window: "24h", enabled: true }
 ];
 
 const MAX_FREE_ALERTS = 5;
+const CONDITION_OPTIONS = [
+  { id: "priceUp", labelKey: "alertsPage.conditions.priceUp" },
+  { id: "priceDown", labelKey: "alertsPage.conditions.priceDown" },
+  { id: "changeSpike", labelKey: "alertsPage.conditions.changeSpike" },
+  { id: "volumeSpike", labelKey: "alertsPage.conditions.volumeSpike" },
+  { id: "newsKeyword", labelKey: "alertsPage.conditions.newsKeyword" }
+] as const;
 
 export default function AlertsPage() {
   const { supported, permission, requestPermission } = useNotificationPermission();
   const { isPro } = useAuth();
   const [alerts, setAlerts] = useState<AlertItem[]>(INITIAL_ALERTS);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    symbol: string;
+    condition: AlertItem["condition"];
+    value: string;
+    window: string;
+  }>({
     symbol: "BTCUSDT",
-    condition: "가격 상승",
+    condition: "priceUp",
     value: "5%",
     window: "1h"
   });
@@ -45,7 +57,7 @@ export default function AlertsPage() {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canAdd) {
-      setStatus("무료 플랜은 최대 5개의 알림만 등록할 수 있습니다.");
+      setStatus(t("alertsPage.statusLimit"));
       return;
     }
     const next: AlertItem = {
@@ -57,7 +69,7 @@ export default function AlertsPage() {
       enabled: true
     };
     setAlerts((prev) => [next, ...prev]);
-    setStatus("알림이 등록되었습니다.");
+    setStatus(t("alertsPage.statusSaved"));
   };
 
   return (
@@ -89,7 +101,7 @@ export default function AlertsPage() {
             <h2 className="text-sm font-semibold text-gray-900">{t("alertsPage.newAlert")}</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="text-xs font-semibold text-gray-600">코인</label>
+                <label className="text-xs font-semibold text-gray-600">{t("alertsPage.fields.symbol")}</label>
                 <input
                   value={form.symbol}
                   onChange={(event) => setForm((prev) => ({ ...prev, symbol: event.target.value }))}
@@ -97,21 +109,23 @@ export default function AlertsPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600">조건</label>
+                <label className="text-xs font-semibold text-gray-600">{t("alertsPage.fields.condition")}</label>
                 <select
                   value={form.condition}
-                  onChange={(event) => setForm((prev) => ({ ...prev, condition: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, condition: event.target.value as AlertItem["condition"] }))
+                  }
                   className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
                 >
-                  <option>가격 상승</option>
-                  <option>가격 하락</option>
-                  <option>변동률 급등</option>
-                  <option>거래량 급증</option>
-                  <option>뉴스 키워드</option>
+                  {CONDITION_OPTIONS.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {t(option.labelKey)}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600">조건 값</label>
+                <label className="text-xs font-semibold text-gray-600">{t("alertsPage.fields.value")}</label>
                 <input
                   value={form.value}
                   onChange={(event) => setForm((prev) => ({ ...prev, value: event.target.value }))}
@@ -119,7 +133,7 @@ export default function AlertsPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600">기간</label>
+                <label className="text-xs font-semibold text-gray-600">{t("alertsPage.fields.window")}</label>
                 <select
                   value={form.window}
                   onChange={(event) => setForm((prev) => ({ ...prev, window: event.target.value }))}
@@ -167,7 +181,7 @@ export default function AlertsPage() {
                     </button>
                   </div>
                   <p className="text-xs text-gray-500">
-                    {item.condition} · {item.value} · {item.window}
+                    {t(`alertsPage.conditions.${item.condition}`)} · {item.value} · {item.window}
                   </p>
                 </div>
               ))}

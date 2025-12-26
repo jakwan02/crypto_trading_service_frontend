@@ -5,10 +5,10 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 
 const FEATURES = [
-  "전체 심볼 실시간 업데이트",
-  "무제한 알림 및 즉시 푸시",
-  "AI 인사이트 리포트 전체 공개",
-  "광고 제거 및 고급 지표 제공"
+  "upgrade.features.item1",
+  "upgrade.features.item2",
+  "upgrade.features.item3",
+  "upgrade.features.item4"
 ];
 
 export default function UpgradePage() {
@@ -19,7 +19,7 @@ export default function UpgradePage() {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setPlan("pro");
-    setStatus("Pro 구독이 활성화되었습니다. 계정 페이지에서 상태를 확인하세요.");
+    setStatus(t("upgrade.statusActivated"));
   };
 
   return (
@@ -36,7 +36,7 @@ export default function UpgradePage() {
             <ul className="mt-4 space-y-3 text-sm text-gray-600">
               {FEATURES.map((item) => (
                 <li key={item} className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-2">
-                  {item}
+                  {t(item)}
                 </li>
               ))}
             </ul>
@@ -51,27 +51,27 @@ export default function UpgradePage() {
             <h2 className="text-lg font-semibold text-gray-900">{t("upgrade.payTitle")}</h2>
             <div className="mt-4 space-y-3 text-sm text-gray-600">
               <div>
-                <label className="text-xs font-semibold text-gray-600">카드 번호</label>
+                <label className="text-xs font-semibold text-gray-600">{t("upgrade.cardNumber")}</label>
                 <input
                   required
-                  placeholder="1234 5678 9012 3456"
+                  placeholder={t("upgrade.cardNumberPlaceholder")}
                   className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
                 />
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="text-xs font-semibold text-gray-600">만료일</label>
+                  <label className="text-xs font-semibold text-gray-600">{t("upgrade.cardExpiry")}</label>
                   <input
                     required
-                    placeholder="MM/YY"
+                    placeholder={t("upgrade.cardExpiryPlaceholder")}
                     className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600">CVC</label>
+                  <label className="text-xs font-semibold text-gray-600">{t("upgrade.cvc")}</label>
                   <input
                     required
-                    placeholder="123"
+                    placeholder={t("upgrade.cvcPlaceholder")}
                     className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
                   />
                 </div>

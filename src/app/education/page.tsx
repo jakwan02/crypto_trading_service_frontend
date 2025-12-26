@@ -4,19 +4,22 @@ import { useTranslation } from "react-i18next";
 
 const lessons = [
   {
-    title: "시장 기초 읽기",
-    summary: "가격·거래량·변동률 지표를 활용해 추세를 파악하는 방법",
-    level: "Beginner"
+    id: "lesson1",
+    titleKey: "education.lessons.lesson1.title",
+    summaryKey: "education.lessons.lesson1.summary",
+    levelKey: "education.levels.beginner"
   },
   {
-    title: "리스크 관리 전략",
-    summary: "포지션 사이징과 손절/익절 전략 설계",
-    level: "Intermediate"
+    id: "lesson2",
+    titleKey: "education.lessons.lesson2.title",
+    summaryKey: "education.lessons.lesson2.summary",
+    levelKey: "education.levels.intermediate"
   },
   {
-    title: "차트 활용법",
-    summary: "캔들 패턴과 주요 지지/저항 구간 분석",
-    level: "Intermediate"
+    id: "lesson3",
+    titleKey: "education.lessons.lesson3.title",
+    summaryKey: "education.lessons.lesson3.summary",
+    levelKey: "education.levels.intermediate"
   }
 ];
 
@@ -34,14 +37,14 @@ export default function EducationPage() {
         <section className="grid gap-4 md:grid-cols-3">
           {lessons.map((lesson) => (
             <article
-              key={lesson.title}
+              key={lesson.id}
               className="fade-up rounded-3xl border border-gray-200 bg-white p-5 shadow-sm"
             >
               <span className="text-xs font-semibold uppercase tracking-wide text-secondary">
-                {lesson.level}
+                {t(lesson.levelKey)}
               </span>
-              <h2 className="mt-2 text-lg font-semibold text-gray-900">{lesson.title}</h2>
-              <p className="mt-2 text-sm text-gray-600">{lesson.summary}</p>
+              <h2 className="mt-2 text-lg font-semibold text-gray-900">{t(lesson.titleKey)}</h2>
+              <p className="mt-2 text-sm text-gray-600">{t(lesson.summaryKey)}</p>
               <button
                 type="button"
                 className="mt-4 rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700"

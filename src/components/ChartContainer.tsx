@@ -10,6 +10,7 @@ import {
   type ISeriesApi,
   type UTCTimestamp
 } from "lightweight-charts";
+import { useTranslation } from "react-i18next";
 import { useChart } from "@/hooks/useChart";
 
 type Props = {
@@ -29,9 +30,9 @@ function pricePrecisionByLast(px: number): { precision: number; minMove: number 
   return { precision: 10, minMove: 0.0000000001 };
 }
 
-function fmtPrice(px: number, precision: number): string {
+function fmtPrice(px: number, precision: number, locale: string): string {
   if (!Number.isFinite(px)) return "-";
-  return px.toLocaleString(undefined, {
+  return px.toLocaleString(locale, {
     minimumFractionDigits: 0,
     maximumFractionDigits: precision
   });
@@ -41,6 +42,8 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language;
 
   const fittedRef = useRef(false);
   const lastTimeRef = useRef<number>(0);
@@ -79,7 +82,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
 
       // 가격 라벨(축/크로스헤어) 포맷: 이 버전에서는 여기만이 타입 안전한 경로입니다.
       localization: {
-        priceFormatter: (p: number) => fmtPrice(p, pf.precision)
+        priceFormatter: (p: number) => fmtPrice(p, pf.precision, locale)
       }
     });
 
@@ -128,7 +131,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
       prevSpanRef.current = 0;
     };
     // pf 포함: 심볼/TF 변경 또는 precision 변경 시 새로 생성
-  }, [symbol, timeframe, pf.precision, pf.minMove]);
+  }, [symbol, timeframe, pf.precision, pf.minMove, locale]);
 
   // candles -> series
   useEffect(() => {
@@ -256,8 +259,8 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
 
   if (!symbol) {
     return (
-      <div className="w-full h-[420px] flex items-center justify-center text-sm text-gray-500">
-        심볼을 선택해주세요.
+        <div className="w-full h-[420px] flex items-center justify-center text-sm text-gray-500">
+        {t("chart.selectSymbol")}
       </div>
     );
   }
@@ -265,7 +268,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
   if (error && (!candles || candles.length === 0)) {
     return (
       <div className="w-full h-[420px] flex items-center justify-center text-sm text-red-500">
-        차트 로딩 중 오류가 발생했습니다.
+        {t("chart.loadError")}
       </div>
     );
   }
@@ -292,7 +295,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
           disabled={loadingMore}
           className="rounded border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-600 transition hover:bg-gray-100 disabled:opacity-50"
         >
-          {loadingMore ? "로딩 중..." : "이전 데이터 불러오기"}
+          {loadingMore ? t("chart.loadingMore") : t("chart.loadMore")}
         </button>
       </div>
       <div ref={containerRef} className="w-full" />

@@ -40,7 +40,7 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-4 text-xs text-gray-400">
-            로그인을 진행하면 서비스 약관과 개인정보 처리방침에 동의하게 됩니다.
+            {t("auth.agreement")}
           </p>
         </div>
       </div>

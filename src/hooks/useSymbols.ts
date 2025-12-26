@@ -100,11 +100,10 @@ function withApiToken(headers?: HeadersInit): HeadersInit | undefined {
   return { ...(headers || {}), "X-API-Token": token };
 }
 
-function withWsToken(url: string): string {
+function getWsProtocols(): string[] | undefined {
   const token = getWsToken() || getApiToken();
-  if (!token) return url;
-  const sep = url.includes("?") ? "&" : "?";
-  return `${url}${sep}token=${encodeURIComponent(token)}`;
+  if (!token) return undefined;
+  return [`token.${token}`];
 }
 
 function num(x: any, d = 0): number {
@@ -231,7 +230,7 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
     const m = String(market || "spot").trim().toLowerCase();
     const wsBase = toWsBase();
     const symbolsParam = useAllTickers ? "" : `&symbols=${encodeURIComponent(tickerKey)}`;
-    const url = withWsToken(`${wsBase}/ws_ticker?market=${encodeURIComponent(m)}${symbolsParam}`);
+    const url = `${wsBase}/ws_ticker?market=${encodeURIComponent(m)}${symbolsParam}`;
 
     let ws: WebSocket | null = null;
     let closed = false;
@@ -262,7 +261,7 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
     const connect = () => {
       if (closed) return;
       try {
-        ws = new WebSocket(url);
+        ws = new WebSocket(url, getWsProtocols());
       } catch {
         return;
       }
@@ -419,11 +418,10 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
     const m = String(market || "spot").trim().toLowerCase();
     const w = String(metricWindow || "1d").trim();
     const wsBase = toWsBase();
-    const url = withWsToken(
+    const url =
       `${wsBase}/ws_metrics` +
-        `?market=${encodeURIComponent(m)}` +
-        `&window=${encodeURIComponent(w)}`
-    );
+      `?market=${encodeURIComponent(m)}` +
+      `&window=${encodeURIComponent(w)}`;
 
     let ws: WebSocket | null = null;
     let closed = false;
@@ -433,7 +431,7 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
     const connect = () => {
       if (closed) return;
       try {
-        ws = new WebSocket(url);
+        ws = new WebSocket(url, getWsProtocols());
       } catch {
         return;
       }

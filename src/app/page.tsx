@@ -7,41 +7,30 @@ import { useTranslation } from "react-i18next";
 import { useSymbols } from "@/hooks/useSymbols";
 import { useSymbolsStore } from "@/store/useSymbolStore";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatCompactNumber } from "@/lib/format";
 
 const NEWS_ITEMS = [
   {
-    title: "비트코인 현물 ETF 자금 유입 지속",
+    key: "item1",
     source: "CoinDesk",
-    time: "10분 전"
   },
   {
-    title: "알트코인 거래량 급증, 변동성 확대",
+    key: "item2",
     source: "Cointelegraph",
-    time: "35분 전"
   },
   {
-    title: "미 연준 발표 앞두고 시장 관망세",
+    key: "item3",
     source: "Bloomberg",
-    time: "1시간 전"
   }
 ];
-
-function fmtCompact(x: number) {
-  if (!Number.isFinite(x)) return "-";
-  const ax = Math.abs(x);
-  if (ax >= 1_000_000_000_000) return `${(x / 1_000_000_000_000).toFixed(2).replace(/\\.00$/, "")}조`;
-  if (ax >= 100_000_000) return `${(x / 100_000_000).toFixed(2).replace(/\\.00$/, "")}억`;
-  if (ax >= 10_000) return `${(x / 10_000).toFixed(2).replace(/\\.00$/, "")}만`;
-  if (ax >= 1_000) return `${(x / 1_000).toFixed(2).replace(/\\.00$/, "")}천`;
-  return x.toLocaleString(undefined, { maximumFractionDigits: 2 });
-}
 
 export default function HomePage() {
   const market = useSymbolsStore((s) => s.market);
   const setMarket = useSymbolsStore((s) => s.setMarket);
   const { isPro } = useAuth();
   const { data, isLoading } = useSymbols("1d");
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language;
 
   const summary = useMemo(() => {
     if (!data || data.length === 0) return null;
@@ -153,14 +142,14 @@ export default function HomePage() {
               <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
                 <p className="text-xs text-gray-500">{t("home.pulse.totalSymbols")}</p>
                 <p className="mt-2 text-2xl font-semibold text-gray-900">
-                  {summary ? summary.totalSymbols.toLocaleString() : isLoading ? "..." : "-"}
+                  {summary ? summary.totalSymbols.toLocaleString(locale) : isLoading ? "..." : "-"}
                 </p>
                 <p className="mt-1 text-xs text-gray-400">{t("home.pulse.totalSymbolsMeta")}</p>
               </div>
               <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
                 <p className="text-xs text-gray-500">{t("home.pulse.totalQuote")}</p>
                 <p className="mt-2 text-2xl font-semibold text-gray-900">
-                  {summary ? fmtCompact(summary.totalQuote) : isLoading ? "..." : "-"}
+                  {summary ? formatCompactNumber(summary.totalQuote, locale) : isLoading ? "..." : "-"}
                 </p>
                 <p className="mt-1 text-xs text-gray-400">{t("home.pulse.totalQuoteMeta")}</p>
               </div>
@@ -230,7 +219,7 @@ export default function HomePage() {
                   volumes.map((row) => (
                     <li key={row.symbol} className="flex items-center justify-between">
                       <span className="font-medium text-gray-900">{row.symbol}</span>
-                      <span className="text-gray-600">{fmtCompact(row.quoteVolume)}</span>
+                      <span className="text-gray-600">{formatCompactNumber(row.quoteVolume, locale)}</span>
                     </li>
                   ))
                 )}
@@ -284,10 +273,10 @@ export default function HomePage() {
             </div>
             <ul className="mt-4 space-y-3 text-sm text-gray-600">
               {NEWS_ITEMS.map((item) => (
-                <li key={item.title} className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-                  <p className="font-medium text-gray-900">{item.title}</p>
+                <li key={item.key} className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                  <p className="font-medium text-gray-900">{t(`home.news.items.${item.key}.title`)}</p>
                   <p className="mt-1 text-xs text-gray-400">
-                    {item.source} · {item.time}
+                    {item.source} · {t(`home.news.items.${item.key}.time`)}
                   </p>
                 </li>
               ))}

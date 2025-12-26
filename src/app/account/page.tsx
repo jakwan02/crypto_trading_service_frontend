@@ -9,12 +9,12 @@ export default function AccountPage() {
   const { user, isPro } = useAuth();
   const { t } = useTranslation();
   const displayName = useMemo(() => {
-    if (!user) return "게스트";
+    if (!user) return t("common.guest");
     return (
       String(user.user_metadata?.full_name || user.user_metadata?.name || "").trim() ||
-      String(user.email || "사용자")
+      String(user.email || t("common.user"))
     );
-  }, [user]);
+  }, [user, t]);
 
   return (
     <main className="min-h-screen bg-transparent">

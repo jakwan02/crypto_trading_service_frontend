@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import ChartContainer from "@/components/ChartContainer";
 import { useSymbols, type MetricWindow } from "@/hooks/useSymbols";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatCompactNumber } from "@/lib/format";
 
 const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
 
@@ -21,7 +22,8 @@ export default function SymbolChartClient({ symbol }: Props) {
   const tfWin = tf as MetricWindow;
   const { data: symbols } = useSymbols(tfWin, { tickerSymbols: sym ? [sym] : [] });
   const { isPro } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language;
   const info = useMemo(() => symbols?.find((row) => row.symbol === sym), [symbols, sym]);
   const changeValue = info?.change24h;
   const changeIsNumber = Number.isFinite(changeValue);
@@ -29,19 +31,8 @@ export default function SymbolChartClient({ symbol }: Props) {
 
   const fmtPrice = (x: number) =>
     Number.isFinite(x)
-      ? x.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 8 })
+      ? x.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 8 })
       : "-";
-  const fmtCompact = (x: number) => {
-    if (!Number.isFinite(x)) return "-";
-    const ax = Math.abs(x);
-    if (ax === 0) return "0";
-    if (ax >= 1_000_000_000_000) return (x / 1_000_000_000_000).toFixed(2).replace(/\.00$/, "") + "조";
-    if (ax >= 100_000_000) return (x / 100_000_000).toFixed(2).replace(/\.00$/, "") + "억";
-    if (ax >= 10_000) return (x / 10_000).toFixed(2).replace(/\.00$/, "") + "만";
-    if (ax >= 1_000) return (x / 1_000).toFixed(2).replace(/\.00$/, "") + "천";
-    if (ax >= 100) return (x / 100).toFixed(2).replace(/\.00$/, "") + "백";
-    return x.toLocaleString(undefined, { maximumFractionDigits: 2 });
-  };
 
   if (!sym) {
     return (
@@ -108,13 +99,13 @@ export default function SymbolChartClient({ symbol }: Props) {
           <div className="fade-up rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <p className="text-xs text-gray-500">{t("chart.volume", { tf: tfLabel })}</p>
             <p className="mt-2 text-xl font-semibold text-gray-900">
-              {Number.isFinite(info?.volume) ? fmtCompact(info?.volume ?? NaN) : "-"}
+              {Number.isFinite(info?.volume) ? formatCompactNumber(info?.volume ?? NaN, locale) : "-"}
             </p>
           </div>
           <div className="fade-up rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <p className="text-xs text-gray-500">{t("chart.quoteVolume", { tf: tfLabel })}</p>
             <p className="mt-2 text-xl font-semibold text-gray-900">
-              {Number.isFinite(info?.quoteVolume) ? fmtCompact(info?.quoteVolume ?? NaN) : "-"}
+              {Number.isFinite(info?.quoteVolume) ? formatCompactNumber(info?.quoteVolume ?? NaN, locale) : "-"}
             </p>
           </div>
         </section>
@@ -155,12 +146,12 @@ export default function SymbolChartClient({ symbol }: Props) {
               </div>
               <div className="mt-3 space-y-3 text-sm text-gray-600">
                 <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
-                  <p className="font-medium text-gray-900">상승 확률</p>
-                  <p className="text-xs text-gray-500">62% · 변동성 확대 구간</p>
+                  <p className="font-medium text-gray-900">{t("chart.aiSignals.signal1Title")}</p>
+                  <p className="text-xs text-gray-500">{t("chart.aiSignals.signal1Desc")}</p>
                 </div>
                 <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
-                  <p className="font-medium text-gray-900">리스크 알림</p>
-                  <p className="text-xs text-gray-500">단기 과열, 추세 유지 확인 필요</p>
+                  <p className="font-medium text-gray-900">{t("chart.aiSignals.signal2Title")}</p>
+                  <p className="text-xs text-gray-500">{t("chart.aiSignals.signal2Desc")}</p>
                 </div>
               </div>
               {!isPro ? (
@@ -178,15 +169,15 @@ export default function SymbolChartClient({ symbol }: Props) {
               <ul className="mt-3 space-y-2 text-sm text-gray-600">
                 <li className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
                   <span>RSI</span>
-                  <span className="font-medium text-gray-900">58 · 중립</span>
+                  <span className="font-medium text-gray-900">{t("chart.techValues.rsi")}</span>
                 </li>
                 <li className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
                   <span>MACD</span>
-                  <span className="font-medium text-gray-900">상승 전환</span>
+                  <span className="font-medium text-gray-900">{t("chart.techValues.macd")}</span>
                 </li>
                 <li className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-                  <span>볼린저 밴드</span>
-                  <span className="font-medium text-gray-900">상단 근접</span>
+                  <span>{t("chart.techValues.bollingerLabel")}</span>
+                  <span className="font-medium text-gray-900">{t("chart.techValues.bollingerValue")}</span>
                 </li>
               </ul>
             </div>
@@ -199,13 +190,9 @@ export default function SymbolChartClient({ symbol }: Props) {
                 </Link>
               </div>
               <ul className="mt-3 space-y-2 text-xs text-gray-600">
-                {[
-                  "BTC 관련 규제 뉴스 업데이트",
-                  "거래소 유동성 확대 보고서",
-                  "고래 지갑 이동 감지"
-                ].map((news) => (
-                  <li key={news} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-                    {news}
+                {["item1", "item2", "item3"].map((newsKey) => (
+                  <li key={newsKey} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                    {t(`chart.newsItems.${newsKey}`)}
                   </li>
                 ))}
               </ul>

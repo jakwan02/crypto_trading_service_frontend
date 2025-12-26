@@ -3,17 +3,17 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const METHOD_LABELS: Record<string, string> = {
-  card: "신용카드",
-  bank: "계좌이체",
-  crypto: "암호화폐 지갑"
-};
-
 export default function PaymentPage() {
   const [amount, setAmount] = useState<string>("");
   const [method, setMethod] = useState<string>("card");
   const [status, setStatus] = useState<string>("");
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language;
+  const methodLabels: Record<string, string> = {
+    card: t("payment.methods.card"),
+    bank: t("payment.methods.bank"),
+    crypto: t("payment.methods.crypto")
+  };
 
   const numericAmount = useMemo(() => Number(amount), [amount]);
   const fee = useMemo(() => (Number.isFinite(numericAmount) ? numericAmount * 0.015 : 0), [numericAmount]);
@@ -24,11 +24,11 @@ export default function PaymentPage() {
     const formData = new FormData(event.currentTarget);
     const payload = Object.fromEntries(formData.entries());
     console.log("payment_submit", payload);
-    setStatus("결제 요청이 전송되었습니다. 승인 결과를 확인해주세요.");
+    setStatus(t("payment.statusSubmitted"));
   };
 
   const formatMoney = (value: number) =>
-    Number.isFinite(value) && value > 0 ? value.toLocaleString() : "-";
+    Number.isFinite(value) && value > 0 ? value.toLocaleString(locale) : "-";
 
   return (
     <main className="min-h-screen bg-transparent">
@@ -46,7 +46,7 @@ export default function PaymentPage() {
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-gray-700" htmlFor="amount">
-                  충전 금액
+                  {t("payment.amountLabel")}
                 </label>
                 <input
                   id="amount"
@@ -56,13 +56,13 @@ export default function PaymentPage() {
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
                   className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  placeholder="예: 300000"
+                  placeholder={t("payment.amountPlaceholder")}
                 />
               </div>
 
               <div>
                 <label className="text-sm font-medium text-gray-700" htmlFor="method">
-                  결제 수단
+                  {t("payment.methodLabel")}
                 </label>
                 <select
                   id="method"
@@ -71,9 +71,9 @@ export default function PaymentPage() {
                   onChange={(event) => setMethod(event.target.value)}
                   className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
-                  <option value="card">신용카드</option>
-                  <option value="bank">계좌이체</option>
-                  <option value="crypto">암호화폐 지갑</option>
+                  <option value="card">{t("payment.methods.card")}</option>
+                  <option value="bank">{t("payment.methods.bank")}</option>
+                  <option value="crypto">{t("payment.methods.crypto")}</option>
                 </select>
               </div>
 
@@ -81,26 +81,26 @@ export default function PaymentPage() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label className="text-sm font-medium text-gray-700" htmlFor="cardNumber">
-                      카드 번호
+                      {t("payment.cardNumber")}
                     </label>
                     <input
                       id="cardNumber"
                       name="cardNumber"
                       type="text"
                       className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      placeholder="1234 5678 9012 3456"
+                      placeholder={t("payment.cardNumberPlaceholder")}
                     />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700" htmlFor="cardExpiry">
-                      만료일
+                      {t("payment.cardExpiry")}
                     </label>
                     <input
                       id="cardExpiry"
                       name="cardExpiry"
                       type="text"
                       className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      placeholder="MM/YY"
+                      placeholder={t("payment.cardExpiryPlaceholder")}
                     />
                   </div>
                 </div>
@@ -109,14 +109,14 @@ export default function PaymentPage() {
               {method === "bank" ? (
                 <div>
                   <label className="text-sm font-medium text-gray-700" htmlFor="bankAccount">
-                    입금 계좌
+                    {t("payment.bankAccount")}
                   </label>
                   <input
                     id="bankAccount"
                     name="bankAccount"
                     type="text"
                     className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    placeholder="국민 123-456-789012"
+                    placeholder={t("payment.bankAccountPlaceholder")}
                   />
                 </div>
               ) : null}
@@ -124,28 +124,28 @@ export default function PaymentPage() {
               {method === "crypto" ? (
                 <div>
                   <label className="text-sm font-medium text-gray-700" htmlFor="walletAddress">
-                    지갑 주소
+                    {t("payment.walletAddress")}
                   </label>
                   <input
                     id="walletAddress"
                     name="walletAddress"
                     type="text"
                     className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    placeholder="0x...."
+                    placeholder={t("payment.walletAddressPlaceholder")}
                   />
                 </div>
               ) : null}
 
               <div>
                 <label className="text-sm font-medium text-gray-700" htmlFor="memo">
-                  요청 메모 (선택)
+                  {t("payment.memoLabel")}
                 </label>
                 <textarea
                   id="memo"
                   name="memo"
                   rows={3}
                   className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  placeholder="특이사항이 있다면 적어주세요."
+                  placeholder={t("payment.memoPlaceholder")}
                 />
               </div>
 
@@ -153,7 +153,7 @@ export default function PaymentPage() {
                 type="submit"
                 className="w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark"
               >
-                결제 요청하기
+                {t("payment.submit")}
               </button>
             </div>
 
@@ -161,27 +161,27 @@ export default function PaymentPage() {
           </form>
 
           <aside className="fade-up rounded-3xl border border-gray-200 bg-gray-50 p-6 shadow-sm">
-            <h2 className="text-sm font-semibold text-gray-900">결제 요약</h2>
+            <h2 className="text-sm font-semibold text-gray-900">{t("payment.summaryTitle")}</h2>
             <dl className="mt-4 space-y-3 text-sm text-gray-600">
               <div className="flex items-center justify-between">
-                <dt>충전 금액</dt>
+                <dt>{t("payment.summary.amount")}</dt>
                 <dd className="font-medium text-gray-900">{formatMoney(numericAmount)}</dd>
               </div>
               <div className="flex items-center justify-between">
-                <dt>결제 수단</dt>
-                <dd>{METHOD_LABELS[method]}</dd>
+                <dt>{t("payment.summary.method")}</dt>
+                <dd>{methodLabels[method]}</dd>
               </div>
               <div className="flex items-center justify-between">
-                <dt>예상 수수료(1.5%)</dt>
+                <dt>{t("payment.summary.fee")}</dt>
                 <dd>{formatMoney(fee)}</dd>
               </div>
               <div className="flex items-center justify-between border-t border-gray-200 pt-3">
-                <dt className="font-semibold text-gray-900">총 결제액</dt>
+                <dt className="font-semibold text-gray-900">{t("payment.summary.total")}</dt>
                 <dd className="font-semibold text-gray-900">{formatMoney(total)}</dd>
               </div>
             </dl>
             <p className="mt-4 text-xs text-gray-400">
-              실제 결제 연동 시 카드 인증/은행 확인 단계가 추가됩니다.
+              {t("payment.summary.note")}
             </p>
           </aside>
         </div>
