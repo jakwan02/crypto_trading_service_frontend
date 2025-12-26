@@ -164,9 +164,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
     const isPrepend =
       firstTimeRef.current > 0 &&
       firstTime > 0 &&
-      firstTime < firstTimeRef.current &&
-      lastTimeRef.current > 0 &&
-      lastTime === lastTimeRef.current;
+      firstTime < firstTimeRef.current;
 
     // 첫 로딩/대량 변경은 전체 setData
     let needFull =
@@ -182,7 +180,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
 
     if (needFull) {
       const ts = chart.timeScale();
-      const keepRange = isPrepend;
+      const keepRange = isPrepend || loadingMore;
       const prevRange = keepRange ? ts.getVisibleLogicalRange() : null;
 
       series.setData(mapped);
