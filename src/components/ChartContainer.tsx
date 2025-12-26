@@ -1,15 +1,8 @@
 // filename: frontend/components/ChartContainer.tsx
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
-import {
-  createChart,
-  CandlestickSeries,
-  type CandlestickData,
-  type IChartApi,
-  type ISeriesApi,
-  type UTCTimestamp
-} from "lightweight-charts";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { CandlestickData, IChartApi, ISeriesApi, UTCTimestamp } from "lightweight-charts";
 import { useTranslation } from "react-i18next";
 import { useChart } from "@/hooks/useChart";
 
@@ -42,6 +35,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const [seriesReady, setSeriesReady] = useState(false);
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
 
@@ -66,60 +60,73 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
   // 차트/시리즈 생성
   useEffect(() => {
     if (!containerRef.current) return;
+    let cancelled = false;
+    let ro: ResizeObserver | null = null;
+    let chart: IChartApi | null = null;
 
-    const chart = createChart(containerRef.current, {
-      width: containerRef.current.clientWidth,
-      height: 420,
-      layout: { background: { color: "#ffffff" }, textColor: "#1f2937" },
-      grid: { vertLines: { color: "#e5e7eb" }, horzLines: { color: "#f3f4f6" } },
-      timeScale: { timeVisible: true, secondsVisible: false, borderColor: "#e5e7eb" },
-      rightPriceScale: {
-        borderColor: "#e5e7eb",
-        autoScale: true,
-        scaleMargins: { top: 0.1, bottom: 0.1 }
-      },
-      crosshair: { mode: 1 },
+    const init = async () => {
+      const mod = await import("lightweight-charts");
+      if (cancelled || !containerRef.current) return;
 
-      // 가격 라벨(축/크로스헤어) 포맷: 이 버전에서는 여기만이 타입 안전한 경로입니다.
-      localization: {
-        priceFormatter: (p: number) => fmtPrice(p, pf.precision, locale)
-      }
-    });
+      chart = mod.createChart(containerRef.current, {
+        width: containerRef.current.clientWidth,
+        height: 420,
+        layout: { background: { color: "#ffffff" }, textColor: "#1f2937" },
+        grid: { vertLines: { color: "#e5e7eb" }, horzLines: { color: "#f3f4f6" } },
+        timeScale: { timeVisible: true, secondsVisible: false, borderColor: "#e5e7eb" },
+        rightPriceScale: {
+          borderColor: "#e5e7eb",
+          autoScale: true,
+          scaleMargins: { top: 0.1, bottom: 0.1 }
+        },
+        crosshair: { mode: 1 },
 
-    chartRef.current = chart;
+        // 가격 라벨(축/크로스헤어) 포맷: 이 버전에서는 여기만이 타입 안전한 경로입니다.
+        localization: {
+          priceFormatter: (p: number) => fmtPrice(p, pf.precision, locale)
+        }
+      });
 
-    const series = chart.addSeries(CandlestickSeries, {
-      upColor: "#22c55e",
-      downColor: "#ef4444",
-      borderUpColor: "#22c55e",
-      borderDownColor: "#ef4444",
-      wickUpColor: "#22c55e",
-      wickDownColor: "#ef4444",
+      chartRef.current = chart;
 
-      // 시리즈 가격 정밀도(작은 가격도 0처럼 뭉개지지 않게)
-      priceFormat: {
-        type: "price",
-        precision: pf.precision,
-        minMove: pf.minMove
-      }
-    }) as ISeriesApi<"Candlestick">;
+      const series = chart.addSeries(mod.CandlestickSeries, {
+        upColor: "#22c55e",
+        downColor: "#ef4444",
+        borderUpColor: "#22c55e",
+        borderDownColor: "#ef4444",
+        wickUpColor: "#22c55e",
+        wickDownColor: "#ef4444",
 
-    seriesRef.current = series;
+        // 시리즈 가격 정밀도(작은 가격도 0처럼 뭉개지지 않게)
+        priceFormat: {
+          type: "price",
+          precision: pf.precision,
+          minMove: pf.minMove
+        }
+      }) as ISeriesApi<"Candlestick">;
 
-    fittedRef.current = false;
-    lastTimeRef.current = 0;
-    lastLenRef.current = 0;
+      seriesRef.current = series;
+      setSeriesReady(true);
 
-    const ro = new ResizeObserver((entries) => {
-      for (const e of entries) {
-        if (e.target === containerRef.current) chart.applyOptions({ width: e.contentRect.width });
-      }
-    });
-    ro.observe(containerRef.current);
+      fittedRef.current = false;
+      lastTimeRef.current = 0;
+      lastLenRef.current = 0;
+
+      ro = new ResizeObserver((entries) => {
+        for (const e of entries) {
+          if (e.target === containerRef.current) chart?.applyOptions({ width: e.contentRect.width });
+        }
+      });
+      ro.observe(containerRef.current);
+    };
+
+    init();
 
     return () => {
-      ro.disconnect();
-      chart.remove();
+      cancelled = true;
+      setSeriesReady(false);
+      ro?.disconnect();
+      chart?.remove();
       chartRef.current = null;
       seriesRef.current = null;
       fittedRef.current = false;
@@ -137,7 +144,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
   useEffect(() => {
     const series = seriesRef.current;
     const chart = chartRef.current;
-    if (!series || !chart) return;
+    if (!seriesReady || !series || !chart) return;
 
     if (!candles || candles.length === 0) {
       series.setData([]);
@@ -207,7 +214,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
       lastLenRef.current = mapped.length;
       firstTimeRef.current = firstTime;
     }
-  }, [candles, loadingMore]);
+  }, [candles, loadingMore, seriesReady]);
 
   // 스크롤로 좌측 끝 접근 시 자동으로 과거 데이터 로드
   useEffect(() => {
