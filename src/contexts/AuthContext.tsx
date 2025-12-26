@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { createClient, type User } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 
 type Plan = "free" | "pro";
 
@@ -17,16 +17,30 @@ type AuthContextValue = {
 
 const SUPABASE_URL = String(process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
 const SUPABASE_ANON = String(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
-const supabase =
-  SUPABASE_URL && SUPABASE_ANON
-    ? createClient(SUPABASE_URL, SUPABASE_ANON, {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true
-        }
-      })
-    : null;
+
+let supabasePromise: Promise<SupabaseClient | null> | null = null;
+
+async function getSupabaseClient(): Promise<SupabaseClient | null> {
+  if (!SUPABASE_URL || !SUPABASE_ANON) return null;
+  if (!supabasePromise) {
+    supabasePromise = import("@supabase/supabase-js")
+      .then(({ createClient }) =>
+        createClient(SUPABASE_URL, SUPABASE_ANON, {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true
+          }
+        })
+      )
+      .catch((err) => {
+        console.warn("Supabase client load failed", err);
+        supabasePromise = null;
+        return null;
+      });
+  }
+  return supabasePromise;
+}
 
 const AuthContext = createContext<AuthContextValue>({
   user: null,
@@ -40,7 +54,7 @@ const AuthContext = createContext<AuthContextValue>({
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [sessionReady, setSessionReady] = useState(() => !supabase);
+  const [sessionReady, setSessionReady] = useState(() => !SUPABASE_URL || !SUPABASE_ANON);
   const [plan, setPlanState] = useState<Plan>(() => {
     if (typeof window === "undefined") return "free";
     const saved = window.localStorage.getItem("coindash_plan");
@@ -48,29 +62,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    if (!supabase) return;
-
     let alive = true;
-    supabase.auth
-      .getSession()
-      .then(({ data }) => {
+    let subscription: { unsubscribe: () => void } | null = null;
+
+    const init = async () => {
+      const client = await getSupabaseClient();
+      if (!client) {
+        if (alive) setSessionReady(true);
+        return;
+      }
+
+      try {
+        const { data } = await client.auth.getSession();
         if (!alive) return;
         setUser(data.session?.user ?? null);
-        setSessionReady(true);
-      })
-      .catch(() => {
+      } catch {
         if (!alive) return;
-        setSessionReady(true);
-      });
+      } finally {
+        if (alive) setSessionReady(true);
+      }
 
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!alive) return;
-      setUser(session?.user ?? null);
-    });
+      const { data } = client.auth.onAuthStateChange((_event, session) => {
+        if (!alive) return;
+        setUser(session?.user ?? null);
+      });
+      subscription = data.subscription;
+    };
+
+    init();
 
     return () => {
       alive = false;
-      data.subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, []);
 
@@ -82,20 +105,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    if (!supabase) {
+    const client = await getSupabaseClient();
+    if (!client) {
       console.warn("Supabase env is missing: NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY");
       return;
     }
     const origin = typeof window !== "undefined" ? window.location.origin : undefined;
-    await supabase.auth.signInWithOAuth({
+    await client.auth.signInWithOAuth({
       provider: "google",
       options: origin ? { redirectTo: origin } : undefined
     });
   }, []);
 
   const signOut = useCallback(async () => {
-    if (!supabase) return;
-    await supabase.auth.signOut();
+    const client = await getSupabaseClient();
+    if (!client) return;
+    await client.auth.signOut();
+    setUser(null);
   }, []);
 
   const value = useMemo<AuthContextValue>(
