@@ -194,7 +194,7 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
     );
     uniq.sort();
     return uniq.join(",");
-  }, [tickerOverride ? tickerOverride.join(",") : ""]);
+  }, [tickerOverride]);
   const useAllTickers = tickerOverride === undefined;
   const enableTicker = useAllTickers || tickerKey.length > 0;
 
@@ -360,7 +360,7 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
     }
     metricsRef.current = {};
     setMetricsVer((v) => v + 1);
-  }, [metricsKey]);
+  }, [metricsKey, metricsCached]);
 
   useEffect(() => {
     let cancelled = false;
@@ -516,10 +516,12 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
       } catch {}
       ws = null;
     };
-  }, [market, metricWindow]);
+  }, [market, metricWindow, metricsKey]);
 
   // 4) 병합 + 정렬
   const merged = useMemo(() => {
+    void tickVer;
+    void metricsVer;
     const base = query.data ?? [];
     const tick = tickRef.current;
     const met = metricsRef.current;

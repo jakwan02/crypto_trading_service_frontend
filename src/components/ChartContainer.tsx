@@ -207,7 +207,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
       lastLenRef.current = mapped.length;
       firstTimeRef.current = firstTime;
     }
-  }, [candles]);
+  }, [candles, loadingMore]);
 
   // 스크롤로 좌측 끝 접근 시 자동으로 과거 데이터 로드
   useEffect(() => {

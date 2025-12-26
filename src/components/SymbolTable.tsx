@@ -73,7 +73,7 @@ export default function SymbolTable({
 
   const [win, setWin] = useState<MetricWindow>("1d");
   const { data, isLoading, isError } = useSymbols(win);
-  const [flashTick, setFlashTick] = useState(0);
+  const [, setFlashTick] = useState(0);
   const [localQuery, setLocalQuery] = useState("");
 
   const prevRef = useRef<Record<string, { price: number; volume: number; quoteVolume: number; change: number }>>({});
@@ -261,8 +261,9 @@ export default function SymbolTable({
         }
       })
     ];
-  }, [isLoading, win, flashTick, t, locale]);
+  }, [isLoading, win, t, locale]);
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: displayData ?? [],
     columns,
