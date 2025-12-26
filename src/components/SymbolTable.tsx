@@ -53,10 +53,11 @@ function fmtCompact(x: number): string {
   if (!Number.isFinite(x)) return "-";
   const ax = Math.abs(x);
   if (ax === 0) return "0";
-  if (ax >= 1_000_000_000_000) return (x / 1_000_000_000_000).toFixed(2) + "T";
-  if (ax >= 1_000_000_000) return (x / 1_000_000_000).toFixed(2) + "B";
-  if (ax >= 1_000_000) return (x / 1_000_000).toFixed(2) + "M";
-  if (ax >= 1_000) return (x / 1_000).toFixed(2) + "K";
+  if (ax >= 1_000_000_000_000) return (x / 1_000_000_000_000).toFixed(2).replace(/\.00$/, "") + "조";
+  if (ax >= 100_000_000) return (x / 100_000_000).toFixed(2).replace(/\.00$/, "") + "억";
+  if (ax >= 10_000) return (x / 10_000).toFixed(2).replace(/\.00$/, "") + "만";
+  if (ax >= 1_000) return (x / 1_000).toFixed(2).replace(/\.00$/, "") + "천";
+  if (ax >= 100) return (x / 100).toFixed(2).replace(/\.00$/, "") + "백";
   return x.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
@@ -174,7 +175,7 @@ export default function SymbolTable() {
 
       columnHelper.accessor("volume", {
         id: "volume",
-        header: () => `${wl} Volume (Base)`,
+        header: () => `${wl} 거래량`,
         cell: (info) => {
           const value = info.getValue() as number;
           if (isLoading && (!value || value === 0)) return <LoadingBar />;
@@ -189,7 +190,7 @@ export default function SymbolTable() {
 
       columnHelper.accessor((row) => row.quoteVolume, {
         id: "turnover",
-        header: () => `${wl} Turnover (Quote)`,
+        header: () => `${wl} 거래대금`,
         cell: (info) => {
           const value = info.getValue() as number;
           if (isLoading && (!value || value === 0)) return <LoadingBar />;

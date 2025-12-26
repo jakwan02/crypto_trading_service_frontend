@@ -81,6 +81,14 @@ function num(x: any, d = 0): number {
   return Number.isFinite(v) ? v : d;
 }
 
+function safeQuoteVolume(q: number, volume: number, price: number): number {
+  if (Number.isFinite(q) && q > 0) return q;
+  if (Number.isFinite(volume) && volume > 0 && Number.isFinite(price) && price > 0) {
+    return volume * price;
+  }
+  return Number.isFinite(q) ? q : 0;
+}
+
 function toMs(x: any): number {
   if (!x) return 0;
   if (typeof x === "number") return x;
@@ -370,7 +378,8 @@ export function useSymbols(metricWindow: MetricWindow = "1d") {
       const time = t ? t.time : row.time;
 
       const volume = m ? m.volume : t ? t.volume : row.volume;
-      const quoteVolume = m ? m.quoteVolume : t ? t.quoteVolume : row.quoteVolume;
+      const quoteRaw = m ? m.quoteVolume : t ? t.quoteVolume : row.quoteVolume;
+      const quoteVolume = safeQuoteVolume(quoteRaw, volume, price);
       const change24h = m ? m.pctChange : row.change24h;
 
       return { ...row, price, time, volume, quoteVolume, change24h };

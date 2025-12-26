@@ -29,10 +29,11 @@ export default function SymbolChartClient({ symbol }: Props) {
     if (!Number.isFinite(x)) return "-";
     const ax = Math.abs(x);
     if (ax === 0) return "0";
-    if (ax >= 1_000_000_000_000) return (x / 1_000_000_000_000).toFixed(2) + "T";
-    if (ax >= 1_000_000_000) return (x / 1_000_000_000).toFixed(2) + "B";
-    if (ax >= 1_000_000) return (x / 1_000_000).toFixed(2) + "M";
-    if (ax >= 1_000) return (x / 1_000).toFixed(2) + "K";
+    if (ax >= 1_000_000_000_000) return (x / 1_000_000_000_000).toFixed(2).replace(/\.00$/, "") + "조";
+    if (ax >= 100_000_000) return (x / 100_000_000).toFixed(2).replace(/\.00$/, "") + "억";
+    if (ax >= 10_000) return (x / 10_000).toFixed(2).replace(/\.00$/, "") + "만";
+    if (ax >= 1_000) return (x / 1_000).toFixed(2).replace(/\.00$/, "") + "천";
+    if (ax >= 100) return (x / 100).toFixed(2).replace(/\.00$/, "") + "백";
     return x.toLocaleString(undefined, { maximumFractionDigits: 2 });
   };
 
@@ -73,7 +74,7 @@ export default function SymbolChartClient({ symbol }: Props) {
           </div>
         </header>
 
-        <section className="mb-6 grid gap-4 sm:grid-cols-3">
+        <section className="mb-6 grid gap-4 sm:grid-cols-4">
           <div className="fade-up rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <p className="text-xs text-gray-500">Current Price</p>
             <p className="mt-2 text-xl font-semibold text-gray-900">
@@ -95,9 +96,15 @@ export default function SymbolChartClient({ symbol }: Props) {
             </p>
           </div>
           <div className="fade-up rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p className="text-xs text-gray-500">{tfLabel} Volume</p>
+            <p className="text-xs text-gray-500">{tfLabel} 거래량</p>
             <p className="mt-2 text-xl font-semibold text-gray-900">
               {Number.isFinite(info?.volume) ? fmtCompact(info?.volume ?? NaN) : "-"}
+            </p>
+          </div>
+          <div className="fade-up rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p className="text-xs text-gray-500">{tfLabel} 거래대금</p>
+            <p className="mt-2 text-xl font-semibold text-gray-900">
+              {Number.isFinite(info?.quoteVolume) ? fmtCompact(info?.quoteVolume ?? NaN) : "-"}
             </p>
           </div>
         </section>
