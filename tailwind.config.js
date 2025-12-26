@@ -1,18 +1,18 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    './pages/**/*.{js,ts,jsx,tsx}',
-    './components/**/*.{js,ts,jsx,tsx}'
-  ],
-  darkMode: 'class',
+  content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
-        background: '#0d1117',
-        card: '#161b22',
-        primary: '#1f6feb',
-        success: '#3fb950',
-        danger: '#e5534b'
+        background: "#ffffff",
+        primary: "#3b82f6",
+        secondary: "#64748b",
+        success: "#22c55e",
+        danger: "#ef4444"
+      },
+      fontFamily: {
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"]
       }
     }
   },

@@ -1,7 +1,21 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, createContext, useCallback, useMemo, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+export type ThemeMode = "light" | "dark";
+
+type ThemeContextValue = {
+  theme: ThemeMode;
+  setTheme: (theme: ThemeMode) => void;
+  toggleTheme: () => void;
+};
+
+export const ThemeContext = createContext<ThemeContextValue>({
+  theme: "light",
+  setTheme: () => {},
+  toggleTheme: () => {}
+});
 
 type Props = {
   children: ReactNode;
@@ -21,5 +35,16 @@ export function AppProviders({ children }: Props) {
       })
   );
 
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  const [theme, setTheme] = useState<ThemeMode>("light");
+  const toggleTheme = useCallback(
+    () => setTheme((prev) => (prev === "light" ? "dark" : "light")),
+    []
+  );
+  const themeValue = useMemo(() => ({ theme, setTheme, toggleTheme }), [theme, toggleTheme]);
+
+  return (
+    <ThemeContext.Provider value={themeValue}>
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    </ThemeContext.Provider>
+  );
 }

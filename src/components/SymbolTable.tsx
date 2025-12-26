@@ -17,7 +17,7 @@ import { useSymbolsStore, SortKey } from "@/store/useSymbolStore";
 const columnHelper = createColumnHelper<SymbolRow>();
 
 function LoadingBar() {
-  return <span className="inline-block h-3 w-10 animate-pulse rounded bg-slate-700" />;
+  return <span className="inline-block h-3 w-10 animate-pulse rounded bg-gray-200" />;
 }
 
 const SORTABLE: Set<string> = new Set(["symbol", "price", "volume", "change24h", "time"]);
@@ -152,7 +152,7 @@ export default function SymbolTable() {
       columnHelper.accessor("symbol", {
         id: "symbol",
         header: () => "Symbol",
-        cell: (info) => <span className="font-medium text-slate-100">{info.getValue()}</span>
+        cell: (info) => <span className="font-medium text-gray-900">{info.getValue()}</span>
       }),
 
       columnHelper.accessor("price", {
@@ -164,7 +164,7 @@ export default function SymbolTable() {
           const sym = info.row.original.symbol;
           const flash = flashRef.current[sym];
           const now = Date.now();
-          let cls = "tabular-nums";
+          let cls = "tabular-nums text-gray-900";
           if (flash?.priceUntil && flash.priceUntil > now) {
             cls += flash.priceDir && flash.priceDir > 0 ? " flash-price-up" : " flash-price-down";
           }
@@ -174,27 +174,33 @@ export default function SymbolTable() {
 
       columnHelper.accessor("volume", {
         id: "volume",
-        header: () => `${wl} Volume`,
+        header: () => `${wl} Volume (Base)`,
         cell: (info) => {
           const value = info.getValue() as number;
           if (isLoading && (!value || value === 0)) return <LoadingBar />;
           const sym = info.row.original.symbol;
-          const quoteVolume = info.row.original.quoteVolume;
           const flash = flashRef.current[sym];
           const now = Date.now();
           const cls =
             flash?.volumeUntil && flash.volumeUntil > now ? "tabular-nums flash-blink" : "tabular-nums";
-          return (
-            <div className={cls}>
-              <div>
-                <span className="text-[11px] text-slate-500">B </span>
-                {fmtCompact(value)}
-              </div>
-              <div className="text-[11px] text-slate-500">
-                Q {fmtCompact(quoteVolume)}
-              </div>
-            </div>
-          );
+          return <span className={cls}>{fmtCompact(value)}</span>;
+        }
+      }),
+
+      columnHelper.accessor((row) => row.quoteVolume, {
+        id: "turnover",
+        header: () => `${wl} Turnover (Quote)`,
+        cell: (info) => {
+          const value = info.getValue() as number;
+          if (isLoading && (!value || value === 0)) return <LoadingBar />;
+          const sym = info.row.original.symbol;
+          const flash = flashRef.current[sym];
+          const now = Date.now();
+          const cls =
+            flash?.volumeUntil && flash.volumeUntil > now
+              ? "tabular-nums text-gray-700 flash-blink"
+              : "tabular-nums text-gray-700";
+          return <span className={cls}>{fmtCompact(value)}</span>;
         }
       }),
 
@@ -210,7 +216,7 @@ export default function SymbolTable() {
           const now = Date.now();
           const blink = flash?.changeUntil && flash.changeUntil > now ? " flash-blink" : "";
           return (
-            <span className={`tabular-nums${blink} ${isUp ? "text-emerald-400" : "text-red-400"}`}>
+            <span className={`tabular-nums${blink} ${isUp ? "text-emerald-600" : "text-red-600"}`}>
               {value.toFixed(2)}%
             </span>
           );
@@ -222,8 +228,8 @@ export default function SymbolTable() {
         header: () => "Onboard Date",
         cell: (info) => {
           const value = info.getValue() as number;
-          if (!value || value <= 0) return <span className="text-xs text-slate-500">-</span>;
-          return <span className="text-xs text-slate-400">{new Date(value).toLocaleDateString()}</span>;
+          if (!value || value <= 0) return <span className="text-xs text-gray-400">-</span>;
+          return <span className="text-xs text-gray-500">{new Date(value).toLocaleDateString()}</span>;
         }
       })
     ];
@@ -250,12 +256,12 @@ export default function SymbolTable() {
   };
 
   if (isLoading) {
-    return <div className="rounded-lg bg-slate-900 p-4 text-sm text-slate-300">로딩 중...</div>;
+    return <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">로딩 중...</div>;
   }
 
   if (isError) {
     return (
-      <div className="rounded-lg bg-red-900/50 p-4 text-sm text-red-200">
+      <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">
         심볼 데이터를 불러오는 중 오류가 발생했습니다.
       </div>
     );
@@ -263,19 +269,19 @@ export default function SymbolTable() {
 
   if (!data || data.length === 0) {
     return (
-      <div className="rounded-lg bg-slate-900 p-4 text-sm text-slate-300">
+      <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">
         표시할 심볼이 없습니다.
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl bg-slate-900/80 p-4 shadow-lg ring-1 ring-slate-800">
+    <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">Metrics window</span>
+          <span className="text-xs text-gray-500">Metrics window</span>
           <select
-            className="rounded bg-slate-800 px-2 py-1 text-xs text-slate-200 ring-1 ring-slate-700"
+            className="rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700"
             value={win}
             onChange={(e) => setWin(e.target.value as MetricWindow)}
           >
@@ -287,16 +293,16 @@ export default function SymbolTable() {
           </select>
         </div>
 
-        <span className="text-xs text-slate-400">정렬 가능한 열만 클릭됩니다.</span>
+        <span className="text-xs text-gray-400">정렬 가능한 열만 클릭됩니다.</span>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full text-left">
+        <table className="min-w-full text-left text-gray-900">
           <thead>
             {table.getHeaderGroups().map((hg) => (
               <tr
                 key={hg.id}
-                className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-400"
+                className="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500"
               >
                 {hg.headers.map((header) => {
                   const id = header.column.id;
@@ -319,11 +325,11 @@ export default function SymbolTable() {
             ))}
           </thead>
 
-          <tbody className="divide-y divide-slate-800 text-sm">
+          <tbody className="divide-y divide-gray-200 text-sm">
             {table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className="cursor-pointer hover:bg-slate-800/70"
+                className="cursor-pointer transition hover:bg-blue-50/70"
                 onClick={() => router.push(`/chart/${row.original.symbol}`)}
               >
                 {row.getVisibleCells().map((cell) => (

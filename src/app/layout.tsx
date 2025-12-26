@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "./providers";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter"
+});
 
 export const metadata: Metadata = {
-  title: "Crypto Dashboard",
-  description: "Binance spot/UM 심볼 정렬 + 실시간 차트 프론트엔드"
+  title: "CoinDash",
+  description: "실시간 암호화폐 시장 데이터와 차트를 제공하는 트레이딩 대시보드"
 };
 
 export default function RootLayout({
@@ -14,8 +23,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <body className="bg-slate-950 text-slate-100">
-        <AppProviders>{children}</AppProviders>
+      <body className={`${inter.variable} bg-white text-gray-900 font-sans`}>
+        <AppProviders>
+          <div className="flex min-h-screen flex-col bg-white text-gray-900">
+            <Header />
+            <div className="flex-1">{children}</div>
+            <Footer />
+          </div>
+        </AppProviders>
       </body>
     </html>
   );
