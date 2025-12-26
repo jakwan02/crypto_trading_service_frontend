@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react";
 import ChartContainer from "@/components/ChartContainer";
-import { useSymbols } from "@/hooks/useSymbols";
+import { useSymbols, type MetricWindow } from "@/hooks/useSymbols";
 
 const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
 
@@ -14,10 +14,12 @@ type Props = {
 export default function SymbolChartClient({ symbol }: Props) {
   const [tf, setTf] = useState<string>("1d");
   const sym = (symbol || "").toUpperCase();
-  const { data: symbols } = useSymbols("1d");
+  const tfWin = tf as MetricWindow;
+  const { data: symbols } = useSymbols(tfWin);
   const info = useMemo(() => symbols?.find((row) => row.symbol === sym), [symbols, sym]);
   const changeValue = info?.change24h;
   const changeIsNumber = Number.isFinite(changeValue);
+  const tfLabel = tf;
 
   const fmtPrice = (x: number) =>
     Number.isFinite(x)
@@ -79,7 +81,7 @@ export default function SymbolChartClient({ symbol }: Props) {
             </p>
           </div>
           <div className="fade-up rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p className="text-xs text-gray-500">24h Change</p>
+            <p className="text-xs text-gray-500">{tfLabel} Change</p>
             <p
               className={`mt-2 text-xl font-semibold ${
                 !changeIsNumber
@@ -93,7 +95,7 @@ export default function SymbolChartClient({ symbol }: Props) {
             </p>
           </div>
           <div className="fade-up rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p className="text-xs text-gray-500">24h Volume</p>
+            <p className="text-xs text-gray-500">{tfLabel} Volume</p>
             <p className="mt-2 text-xl font-semibold text-gray-900">
               {Number.isFinite(info?.volume) ? fmtCompact(info?.volume ?? NaN) : "-"}
             </p>

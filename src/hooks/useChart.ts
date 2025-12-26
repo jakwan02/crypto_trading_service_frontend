@@ -396,6 +396,7 @@ export function useChart(symbol: string | null, timeframe: string) {
       try {
         ws?.close();
       } catch {}
+      chartCache.delete(cacheKey);
     };
   }, [symbol, market, tf]);
 
