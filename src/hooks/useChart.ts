@@ -57,6 +57,8 @@ type ChartCache = {
   data: Candle[];
 };
 
+const DEFAULT_API_BASE_URL = "http://localhost:8001";
+const DEFAULT_WS_BASE_URL = "ws://localhost:8002";
 const CHART_CACHE_TTL_MS = 15_000;
 const chartCache = new Map<string, ChartCache>();
 
@@ -73,15 +75,15 @@ function stripApiSuffix(url: string): string {
 
 function toApiBase(): string {
   const apiEnv = process.env.NEXT_PUBLIC_API_BASE_URL;
-  const base = stripApiSuffix(apiEnv || "http://localhost:8000");
+  const base = stripApiSuffix(apiEnv || DEFAULT_API_BASE_URL);
   return base.endsWith("/api") ? base : `${base}/api`;
 }
 
 function toWsBase(): string {
-  const wsEnv = process.env.NEXT_PUBLIC_WS_BASE_URL;
-  const apiEnv = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const wsEnv = process.env.NEXT_PUBLIC_WS_BASE_URL || DEFAULT_WS_BASE_URL;
+  const apiEnv = process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL;
 
-  const base = stripApiSuffix(wsEnv || apiEnv || "http://localhost:8000");
+  const base = stripApiSuffix(wsEnv || apiEnv);
   if (base.startsWith("ws://") || base.startsWith("wss://")) return base;
   if (base.startsWith("https://")) return "wss://" + base.slice("https://".length);
   if (base.startsWith("http://")) return "ws://" + base.slice("http://".length);

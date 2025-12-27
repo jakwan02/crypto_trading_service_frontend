@@ -52,6 +52,8 @@ type UseSymbolsOptions = {
   tickerSymbols?: string[];
 };
 
+const DEFAULT_API_BASE_URL = "http://localhost:8001";
+const DEFAULT_WS_BASE_URL = "ws://localhost:8002";
 const SYMBOLS_CACHE_TTL_MS = 15_000;
 const METRICS_CACHE_TTL_MS = 15_000;
 const TICK_FLUSH_MS = 500;
@@ -69,14 +71,14 @@ function stripApiSuffix(u: string) {
 }
 
 function toApiBase(): string {
-  const env = String(process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000").trim();
+  const env = String(process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL).trim();
   const root = stripApiSuffix(env);
   return root.endsWith("/api") ? root : `${root}/api`;
 }
 
 function toWsBase(): string {
-  const wsEnv = String(process.env.NEXT_PUBLIC_WS_BASE_URL || "").trim();
-  const apiEnv = String(process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000").trim();
+  const wsEnv = String(process.env.NEXT_PUBLIC_WS_BASE_URL || DEFAULT_WS_BASE_URL).trim();
+  const apiEnv = String(process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL).trim();
 
   const base = stripApiSuffix(wsEnv || apiEnv);
 

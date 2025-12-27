@@ -6,6 +6,11 @@ import LanguageDetector from "i18next-browser-languagedetector";
 import { resources } from "./resources";
 
 const supported = ["ko", "en", "ja", "de"] as const;
+const isBrowser = typeof window !== "undefined";
+const initialLanguage =
+  isBrowser && typeof document !== "undefined"
+    ? document.documentElement.lang || "ko"
+    : "ko";
 
 async function loadLocaleBundle(lng: string) {
   const base = String(lng || "").split("-")[0];
@@ -28,11 +33,13 @@ export async function ensureLocaleResources(lng: string) {
 }
 
 if (!i18n.isInitialized) {
-  i18n
-    .use(LanguageDetector)
+  const chain = i18n;
+  if (isBrowser) chain.use(LanguageDetector);
+  chain
     .use(initReactI18next)
     .init({
       resources,
+      lng: initialLanguage,
       fallbackLng: "en",
       supportedLngs: supported,
       nonExplicitSupportedLngs: true,
@@ -56,10 +63,12 @@ if (!i18n.isInitialized) {
         "footer"
       ],
       nsSeparator: ".",
-      detection: {
-        order: ["localStorage", "navigator", "htmlTag"],
-        caches: ["localStorage"]
-      },
+      detection: isBrowser
+        ? {
+            order: ["localStorage", "navigator", "htmlTag"],
+            caches: ["localStorage"]
+          }
+        : undefined,
       interpolation: {
         escapeValue: false
       },

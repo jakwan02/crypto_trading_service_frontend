@@ -1,10 +1,10 @@
 "use client";
 
-import { ReactNode, createContext, useCallback, useMemo, useState } from "react";
+import { ReactNode, createContext, useCallback, useEffect, useMemo, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { I18nextProvider } from "react-i18next";
-import i18n from "@/i18n/i18n";
+import i18n, { ensureLocaleResources } from "@/i18n/i18n";
 
 export type ThemeMode = "light" | "dark";
 
@@ -44,6 +44,19 @@ export function AppProviders({ children }: Props) {
     []
   );
   const themeValue = useMemo(() => ({ theme, setTheme, toggleTheme }), [theme, toggleTheme]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem("i18nextLng") || "";
+    const base = stored.split("-")[0];
+    if (!base) return;
+    if (!["ko", "en", "ja", "de"].includes(base)) return;
+    if (i18n.language === base) return;
+
+    void ensureLocaleResources(base).then(() => {
+      i18n.changeLanguage(base);
+    });
+  }, []);
 
   return (
     <ThemeContext.Provider value={themeValue}>
