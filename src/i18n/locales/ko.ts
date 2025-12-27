@@ -4,6 +4,7 @@ const ko = {
     tagline: "AI crypto intelligence",
     pro: "PRO",
     proUpgrade: "Pro 업그레이드",
+    login: "로그인",
     loginGoogle: "Google 로그인",
     logout: "로그아웃",
     account: "계정 관리",
@@ -43,7 +44,8 @@ const ko = {
     charts: "Charts",
     ai: "AI Insights",
     news: "News",
-    alerts: "Alerts"
+    alerts: "Alerts",
+    payment: "Payment"
   },
   home: {
     hero: {

@@ -11,7 +11,8 @@ const NAV_LINKS = [
   { href: "/chart", labelKey: "nav.charts" },
   { href: "/indicators", labelKey: "nav.ai", pro: true },
   { href: "/news", labelKey: "nav.news" },
-  { href: "/alerts", labelKey: "nav.alerts" }
+  { href: "/alerts", labelKey: "nav.alerts" },
+  { href: "/payment", labelKey: "nav.payment" }
 ];
 
 type Props = {
@@ -30,7 +31,7 @@ export default function Navigation({ className = "", onNavigate }: Props) {
         const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
         const base = "rounded-full px-3 py-1 text-sm font-medium transition inline-flex items-center gap-2";
         const active = "bg-primary/10 text-primary";
-        const idle = "text-gray-600 hover:text-gray-900";
+        const idle = "text-gray-600 hover:bg-primary/10 hover:text-primary";
 
         return (
           <Link

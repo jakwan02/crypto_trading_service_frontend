@@ -4,6 +4,7 @@ const en = {
     tagline: "AI crypto intelligence",
     pro: "PRO",
     proUpgrade: "Upgrade",
+    login: "Login",
     loginGoogle: "Google Login",
     logout: "Logout",
     account: "Account",
@@ -43,7 +44,8 @@ const en = {
     charts: "Charts",
     ai: "AI Insights",
     news: "News",
-    alerts: "Alerts"
+    alerts: "Alerts",
+    payment: "Payment"
   },
   home: {
     hero: {

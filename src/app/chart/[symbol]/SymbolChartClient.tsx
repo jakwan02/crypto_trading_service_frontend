@@ -120,7 +120,9 @@ export default function SymbolChartClient({ symbol }: Props) {
                     type="button"
                     onClick={() => setTf(item)}
                     className={`rounded-full px-3 py-1 text-xs font-medium sm:text-sm ${
-                      tf === item ? "bg-primary text-white" : "text-gray-600 hover:bg-white"
+                      tf === item
+                        ? "bg-primary text-white"
+                        : "text-gray-600 hover:bg-primary/5 hover:text-primary"
                     }`}
                   >
                     {item.toUpperCase()}

@@ -33,7 +33,7 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [noticeOpen, setNoticeOpen] = useState(false);
-  const { user, signInWithGoogle, signOut, isPro } = useAuth();
+  const { user, signOut, isPro } = useAuth();
   const { t } = useTranslation();
   const displayName = useMemo(() => {
     if (!user) return t("common.guest");
@@ -65,7 +65,7 @@ export default function Header() {
             <button
               type="button"
               onClick={() => setNoticeOpen((prev) => !prev)}
-              className="relative rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:text-gray-900"
+              className="relative rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary"
               aria-label={t("common.notifications.label")}
             >
               <Bell className="h-4 w-4" />
@@ -80,7 +80,7 @@ export default function Header() {
                       key={item.id}
                       href={item.href}
                       onClick={() => setNoticeOpen(false)}
-                      className="block rounded-xl border border-gray-100 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                      className="block rounded-xl border border-gray-100 px-3 py-2 text-xs text-gray-700 transition hover:border-primary/20 hover:bg-primary/5 hover:text-primary"
                     >
                       <p className="font-medium text-gray-900">{t(item.titleKey)}</p>
                       <p className="mt-1 text-[11px] text-gray-400">{t(item.timeKey)}</p>
@@ -107,19 +107,18 @@ export default function Header() {
           )}
 
           {!user ? (
-            <button
-              type="button"
-              onClick={signInWithGoogle}
+            <Link
+              href="/login"
               className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark"
             >
-              {t("common.loginGoogle")}
-            </button>
+              {t("common.login")}
+            </Link>
           ) : (
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setAccountOpen((prev) => !prev)}
-                className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-300"
+                className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
               >
                 {displayName}
                 <ChevronDown className="h-4 w-4" />
@@ -129,14 +128,21 @@ export default function Header() {
                   <Link
                     href="/account"
                     onClick={() => setAccountOpen(false)}
-                    className="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
                   >
                     {t("common.account")}
                   </Link>
                   <Link
+                    href="/payment"
+                    onClick={() => setAccountOpen(false)}
+                    className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                  >
+                    {t("common.payment")}
+                  </Link>
+                  <Link
                     href="/alerts"
                     onClick={() => setAccountOpen(false)}
-                    className="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
                   >
                     {t("common.alerts")}
                   </Link>
@@ -146,7 +152,7 @@ export default function Header() {
                       setAccountOpen(false);
                       signOut();
                     }}
-                    className="w-full rounded-lg px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                    className="w-full rounded-lg px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
                   >
                     {t("common.logout")}
                   </button>
@@ -160,7 +166,7 @@ export default function Header() {
           type="button"
           aria-label="Open menu"
           onClick={() => setMobileOpen(true)}
-          className="rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:border-gray-300 hover:text-gray-900 md:hidden"
+          className="rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary md:hidden"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -188,7 +194,7 @@ export default function Header() {
               type="button"
               aria-label="Close menu"
               onClick={() => setMobileOpen(false)}
-              className="rounded-full border border-gray-200 p-2 text-gray-600"
+              className="rounded-full border border-gray-200 p-2 text-gray-600 transition hover:border-primary/30 hover:text-primary"
             >
               <X className="h-4 w-4" />
             </button>
@@ -213,24 +219,28 @@ export default function Header() {
               )}
 
               {!user ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileOpen(false);
-                    signInWithGoogle();
-                  }}
+                <Link
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
                   className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white"
                 >
-                  {t("common.loginGoogle")}
-                </button>
+                  {t("common.login")}
+                </Link>
               ) : (
                 <div className="flex flex-col gap-2">
                   <Link
                     href="/account"
                     onClick={() => setMobileOpen(false)}
-                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700"
+                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
                   >
                     {t("common.account")}
+                  </Link>
+                  <Link
+                    href="/payment"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                  >
+                    {t("common.payment")}
                   </Link>
                   <button
                     type="button"
@@ -238,7 +248,7 @@ export default function Header() {
                       setMobileOpen(false);
                       signOut();
                     }}
-                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700"
+                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
                   >
                     {t("common.logout")}
                   </button>

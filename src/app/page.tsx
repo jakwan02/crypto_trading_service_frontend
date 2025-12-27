@@ -83,7 +83,7 @@ export default function HomePage() {
                 </Link>
                 <Link
                   href="/alerts"
-                  className="rounded-full border border-gray-200 px-5 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-300 hover:text-gray-900"
+                  className="rounded-full border border-gray-200 px-5 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
                 >
                   {t("home.hero.ctaAlerts")}
                 </Link>
@@ -121,7 +121,9 @@ export default function HomePage() {
                   type="button"
                   onClick={() => setMarket("spot")}
                   className={`rounded-full px-4 py-1 text-sm font-medium ${
-                    market === "spot" ? "bg-primary text-white" : "text-gray-600 hover:bg-white"
+                    market === "spot"
+                      ? "bg-primary text-white"
+                      : "text-gray-600 hover:bg-primary/5 hover:text-primary"
                   }`}
                 >
                   {t("common.marketSpot")}
@@ -130,7 +132,9 @@ export default function HomePage() {
                   type="button"
                   onClick={() => setMarket("um")}
                   className={`rounded-full px-4 py-1 text-sm font-medium ${
-                    market === "um" ? "bg-primary text-white" : "text-gray-600 hover:bg-white"
+                    market === "um"
+                      ? "bg-primary text-white"
+                      : "text-gray-600 hover:bg-primary/5 hover:text-primary"
                   }`}
                 >
                   {t("common.marketUm")}

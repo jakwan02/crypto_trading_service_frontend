@@ -33,22 +33,26 @@ export default function MarketPage() {
           <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 p-1">
             <button
               type="button"
-              onClick={() => setMarket("spot")}
-              className={`rounded-full px-4 py-1 text-sm font-medium ${
-                market === "spot" ? "bg-primary text-white" : "text-gray-600 hover:bg-white"
-              }`}
-            >
-              {t("common.marketSpot")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setMarket("um")}
-              className={`rounded-full px-4 py-1 text-sm font-medium ${
-                market === "um" ? "bg-primary text-white" : "text-gray-600 hover:bg-white"
-              }`}
-            >
-              {t("common.marketUm")}
-            </button>
+                onClick={() => setMarket("spot")}
+                className={`rounded-full px-4 py-1 text-sm font-medium ${
+                  market === "spot"
+                    ? "bg-primary text-white"
+                    : "text-gray-600 hover:bg-primary/5 hover:text-primary"
+                }`}
+              >
+                {t("common.marketSpot")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMarket("um")}
+                className={`rounded-full px-4 py-1 text-sm font-medium ${
+                  market === "um"
+                    ? "bg-primary text-white"
+                    : "text-gray-600 hover:bg-primary/5 hover:text-primary"
+                }`}
+              >
+                {t("common.marketUm")}
+              </button>
           </div>
         </header>
 
