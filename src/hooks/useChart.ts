@@ -197,6 +197,7 @@ export function useChart(symbol: string | null, timeframe: string) {
   const dataRef = useRef<Candle[]>([]);
   const noticeTimerRef = useRef<number | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
+  const skipInitialWsRef = useRef(true);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -230,6 +231,10 @@ export function useChart(symbol: string | null, timeframe: string) {
   };
 
   useEffect(() => {
+    if (process.env.NODE_ENV !== "production" && skipInitialWsRef.current) {
+      skipInitialWsRef.current = false;
+      return;
+    }
     const sym = String(symbol || "").trim().toUpperCase();
     const m = String(market || "").trim().toLowerCase();
     const tfNorm = normTf(tf);

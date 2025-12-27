@@ -228,8 +228,14 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
     Record<string, { price: number; volume: number; quoteVolume: number; time: number }>
   >({});
   const [tickVer, setTickVer] = useState(0);
+  const skipTickerWsRef = useRef(true);
+  const skipMetricsWsRef = useRef(true);
 
   useEffect(() => {
+    if (process.env.NODE_ENV !== "production" && skipTickerWsRef.current) {
+      skipTickerWsRef.current = false;
+      return;
+    }
     tickRef.current = {};
     setTickVer((v) => v + 1);
 
@@ -426,6 +432,10 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
 
   // 3-1) window 메트릭 실시간(ws_metrics)
   useEffect(() => {
+    if (process.env.NODE_ENV !== "production" && skipMetricsWsRef.current) {
+      skipMetricsWsRef.current = false;
+      return;
+    }
     const m = String(market || "spot").trim().toLowerCase();
     const w = String(metricWindow || "1d").trim();
     const wsBase = toWsBase();
