@@ -292,7 +292,10 @@ export function useChart(symbol: string | null, timeframe: string) {
       out.sort((a, b) => a.time - b.time);
 
       const temp = parseCandle(tempRaw);
-      if (temp) return upsert(out, temp, 1200);
+      if (temp) {
+        const lastTime = out.length ? out[out.length - 1].time : 0;
+        if (!lastTime || temp.time > lastTime) return upsert(out, temp, 1200);
+      }
       return out;
     };
 
