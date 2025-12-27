@@ -29,7 +29,7 @@ function LoadingBar() {
   return <span className="inline-block h-3 w-10 animate-pulse rounded bg-gray-200" />;
 }
 
-const SORTABLE: Set<string> = new Set(["symbol", "price", "volume", "change24h", "time"]);
+const SORTABLE: Set<string> = new Set(["symbol", "price", "volume", "quoteVolume", "change24h", "time"]);
 const WIN_OPTS: MetricWindow[] = ["1m", "5m", "15m", "1h", "4h", "1d", "1w", "1M", "1Y"];
 const PRICE_FLASH_MS = 520;
 const BLINK_MS = 320;
@@ -56,6 +56,13 @@ function fmtPrice(x: number, locale: string): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: frac
   });
+}
+
+function fmtWithUnit(value: number, unit: string | undefined, locale: string): string {
+  const base = formatCompactNumber(value, locale);
+  if (base === "-") return base;
+  const u = (unit || "").trim();
+  return u ? `${base} ${u}` : base;
 }
 
 export default function SymbolTable({
@@ -209,12 +216,13 @@ export default function SymbolTable({
           const now = Date.now();
           const cls =
             flash?.volumeUntil && flash.volumeUntil > now ? "tabular-nums flash-blink" : "tabular-nums";
-          return <span className={cls}>{formatCompactNumber(value, locale)}</span>;
+          const unit = info.row.original.baseAsset?.toUpperCase();
+          return <span className={cls}>{fmtWithUnit(value, unit, locale)}</span>;
         }
       }),
 
       columnHelper.accessor((row) => row.quoteVolume, {
-        id: "turnover",
+        id: "quoteVolume",
         header: () => `${wl} ${t("table.turnover")}`,
         cell: (info) => {
           const value = info.getValue() as number;
@@ -226,7 +234,8 @@ export default function SymbolTable({
             flash?.volumeUntil && flash.volumeUntil > now
               ? "tabular-nums text-gray-700 flash-blink"
               : "tabular-nums text-gray-700";
-          return <span className={cls}>{formatCompactNumber(value, locale)}</span>;
+          const unit = (info.row.original.quoteAsset || "USDT").toUpperCase();
+          return <span className={cls}>{fmtWithUnit(value, unit, locale)}</span>;
         }
       }),
 

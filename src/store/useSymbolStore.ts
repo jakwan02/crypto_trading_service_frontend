@@ -3,7 +3,7 @@
 import { create } from "zustand";
 
 export type Market = "spot" | "um";
-export type SortKey = "symbol" | "price" | "volume" | "change24h" | "time";
+export type SortKey = "symbol" | "price" | "volume" | "quoteVolume" | "change24h" | "time";
 
 type SortOrder = "asc" | "desc";
 

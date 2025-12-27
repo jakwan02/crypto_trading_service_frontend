@@ -8,7 +8,7 @@ import { nextBackoff } from "@/lib/backoff";
 import { MetricItemSchema, SymbolItemSchema } from "@/lib/schemas";
 
 export type MetricWindow = "1m" | "5m" | "15m" | "1h" | "4h" | "1d" | "1w" | "1M" | "1Y";
-type SortKey = "symbol" | "price" | "volume" | "change24h" | "time";
+type SortKey = "symbol" | "price" | "volume" | "quoteVolume" | "change24h" | "time";
 
 export type SymbolRow = {
   market: string;
@@ -136,6 +136,7 @@ function sortSymbols(rows: SymbolRow[], sortKey: SortKey, sortOrder: "asc" | "de
     if (sortKey === "symbol") return a.symbol.localeCompare(b.symbol) * dir;
     if (sortKey === "price") return (a.price - b.price) * dir;
     if (sortKey === "volume") return (a.volume - b.volume) * dir;
+    if (sortKey === "quoteVolume") return (a.quoteVolume - b.quoteVolume) * dir;
     if (sortKey === "change24h") return (a.change24h - b.change24h) * dir;
     return (a.onboardDate - b.onboardDate) * dir;
   });

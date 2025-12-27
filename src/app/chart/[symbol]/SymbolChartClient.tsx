@@ -1,7 +1,7 @@
 // filename: frontend/app/chart/[symbol]/SymbolChartClient.tsx
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -11,6 +11,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { formatCompactNumber } from "@/lib/format";
 
 const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
+const FLASH_MS = 520;
+const BLINK_MS = 320;
 
 type Props = {
   symbol: string;
@@ -28,11 +30,118 @@ export default function SymbolChartClient({ symbol }: Props) {
   const changeValue = info?.change24h ?? NaN;
   const changeIsNumber = Number.isFinite(changeValue);
   const tfLabel = tf;
+  const [, setFlashTick] = useState(0);
+  const prevRef = useRef<{ price: number; change: number; volume: number; quoteVolume: number } | null>(null);
+  const flashRef = useRef<{
+    priceDir?: number;
+    priceUntil?: number;
+    changeDir?: number;
+    changeUntil?: number;
+    volumeDir?: number;
+    volumeUntil?: number;
+    quoteDir?: number;
+    quoteUntil?: number;
+  }>({});
+  const flashTimerRef = useRef<number | null>(null);
 
   const fmtPrice = (x: number) =>
     Number.isFinite(x)
       ? x.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 8 })
       : "-";
+  const fmtWithUnit = (value: number, unit?: string) => {
+    const base = formatCompactNumber(value, locale);
+    if (base === "-") return base;
+    const u = (unit || "").trim();
+    return u ? `${base} ${u}` : base;
+  };
+
+  useEffect(() => {
+    return () => {
+      if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    prevRef.current = null;
+    flashRef.current = {};
+  }, [sym, tf]);
+
+  useEffect(() => {
+    if (!info) return;
+    const next = {
+      price: Number.isFinite(info.price) ? info.price : NaN,
+      change: Number.isFinite(info.change24h) ? info.change24h : NaN,
+      volume: Number.isFinite(info.volume) ? info.volume : NaN,
+      quoteVolume: Number.isFinite(info.quoteVolume) ? info.quoteVolume : NaN
+    };
+    const prev = prevRef.current;
+    const now = Date.now();
+    let nextTimerAt = 0;
+    let changed = false;
+
+    if (prev) {
+      if (Number.isFinite(next.price) && Number.isFinite(prev.price) && next.price !== prev.price) {
+        const dir = next.price > prev.price ? 1 : -1;
+        flashRef.current = { ...flashRef.current, priceDir: dir, priceUntil: now + FLASH_MS };
+        nextTimerAt = Math.max(nextTimerAt, now + FLASH_MS);
+        changed = true;
+      }
+      if (Number.isFinite(next.change) && Number.isFinite(prev.change) && next.change !== prev.change) {
+        const dir = next.change > prev.change ? 1 : -1;
+        flashRef.current = { ...flashRef.current, changeDir: dir, changeUntil: now + BLINK_MS };
+        nextTimerAt = Math.max(nextTimerAt, now + BLINK_MS);
+        changed = true;
+      }
+      if (Number.isFinite(next.volume) && Number.isFinite(prev.volume) && next.volume !== prev.volume) {
+        const dir = next.volume > prev.volume ? 1 : -1;
+        flashRef.current = { ...flashRef.current, volumeDir: dir, volumeUntil: now + BLINK_MS };
+        nextTimerAt = Math.max(nextTimerAt, now + BLINK_MS);
+        changed = true;
+      }
+      if (
+        Number.isFinite(next.quoteVolume) &&
+        Number.isFinite(prev.quoteVolume) &&
+        next.quoteVolume !== prev.quoteVolume
+      ) {
+        const dir = next.quoteVolume > prev.quoteVolume ? 1 : -1;
+        flashRef.current = { ...flashRef.current, quoteDir: dir, quoteUntil: now + BLINK_MS };
+        nextTimerAt = Math.max(nextTimerAt, now + BLINK_MS);
+        changed = true;
+      }
+    }
+
+    prevRef.current = next;
+
+    if (changed) setFlashTick((v) => v + 1);
+    if (nextTimerAt > 0) {
+      if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
+      const delay = Math.max(0, nextTimerAt - Date.now());
+      flashTimerRef.current = window.setTimeout(() => {
+        setFlashTick((v) => v + 1);
+      }, delay + 20);
+    }
+  }, [info]);
+
+  const flash = flashRef.current;
+  const now = Date.now();
+  const priceFlash =
+    flash.priceUntil && flash.priceUntil > now
+      ? flash.priceDir && flash.priceDir > 0
+        ? "flash-price-up"
+        : "flash-price-down"
+      : "";
+  const changeFlash =
+    flash.changeUntil && flash.changeUntil > now
+      ? `${flash.changeDir && flash.changeDir > 0 ? "flash-price-up" : "flash-price-down"} flash-blink`
+      : "";
+  const volumeFlash =
+    flash.volumeUntil && flash.volumeUntil > now
+      ? `${flash.volumeDir && flash.volumeDir > 0 ? "flash-price-up" : "flash-price-down"} flash-blink`
+      : "";
+  const quoteFlash =
+    flash.quoteUntil && flash.quoteUntil > now
+      ? `${flash.quoteDir && flash.quoteDir > 0 ? "flash-price-up" : "flash-price-down"} flash-blink`
+      : "";
 
   if (!sym) {
     return (
@@ -78,7 +187,7 @@ export default function SymbolChartClient({ symbol }: Props) {
         <section className="mb-6 grid gap-4 sm:grid-cols-4">
           <div className="fade-up rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <p className="text-xs text-gray-500">{t("chart.currentPrice")}</p>
-            <p className="mt-2 text-xl font-semibold text-gray-900">
+            <p className={`mt-2 text-xl font-semibold text-gray-900 ${priceFlash}`}>
               {Number.isFinite(info?.price) ? fmtPrice(info?.price ?? NaN) : "-"}
             </p>
           </div>
@@ -91,21 +200,25 @@ export default function SymbolChartClient({ symbol }: Props) {
                   : changeValue >= 0
                     ? "text-emerald-600"
                     : "text-red-600"
-              }`}
+              } ${changeFlash}`}
             >
               {changeIsNumber ? `${changeValue?.toFixed(2)}%` : "-"}
             </p>
           </div>
           <div className="fade-up rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <p className="text-xs text-gray-500">{t("chart.volume", { tf: tfLabel })}</p>
-            <p className="mt-2 text-xl font-semibold text-gray-900">
-              {Number.isFinite(info?.volume) ? formatCompactNumber(info?.volume ?? NaN, locale) : "-"}
+            <p className={`mt-2 text-xl font-semibold text-gray-900 ${volumeFlash}`}>
+              {Number.isFinite(info?.volume)
+                ? fmtWithUnit(info?.volume ?? NaN, info?.baseAsset?.toUpperCase())
+                : "-"}
             </p>
           </div>
           <div className="fade-up rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <p className="text-xs text-gray-500">{t("chart.quoteVolume", { tf: tfLabel })}</p>
-            <p className="mt-2 text-xl font-semibold text-gray-900">
-              {Number.isFinite(info?.quoteVolume) ? formatCompactNumber(info?.quoteVolume ?? NaN, locale) : "-"}
+            <p className={`mt-2 text-xl font-semibold text-gray-900 ${quoteFlash}`}>
+              {Number.isFinite(info?.quoteVolume)
+                ? fmtWithUnit(info?.quoteVolume ?? NaN, (info?.quoteAsset || "USDT").toUpperCase())
+                : "-"}
             </p>
           </div>
         </section>

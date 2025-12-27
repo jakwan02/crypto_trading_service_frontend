@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SymbolTable from "@/components/SymbolTable";
 import { useSymbolsStore } from "@/store/useSymbolStore";
-import { useAuth } from "@/contexts/AuthContext";
 import type { SymbolRow } from "@/hooks/useSymbols";
 
 type FilterMode = "all" | "gainers" | "losers";
@@ -12,7 +11,6 @@ type FilterMode = "all" | "gainers" | "losers";
 export default function MarketPage() {
   const market = useSymbolsStore((s) => s.market);
   const setMarket = useSymbolsStore((s) => s.setMarket);
-  const { isPro } = useAuth();
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const { t } = useTranslation();
 
@@ -77,16 +75,7 @@ export default function MarketPage() {
           </div>
         </div>
 
-        <SymbolTable
-          limit={isPro ? undefined : 50}
-          filterFn={filterFn}
-        />
-
-        {!isPro ? (
-          <div className="mt-4 rounded-2xl border border-dashed border-gray-200 bg-white p-4 text-sm text-gray-500">
-            {t("market.freeLimit")}
-          </div>
-        ) : null}
+        <SymbolTable filterFn={filterFn} />
       </div>
     </main>
   );
