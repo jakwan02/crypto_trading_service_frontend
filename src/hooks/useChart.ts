@@ -438,7 +438,6 @@ export function useChart(symbol: string | null, timeframe: string) {
         window.clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
       }
-      chartCache.delete(cacheKey);
     };
   }, [symbol, market, tf]);
 
