@@ -1,37 +1,83 @@
 "use client";
 
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ensureLocaleResources } from "@/i18n/i18n";
 
-const LABELS: Record<string, string> = {
-  ko: "KR",
-  en: "EN",
-  ja: "JP",
-  de: "DE"
-};
+const LOCALES = [
+  { code: "ko", label: "Korean", flag: "🇰🇷" },
+  { code: "en", label: "English", flag: "🇺🇸" },
+  { code: "ja", label: "Japanese", flag: "🇯🇵" },
+  { code: "de", label: "German", flag: "🇩🇪" }
+];
 
 export default function LanguageSwitcher() {
   const { i18n } = useTranslation();
   const locale = i18n.language.split("-")[0];
-  const locales = ["ko", "en", "ja", "de"];
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const current = useMemo(
+    () => LOCALES.find((item) => item.code === locale) ?? LOCALES[0],
+    [locale]
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (event: MouseEvent) => {
+      if (!rootRef.current) return;
+      if (!rootRef.current.contains(event.target as Node)) setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   return (
-    <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 shadow-sm">
-      {locales.map((code) => (
-        <button
-          key={code}
-          type="button"
-          onClick={async () => {
-            await ensureLocaleResources(code);
-            i18n.changeLanguage(code);
-          }}
-          className={`rounded-full px-2 py-1 text-[11px] font-semibold transition ${
-            locale === code ? "bg-primary/10 text-primary" : "text-gray-500 hover:text-gray-900"
-          }`}
-        >
-          {LABELS[code] ?? code.toUpperCase()}
-        </button>
-      ))}
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:border-gray-300 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        aria-label="언어 선택"
+      >
+        <span className="text-base leading-none">{current.flag}</span>
+        <span className="sr-only">{current.label}</span>
+        <ChevronDown className="h-3 w-3 text-gray-500" />
+      </button>
+
+      {open ? (
+        <div className="absolute right-0 mt-2 w-36 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg">
+          <div className="grid grid-cols-2 gap-2">
+            {LOCALES.map((item) => (
+              <button
+                key={item.code}
+                type="button"
+                onClick={async () => {
+                  await ensureLocaleResources(item.code);
+                  i18n.changeLanguage(item.code);
+                  setOpen(false);
+                }}
+                className={`flex items-center justify-center rounded-xl border px-3 py-2 text-lg transition ${
+                  item.code === locale
+                    ? "border-primary/30 bg-primary/10 text-primary"
+                    : "border-transparent text-gray-700 hover:border-gray-200 hover:bg-gray-50 hover:text-gray-900"
+                }`}
+                aria-label={item.label}
+                title={item.label}
+              >
+                {item.flag}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
