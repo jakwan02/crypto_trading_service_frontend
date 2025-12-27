@@ -44,6 +44,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
   const lastLenRef = useRef<number>(0);
   const firstTimeRef = useRef<number>(0);
   const autoLoadRef = useRef<number>(0);
+  const restoreRangeRef = useRef<{ from: number; to: number } | null>(null);
   const rangeInitRef = useRef(false);
   const prevRangeRef = useRef<{ from: number; to: number } | null>(null);
   const prevSpanRef = useRef<number>(0);
@@ -190,13 +191,15 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
 
     if (needFull) {
       const ts = chart.timeScale();
-      const keepRange = isPrepend || loadingMore;
+      const keepRange = isPrepend || loadingMore || !!restoreRangeRef.current;
       const prevRange = keepRange ? ts.getVisibleLogicalRange() : null;
+      const restoreRange = restoreRangeRef.current;
 
       series.setData(mapped);
 
-      if (keepRange && prevRange) {
-        ts.setVisibleLogicalRange(prevRange);
+      if (keepRange && (restoreRange || prevRange)) {
+        ts.setVisibleLogicalRange(restoreRange || prevRange);
+        restoreRangeRef.current = null;
       } else {
         ts.fitContent();
       }
@@ -247,13 +250,14 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
       const isPan = Math.abs(span - prevSpan) <= 2;
       if (!isPan) return;
 
-      const threshold = 0.5;
+      const threshold = 2;
       if (range.from > threshold) return;
 
-      if (prev && range.from >= prev.from) return;
+      if (prev && range.from >= prev.from - 1) return;
       const now = Date.now();
-      if (now - autoLoadRef.current < 1200) return;
+      if (now - autoLoadRef.current < 1800) return;
       autoLoadRef.current = now;
+      restoreRangeRef.current = chart.timeScale().getVisibleLogicalRange();
       loadMore();
     };
 
