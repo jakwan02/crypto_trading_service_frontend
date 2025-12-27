@@ -328,7 +328,8 @@ export function useChart(symbol: string | null, timeframe: string) {
         if (!res.ok) throw new Error(`chart_http_${res.status}`);
         const js = await res.json();
         const items = Array.isArray(js?.items) ? js.items : [];
-        const snap = buildSnapshot(items);
+        const temp = js?.temp ?? null;
+        const snap = buildSnapshot(items, temp);
         if (rid !== restReqId) return;
         if (!aliveRef.current || stopped || connIdRef.current !== myConnId) return;
         if (reason === "ws_error" && dataRef.current.length > 0) return;
