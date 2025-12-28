@@ -69,15 +69,32 @@ function toApiBase(): string {
 }
 
 function toWsBase(): string {
-  const wsEnv = String(process.env.NEXT_PUBLIC_WS_BASE_URL || DEFAULT_WS_BASE_URL).trim();
+  const wsEnvRaw = String(process.env.NEXT_PUBLIC_WS_BASE_URL || "").trim();
+  const wsEnv = wsEnvRaw || DEFAULT_WS_BASE_URL;
   const apiEnv = String(process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL).trim();
+  const wsPort = String(process.env.NEXT_PUBLIC_WS_PORT || "").trim();
 
-  const base = stripApiSuffix(wsEnv || apiEnv);
+  const apiBase = stripApiSuffix(apiEnv);
+  let base = stripApiSuffix(wsEnv || apiEnv);
 
-  if (base.startsWith("ws://") || base.startsWith("wss://")) return base;
-  if (base.startsWith("https://")) return "wss://" + base.slice("https://".length);
-  if (base.startsWith("http://")) return "ws://" + base.slice("http://".length);
-  return base;
+  if (base.startsWith("https://")) base = "wss://" + base.slice("https://".length);
+  if (base.startsWith("http://")) base = "ws://" + base.slice("http://".length);
+
+  if (!base.startsWith("ws://") && !base.startsWith("wss://")) return base;
+
+  try {
+    const url = new URL(base);
+    if (wsPort) {
+      url.port = wsPort;
+    } else if (wsEnvRaw && stripApiSuffix(wsEnvRaw) === apiBase && url.port == "8001") {
+      url.port = "8002";
+    }
+    base = url.toString();
+  } catch {
+    return base;
+  }
+
+  return stripSlash(base);
 }
 
 function getApiToken(): string {
