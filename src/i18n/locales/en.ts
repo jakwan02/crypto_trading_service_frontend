@@ -135,7 +135,7 @@ const en = {
     price: "Price",
     volume: "Volume",
     turnover: "Turnover",
-    change: "Change",
+    change: "{{tf}} Change",
     onboardDate: "Onboard Date",
     empty: "No symbols to display.",
     error: "Failed to load symbols.",

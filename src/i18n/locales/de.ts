@@ -135,7 +135,7 @@ const de = {
     price: "Preis",
     volume: "Volumen",
     turnover: "Umsatz",
-    change: "Veränderung",
+    change: "{{tf}} Veränderung",
     onboardDate: "Listungsdatum",
     empty: "Keine Symbole vorhanden.",
     error: "Symbole konnten nicht geladen werden.",

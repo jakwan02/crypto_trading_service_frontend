@@ -135,7 +135,7 @@ const ja = {
     price: "価格",
     volume: "出来高",
     turnover: "売買代金",
-    change: "変動率",
+    change: "{{tf}} 変動率",
     onboardDate: "上場日",
     empty: "表示するシンボルがありません。",
     error: "シンボルの読み込みに失敗しました。",

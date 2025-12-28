@@ -135,7 +135,7 @@ const ko = {
     price: "Price",
     volume: "거래량",
     turnover: "거래대금",
-    change: "Change",
+    change: "{{tf}} 변동률",
     onboardDate: "Onboard Date",
     empty: "표시할 심볼이 없습니다.",
     error: "심볼 데이터를 불러오는 중 오류가 발생했습니다.",

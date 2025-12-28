@@ -241,7 +241,7 @@ export default function SymbolTable({
 
       columnHelper.accessor("change24h", {
         id: "change24h",
-        header: () => `${wl} ${t("table.change")}`,
+        header: () => t("table.change", { tf: wl }),
         cell: (info) => {
           const value = info.getValue() as number;
           if (isLoading && (!value && value !== 0)) return <LoadingBar />;
