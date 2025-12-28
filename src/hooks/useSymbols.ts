@@ -25,23 +25,16 @@ export type SymbolRow = {
   time: number; // ms
 };
 
-type TickerItem = {
-  market?: string;
-  symbol?: string;
-  s?: string;
-  price?: number;
-  p?: number;
-  volume?: number;
-  v?: number;
-  quote_volume?: number;
-  quoteVolume?: number;
-  q?: number;
-  time?: number;
-  t?: number;
-  final?: boolean;
-};
-
-type MetricMap = Record<string, { volume: number; quoteVolume: number; pctChange: number }>;
+type MetricMap = Record<
+  string,
+  {
+    price: number;
+    volume: number;
+    quoteVolume: number;
+    pctChange: number;
+    time: number;
+  }
+>;
 
 type SymbolCache = {
   ts: number;
@@ -56,7 +49,6 @@ const DEFAULT_API_BASE_URL = "http://localhost:8001";
 const DEFAULT_WS_BASE_URL = "ws://localhost:8002";
 const SYMBOLS_CACHE_TTL_MS = 15_000;
 const METRICS_CACHE_TTL_MS = 15_000;
-const TICK_FLUSH_MS = 500;
 const METRICS_FLUSH_MS = 800;
 const symbolsCache: Record<string, SymbolCache> = {};
 const metricsCache: Record<string, { ts: number; data: MetricMap }> = {};
@@ -224,139 +216,8 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
     symbolsCache[cacheKey] = { ts: Date.now(), data: query.data };
   }, [cacheKey, query.data]);
 
-  // 2) 실시간 티커(ws_ticker)
-  const tickRef = useRef<
-    Record<string, { price: number; volume: number; quoteVolume: number; time: number }>
-  >({});
-  const [tickVer, setTickVer] = useState(0);
-  const skipTickerWsRef = useRef(true);
+  // 2) window 메트릭(실시간 스냅샷) - REST
   const skipMetricsWsRef = useRef(true);
-
-  useEffect(() => {
-    if (process.env.NODE_ENV !== "production" && skipTickerWsRef.current) {
-      skipTickerWsRef.current = false;
-      return;
-    }
-    tickRef.current = {};
-    setTickVer((v) => v + 1);
-
-    if (!enableTicker) return;
-
-    const m = String(market || "spot").trim().toLowerCase();
-    const wsBase = toWsBase();
-    const symbolsParam = useAllTickers ? "" : `&symbols=${encodeURIComponent(tickerKey)}`;
-    const url = `${wsBase}/ws_ticker?market=${encodeURIComponent(m)}${symbolsParam}`;
-
-    let ws: WebSocket | null = null;
-    let closed = false;
-    let lastFlush = 0;
-    let flushTimer: number | null = null;
-    let reconnectTimer: number | null = null;
-    let retry = 0;
-
-    // 배치/단일 모두 반영
-    const applyOne = (raw: unknown) => {
-      const it = (raw && typeof raw === "object" ? (raw as TickerItem) : {}) as TickerItem;
-      const sym = String(it.symbol || it.s || "").toUpperCase();
-      if (!sym) return;
-
-      const price = num(it.price ?? it.p, NaN);
-      const volume = num(it.volume ?? it.v, NaN);
-      const quoteVolume = num(it.quoteVolume ?? it.quote_volume ?? it.q, NaN);
-      const time = num(it.time ?? it.t, 0);
-
-      const prev = tickRef.current[sym] || { price: NaN, volume: NaN, quoteVolume: NaN, time: 0 };
-      tickRef.current[sym] = {
-        price: Number.isFinite(price) ? price : prev.price,
-        volume: Number.isFinite(volume) ? volume : prev.volume,
-        quoteVolume: Number.isFinite(quoteVolume) ? quoteVolume : prev.quoteVolume,
-        time: time > 0 ? time : prev.time,
-      };
-    };
-
-    const connect = () => {
-      if (closed) return;
-      try {
-        ws = new WebSocket(url, getWsProtocols());
-      } catch {
-        return;
-      }
-
-      ws.onopen = () => {
-        retry = 0;
-      };
-
-      ws.onmessage = (ev) => {
-        if (closed) return;
-
-        let msg: unknown;
-        try {
-          msg = JSON.parse(ev.data as string) as unknown;
-        } catch {
-          return;
-        }
-
-        // 1) { items:[...] }
-        if (msg && typeof msg === "object" && Array.isArray((msg as { items?: unknown[] }).items)) {
-          for (const it of (msg as { items?: unknown[] }).items ?? []) applyOne(it);
-        }
-        // 2) [...]
-        else if (Array.isArray(msg)) {
-          for (const it of msg) applyOne(it);
-        }
-        // 3) 단일 객체
-        else if (msg && typeof msg === "object") {
-          applyOne(msg);
-        } else {
-          return;
-        }
-
-        const now = Date.now();
-        const elapsed = now - lastFlush;
-        if (elapsed >= TICK_FLUSH_MS) {
-          lastFlush = now;
-          setTickVer((v) => v + 1);
-          return;
-        }
-
-        if (!flushTimer) {
-          flushTimer = window.setTimeout(() => {
-            lastFlush = Date.now();
-            flushTimer = null;
-            setTickVer((v) => v + 1);
-          }, TICK_FLUSH_MS - elapsed);
-        }
-      };
-
-      ws.onerror = () => {
-        try {
-          ws?.close();
-        } catch {}
-      };
-
-      ws.onclose = () => {
-        if (closed) return;
-        const delay = nextBackoff(retry);
-        retry += 1;
-        if (reconnectTimer) window.clearTimeout(reconnectTimer);
-        reconnectTimer = window.setTimeout(connect, delay);
-      };
-    };
-
-    connect();
-
-    return () => {
-      closed = true;
-      if (flushTimer) window.clearTimeout(flushTimer);
-      if (reconnectTimer) window.clearTimeout(reconnectTimer);
-      try {
-        ws?.close(1000, "cleanup");
-      } catch {}
-      ws = null;
-    };
-  }, [market, tickerKey, useAllTickers, enableTicker]);
-
-  // 3) window 메트릭(거래량/변동률) - REST
   const metricsRef = useRef<MetricMap>({});
   const [metricsVer, setMetricsVer] = useState(0);
   const metricsFlushRef = useRef<number | null>(null);
@@ -405,10 +266,13 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
           const sym = String(it.symbol || "").toUpperCase();
           if (!sym) continue;
 
+          const price = num(it.price ?? it.close ?? 0);
           map[sym] = {
+            price,
             volume: num(it.volume ?? it.volume_sum ?? 0),
             quoteVolume: num(it.quote_volume ?? it.quoteVolume ?? 0),
             pctChange: num(it.pct_change ?? it.pctChange ?? 0),
+            time: num(it.time ?? it.t ?? 0)
           };
         }
 
@@ -429,7 +293,7 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
       cancelled = true;
       controller.abort();
     };
-  }, [market, metricWindow, metricsKey]);
+  }, [market, metricWindow, metricsKey, tickerKey, useAllTickers, enableTicker]);
 
   // 3-1) window 메트릭 실시간(ws_metrics)
   useEffect(() => {
@@ -437,13 +301,16 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
       skipMetricsWsRef.current = false;
       return;
     }
+    if (!enableTicker) return;
     const m = String(market || "spot").trim().toLowerCase();
     const w = String(metricWindow || "1d").trim();
     const wsBase = toWsBase();
+    const symbolsParam = useAllTickers ? "" : `&symbols=${encodeURIComponent(tickerKey)}`;
     const url =
       `${wsBase}/ws_metrics` +
       `?market=${encodeURIComponent(m)}` +
-      `&window=${encodeURIComponent(w)}`;
+      `&window=${encodeURIComponent(w)}` +
+      symbolsParam;
 
     let ws: WebSocket | null = null;
     let closed = false;
@@ -483,10 +350,13 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
         for (const it of safeItems) {
           const sym = String(it.symbol || "").toUpperCase();
           if (!sym) continue;
+          const price = num(it.price ?? it.close ?? 0);
           next[sym] = {
+            price,
             volume: num(it.volume ?? it.volume_sum ?? 0),
             quoteVolume: num(it.quote_volume ?? it.quoteVolume ?? 0),
             pctChange: num(it.pct_change ?? it.pctChange ?? 0),
+            time: num(it.time ?? it.t ?? 0)
           };
         }
         metricsRef.current = next;
@@ -533,29 +403,25 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
 
   // 4) 병합 + 정렬
   const merged = useMemo(() => {
-    void tickVer;
     void metricsVer;
     const base = query.data ?? [];
-    const tick = tickRef.current;
     const met = metricsRef.current;
 
     return base.map((row) => {
       const sym = row.symbol;
-
-      const t = tick[sym];
       const m = met[sym];
 
-      const price = t ? t.price : row.price;
-      const time = t ? t.time : row.time;
+      const price = m ? m.price : row.price;
+      const time = m ? m.time : row.time;
 
-      const volume = m ? m.volume : t ? t.volume : row.volume;
-      const quoteRaw = m ? m.quoteVolume : t ? t.quoteVolume : row.quoteVolume;
+      const volume = m ? m.volume : row.volume;
+      const quoteRaw = m ? m.quoteVolume : row.quoteVolume;
       const quoteVolume = safeQuoteVolume(quoteRaw, volume, price);
       const change24h = m ? m.pctChange : row.change24h;
 
       return { ...row, price, time, volume, quoteVolume, change24h };
     });
-  }, [query.data, tickVer, metricsVer]);
+  }, [query.data, metricsVer]);
 
   const sorted = useMemo(() => sortSymbols(merged, sortKey, sortOrder), [merged, sortKey, sortOrder]);
 
