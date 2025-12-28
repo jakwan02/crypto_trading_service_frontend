@@ -243,17 +243,21 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
       prevRangeRef.current = range;
       prevSpanRef.current = span;
 
-      // 줌 아웃(축소) 시에는 자동 로드 금지
-      if (span > prevSpan + 2) return;
+      if (!prev) return;
 
-      // 좌측 이동(팬)으로 왼쪽 끝 근접 시에만 로드
-      const isPan = Math.abs(span - prevSpan) <= 2;
-      if (!isPan) return;
+      const zoomEps = 0.5;
+      if (Math.abs(span - prevSpan) > zoomEps) return;
 
-      const threshold = 2;
+      const panEps = 0.5;
+      const deltaFrom = range.from - prev.from;
+      const deltaTo = range.to - prev.to;
+      const isPanLeft = deltaFrom < -panEps && deltaTo < -panEps;
+      if (!isPanLeft) return;
+
+      const threshold = 0.5;
       if (range.from > threshold) return;
 
-      if (prev && range.from >= prev.from - 1) return;
+      if (range.from >= prev.from - panEps) return;
       const now = Date.now();
       if (now - autoLoadRef.current < 1800) return;
       autoLoadRef.current = now;

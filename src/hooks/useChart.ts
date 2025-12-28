@@ -61,11 +61,25 @@ const DEFAULT_API_BASE_URL = "http://localhost:8001";
 const DEFAULT_WS_BASE_URL = "ws://localhost:8002";
 const CHART_CACHE_TTL_MS = 15_000;
 const chartCache = new Map<string, ChartCache>();
+const TF_LIMIT: Record<string, number> = {
+  "1m": 720,
+  "5m": 720,
+  "15m": 720,
+  "1h": 720,
+  "4h": 360,
+  "1d": 365,
+  "1w": 260
+};
 
 function normTf(tf: string): string {
   const v = String(tf || "").trim().toLowerCase();
   if (!v) return "1m";
   return v;
+}
+
+function getTfLimit(tf: string): number {
+  const key = normTf(tf);
+  return TF_LIMIT[key] ?? 300;
 }
 
 function stripApiSuffix(url: string): string {
@@ -238,6 +252,7 @@ export function useChart(symbol: string | null, timeframe: string) {
     const sym = String(symbol || "").trim().toUpperCase();
     const m = String(market || "").trim().toLowerCase();
     const tfNorm = normTf(tf);
+    const limit = getTfLimit(tfNorm);
     const cacheKey = `${m}:${sym}:${tfNorm}`;
 
     if (!sym) {
@@ -271,7 +286,7 @@ export function useChart(symbol: string | null, timeframe: string) {
       `?market=${encodeURIComponent(m)}` +
       `&symbol=${encodeURIComponent(sym)}` +
       `&tf=${encodeURIComponent(tfNorm)}` +
-      `&limit=${encodeURIComponent(String(300))}`;
+      `&limit=${encodeURIComponent(String(limit))}`;
 
     let ws: WebSocket | null = null;
     let stopped = false;
@@ -294,7 +309,7 @@ export function useChart(symbol: string | null, timeframe: string) {
       const temp = parseCandle(tempRaw);
       if (temp) {
         const lastTime = out.length ? out[out.length - 1].time : 0;
-        if (!lastTime || temp.time > lastTime) return upsert(out, temp, 1200);
+        if (!lastTime || temp.time > lastTime) return upsert(out, temp, Math.max(limit, 1));
       }
       return out;
     };
@@ -324,7 +339,7 @@ export function useChart(symbol: string | null, timeframe: string) {
         `?market=${encodeURIComponent(m)}` +
         `&symbol=${encodeURIComponent(sym)}` +
         `&tf=${encodeURIComponent(tfNorm)}` +
-        `&limit=${encodeURIComponent(String(300))}`;
+        `&limit=${encodeURIComponent(String(limit))}`;
 
       try {
         const res = await fetch(snapUrl, { cache: "no-store", headers: withApiToken() });
@@ -448,6 +463,7 @@ export function useChart(symbol: string | null, timeframe: string) {
       const sym = String(symbol || "").trim().toUpperCase();
       const m = String(market || "").trim().toLowerCase();
       const tfNorm = normTf(tf);
+      const limit = getTfLimit(tfNorm);
       if (!sym || loadingMore) return;
 
       const oldest = data && data.length > 0 ? data[0].time : 0;
@@ -462,7 +478,7 @@ export function useChart(symbol: string | null, timeframe: string) {
         `&symbol=${encodeURIComponent(sym)}` +
         `&tf=${encodeURIComponent(tfNorm)}` +
         `&before=${encodeURIComponent(String(oldest))}` +
-        `&limit=300`;
+        `&limit=${encodeURIComponent(String(limit))}`;
 
       const res = await fetch(url, { cache: "no-store", headers: withApiToken() });
       if (!res.ok) throw new Error(`history_http_${res.status}`);
