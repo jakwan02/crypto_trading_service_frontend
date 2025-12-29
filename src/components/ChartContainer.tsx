@@ -43,11 +43,7 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
   const lastTimeRef = useRef<number>(0);
   const lastLenRef = useRef<number>(0);
   const firstTimeRef = useRef<number>(0);
-  const autoLoadRef = useRef<number>(0);
   const restoreRangeRef = useRef<{ from: number; to: number } | null>(null);
-  const rangeInitRef = useRef(false);
-  const prevRangeRef = useRef<{ from: number; to: number } | null>(null);
-  const prevSpanRef = useRef<number>(0);
 
   const { data: candles, error, loadMore, loadingMore, historyNotice } = useChart(symbol, timeframe);
 
@@ -134,9 +130,6 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
       lastTimeRef.current = 0;
       lastLenRef.current = 0;
       firstTimeRef.current = 0;
-      rangeInitRef.current = false;
-      prevRangeRef.current = null;
-      prevSpanRef.current = 0;
     };
     // pf 포함: 심볼/TF 변경 또는 precision 변경 시 새로 생성
   }, [symbol, timeframe, pf.precision, pf.minMove, locale]);
@@ -153,9 +146,6 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
       lastTimeRef.current = 0;
       lastLenRef.current = 0;
       firstTimeRef.current = 0;
-      rangeInitRef.current = false;
-      prevRangeRef.current = null;
-      prevSpanRef.current = 0;
       return;
     }
 
@@ -218,59 +208,6 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
       firstTimeRef.current = firstTime;
     }
   }, [candles, loadingMore, seriesReady]);
-
-  // 스크롤로 좌측 끝 접근 시 자동으로 과거 데이터 로드
-  useEffect(() => {
-    const chart = chartRef.current;
-    if (!chart || !loadMore) return;
-
-    const onRange = (range: { from: number; to: number } | null) => {
-      if (!range || loadingMore) return;
-      if (!fittedRef.current) return;
-
-      const span = range.to - range.from;
-      if (!Number.isFinite(span) || span <= 0) return;
-
-      if (!rangeInitRef.current) {
-        rangeInitRef.current = true;
-        prevRangeRef.current = range;
-        prevSpanRef.current = span;
-        return;
-      }
-
-      const prev = prevRangeRef.current;
-      const prevSpan = prevSpanRef.current || span;
-      prevRangeRef.current = range;
-      prevSpanRef.current = span;
-
-      if (!prev) return;
-
-      const zoomEps = 0.5;
-      if (Math.abs(span - prevSpan) > zoomEps) return;
-
-      const panEps = 0.5;
-      const deltaFrom = range.from - prev.from;
-      const deltaTo = range.to - prev.to;
-      const isPanLeft = deltaFrom < -panEps && deltaTo < -panEps;
-      if (!isPanLeft) return;
-
-      const threshold = 0.5;
-      if (range.from > threshold) return;
-
-      if (range.from >= prev.from - panEps) return;
-      const now = Date.now();
-      if (now - autoLoadRef.current < 1800) return;
-      autoLoadRef.current = now;
-      restoreRangeRef.current = chart.timeScale().getVisibleLogicalRange();
-      loadMore();
-    };
-
-    const ts = chart.timeScale();
-    ts.subscribeVisibleLogicalRangeChange(onRange);
-    return () => {
-      ts.unsubscribeVisibleLogicalRangeChange(onRange);
-    };
-  }, [loadMore, loadingMore]);
 
   if (!symbol) {
     return (
