@@ -101,3 +101,17 @@
   - none
 - Next:
   - market 화면에서 헤더/바디 정렬 확인
+
+## 2026-01-04 13:13 (local)
+- Task: market 테이블 스크롤 경고/행 간격 보정
+- Scope: src/components/SymbolTable.tsx, codex_log.md
+- Why: react-virtual flushSync 경고와 테이블 기본 border-spacing으로 행 간격 불균형 발생
+- Key changes:
+  - observeElementOffset 래핑으로 isScrolling=false 처리
+  - row estimate 조정 및 border-collapse 적용
+- Commands run:
+  - none
+- Logs/Artifacts:
+  - none
+- Next:
+  - 스크롤 시 콘솔 경고와 행 간격 확인

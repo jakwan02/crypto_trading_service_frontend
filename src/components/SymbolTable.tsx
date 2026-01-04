@@ -9,7 +9,7 @@ import {
   getCoreRowModel,
   useReactTable
 } from "@tanstack/react-table";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { observeElementOffset, useVirtualizer } from "@tanstack/react-virtual";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
@@ -38,10 +38,18 @@ const PRICE_FLASH_MS = 520;
 const BLINK_MS = 320;
 const RESORT_MS = 1500;
 const VIRTUAL_OVERSCAN = 20;
-const ROW_ESTIMATE = 52;
+const ROW_ESTIMATE = 40;
 // 변경 이유: 헤더/바디에 동일한 grid 템플릿을 적용해 컬럼 정렬을 고정
 const GRID_TEMPLATE =
   "minmax(140px, 18%) minmax(120px, 15%) minmax(150px, 17%) minmax(180px, 20%) minmax(120px, 12%) minmax(120px, 18%)";
+
+// 변경 이유: 스크롤 중 flushSync 경고를 피하기 위해 isScrolling=false로 고정
+function observeOffsetNoSync(
+  instance: Parameters<typeof observeElementOffset>[0],
+  cb: Parameters<typeof observeElementOffset>[1]
+) {
+  return observeElementOffset(instance, (offset) => cb(offset, false));
+}
 
 function winLabel(w: MetricWindow) {
   return String(w);
@@ -326,6 +334,7 @@ export default function SymbolTable({
     count: rows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => ROW_ESTIMATE,
+    observeElementOffset: observeOffsetNoSync,
     overscan: VIRTUAL_OVERSCAN
   });
   const virtualRows = rowVirtualizer.getVirtualItems();
@@ -456,7 +465,7 @@ export default function SymbolTable({
       ) : null}
 
       <div ref={parentRef} className="max-h-[560px] overflow-auto rounded-xl border border-gray-100">
-        <table className="min-w-[1000px] w-full table-fixed text-left text-gray-900">
+        <table className="min-w-[1000px] w-full table-fixed border-collapse border-spacing-0 text-left text-gray-900">
           <thead className="sticky top-0 z-10 bg-white">
             {table.getHeaderGroups().map((hg) => (
               <tr
