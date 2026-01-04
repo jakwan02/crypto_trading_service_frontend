@@ -39,6 +39,9 @@ const BLINK_MS = 320;
 const RESORT_MS = 1500;
 const VIRTUAL_OVERSCAN = 20;
 const ROW_ESTIMATE = 52;
+// 변경 이유: 헤더/바디에 동일한 grid 템플릿을 적용해 컬럼 정렬을 고정
+const GRID_TEMPLATE =
+  "minmax(140px, 18%) minmax(120px, 15%) minmax(150px, 17%) minmax(180px, 20%) minmax(120px, 12%) minmax(120px, 18%)";
 
 function winLabel(w: MetricWindow) {
   return String(w);
@@ -453,12 +456,13 @@ export default function SymbolTable({
       ) : null}
 
       <div ref={parentRef} className="max-h-[560px] overflow-auto rounded-xl border border-gray-100">
-        <table className="min-w-[860px] w-full table-fixed text-left text-gray-900">
+        <table className="min-w-[1000px] w-full table-fixed text-left text-gray-900">
           <thead className="sticky top-0 z-10 bg-white">
             {table.getHeaderGroups().map((hg) => (
               <tr
                 key={hg.id}
                 className="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500"
+                style={{ display: "grid", gridTemplateColumns: GRID_TEMPLATE }}
               >
                 {hg.headers.map((header) => {
                   const id = header.column.id;
@@ -467,7 +471,7 @@ export default function SymbolTable({
                   return (
                     <th
                       key={header.id}
-                      className={`select-none px-3 py-2 ${sortable ? "cursor-pointer" : ""}`}
+                      className={`select-none px-3 py-2 whitespace-nowrap ${sortable ? "cursor-pointer" : ""}`}
                       onClick={() => handleSort(id)}
                     >
                       <div className="flex items-center">
@@ -483,7 +487,12 @@ export default function SymbolTable({
 
           <tbody
             className="text-sm"
-            style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative", display: "block" }}
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              position: "relative",
+              display: "block",
+              width: "100%"
+            }}
           >
             {virtualRows.map((virtualRow) => {
               const row = rows[virtualRow.index];
@@ -496,14 +505,14 @@ export default function SymbolTable({
                     position: "absolute",
                     top: 0,
                     transform: `translateY(${virtualRow.start}px)`,
-                    display: "table",
-                    width: "100%",
-                    tableLayout: "fixed"
+                    display: "grid",
+                    gridTemplateColumns: GRID_TEMPLATE,
+                    width: "100%"
                   }}
                   onClick={() => router.push(`/chart/${row.original.symbol}`)}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-3 py-2">
+                    <td key={cell.id} className="px-3 py-2 truncate">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

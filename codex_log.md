@@ -60,3 +60,44 @@
   - none
 - Next:
   - market 페이지 렌더/WS 갱신 재확인
+
+## 2026-01-04 12:51 (local)
+- Task: market 테이블 컬럼 겹침 수정
+- Scope: src/components/SymbolTable.tsx, codex_log.md
+- Why: 가상 스크롤 테이블에서 컬럼 폭/오버플로가 고정되지 않아 텍스트가 겹침
+- Key changes:
+  - 컬럼별 고정 폭과 truncate 적용
+  - 테이블 최소 폭 확대
+- Commands run:
+  - none
+- Logs/Artifacts:
+  - none
+- Next:
+  - 마켓 페이지 렌더링에서 겹침 해소 확인
+
+## 2026-01-04 12:55 (local)
+- Task: market 테이블 컬럼 비율 재조정
+- Scope: src/components/SymbolTable.tsx, codex_log.md
+- Why: 헤더/본문 컬럼 비율 불일치로 가독성이 저하됨
+- Key changes:
+  - 컬럼 폭을 비율 기반으로 변경하고 min width 유지
+- Commands run:
+  - none
+- Logs/Artifacts:
+  - none
+- Next:
+  - market 화면에서 컬럼 비율 확인
+
+## 2026-01-04 13:00 (local)
+- Task: market 테이블 헤더/바디 컬럼 정렬 고정
+- Scope: src/components/SymbolTable.tsx, codex_log.md
+- Why: thead/tbody 레이아웃 분리로 헤더와 바디 컬럼이 어긋남
+- Key changes:
+  - 헤더/행 모두 동일한 grid template 적용
+  - tbody width 고정 및 셀 스타일 정리
+- Commands run:
+  - none
+- Logs/Artifacts:
+  - none
+- Next:
+  - market 화면에서 헤더/바디 정렬 확인
