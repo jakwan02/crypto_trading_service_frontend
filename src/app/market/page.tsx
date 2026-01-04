@@ -1,10 +1,11 @@
 "use client";
+// 변경 이유: metrics 미도착 시 null 처리로 필터 오류 방지
 
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SymbolTable from "@/components/SymbolTable";
 import { useSymbolsStore } from "@/store/useSymbolStore";
-import type { SymbolRow } from "@/hooks/useSymbols";
+import type { MarketRow } from "@/hooks/useMarketSymbols";
 
 type FilterMode = "all" | "gainers" | "losers";
 
@@ -15,8 +16,8 @@ export default function MarketPage() {
   const { t } = useTranslation();
 
   const filterFn = useMemo(() => {
-    if (filterMode === "gainers") return (row: SymbolRow) => row.change24h > 0;
-    if (filterMode === "losers") return (row: SymbolRow) => row.change24h < 0;
+    if (filterMode === "gainers") return (row: MarketRow) => row.change24h !== null && row.change24h > 0;
+    if (filterMode === "losers") return (row: MarketRow) => row.change24h !== null && row.change24h < 0;
     return undefined;
   }, [filterMode]);
 

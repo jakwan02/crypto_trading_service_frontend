@@ -1,38 +1,44 @@
 // filename: frontend/components/SymbolTable.tsx
+// 변경 이유: market 페이지 전용 부트스트랩/가시영역 WS 구독/가상 스크롤 적용
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
   useReactTable
 } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { useSymbols, type SymbolRow, type MetricWindow } from "@/hooks/useSymbols";
+import { useMarketSymbols, type MarketRow } from "@/hooks/useMarketSymbols";
 import { formatCompactNumber } from "@/lib/format";
-import { useSymbolsStore, SortKey } from "@/store/useSymbolStore";
+import type { SortKey } from "@/store/useSymbolStore";
 
-const columnHelper = createColumnHelper<SymbolRow>();
+const columnHelper = createColumnHelper<MarketRow>();
 
 type Props = {
   searchTerm?: string;
   onSearchTermChange?: (value: string) => void;
   limit?: number;
   showToolbar?: boolean;
-  filterFn?: (row: SymbolRow) => boolean;
+  filterFn?: (row: MarketRow) => boolean;
 };
 
 function LoadingBar() {
   return <span className="inline-block h-3 w-10 animate-pulse rounded bg-gray-200" />;
 }
 
+type MetricWindow = "1m" | "5m" | "15m" | "1h" | "4h" | "1d" | "1w" | "1M" | "1Y";
 const SORTABLE: Set<string> = new Set(["symbol", "price", "volume", "quoteVolume", "change24h", "time"]);
 const WIN_OPTS: MetricWindow[] = ["1m", "5m", "15m", "1h", "4h", "1d", "1w", "1M", "1Y"];
 const PRICE_FLASH_MS = 520;
 const BLINK_MS = 320;
+const RESORT_MS = 1500;
+const VIRTUAL_OVERSCAN = 20;
+const ROW_ESTIMATE = 52;
 
 function winLabel(w: MetricWindow) {
   return String(w);
@@ -49,8 +55,8 @@ function priceFrac(x: number): number {
   return 10;
 }
 
-function fmtPrice(x: number, locale: string): string {
-  if (!Number.isFinite(x)) return "-";
+function fmtPrice(x: number | null, locale: string): string {
+  if (x === null || !Number.isFinite(x)) return "-";
   const frac = priceFrac(x);
   return x.toLocaleString(locale, {
     minimumFractionDigits: 0,
@@ -58,8 +64,8 @@ function fmtPrice(x: number, locale: string): string {
   });
 }
 
-function fmtWithUnit(value: number, unit: string | undefined, locale: string): string {
-  const base = formatCompactNumber(value, locale);
+function fmtWithUnit(value: number | null, unit: string | undefined, locale: string): string {
+  const base = formatCompactNumber(value ?? NaN, locale);
   if (base === "-") return base;
   const u = (unit || "").trim();
   return u ? `${base} ${u}` : base;
@@ -77,11 +83,17 @@ export default function SymbolTable({
   const locale = i18n.language;
 
   const [win, setWin] = useState<MetricWindow>("1d");
-  const { data, isLoading, isError } = useSymbols(win);
+  const { order, rowMap, isLoading, isError, isLoadingMore, hasMore, loadMore, setVisibleSymbols } =
+    useMarketSymbols(win);
   const [, setFlashTick] = useState(0);
   const [localQuery, setLocalQuery] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("quoteVolume");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [renderOrder, setRenderOrder] = useState<string[]>([]);
 
-  const prevRef = useRef<Record<string, { price: number; volume: number; quoteVolume: number; change: number }>>({});
+  const prevRef = useRef<
+    Record<string, { price: number | null; volume: number | null; quoteVolume: number | null; change: number | null }>
+  >({});
   const flashRef = useRef<
     Record<
       string,
@@ -94,6 +106,9 @@ export default function SymbolTable({
     >
   >({});
   const flashTimerRef = useRef<number | null>(null);
+  const rowMapRef = useRef<Record<string, MarketRow>>({});
+  const visibleRangeRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
+  const loadTriggerRef = useRef<string>("");
 
   useEffect(() => {
     return () => {
@@ -102,7 +117,15 @@ export default function SymbolTable({
   }, []);
 
   useEffect(() => {
-    if (!data || data.length === 0) return;
+    rowMapRef.current = rowMap;
+  }, [rowMap]);
+
+  useEffect(() => {
+    setRenderOrder(order);
+  }, [order]);
+
+  useEffect(() => {
+    if (!renderOrder.length) return;
     const now = Date.now();
     let nextTimerAt = 0;
     const prev = prevRef.current;
@@ -110,7 +133,9 @@ export default function SymbolTable({
     const nextPrev: typeof prev = {};
     let changed = false;
 
-    for (const row of data) {
+    for (const sym of renderOrder) {
+      const row = rowMapRef.current[sym];
+      if (!row) continue;
       const sym = row.symbol;
       const prevRow = prev[sym];
 
@@ -152,12 +177,7 @@ export default function SymbolTable({
         setFlashTick((v) => v + 1);
       }, delay + 20);
     }
-  }, [data]);
-
-  const sortKey = useSymbolsStore((s) => s.sortKey);
-  const sortOrder = useSymbolsStore((s) => s.sortOrder);
-  const setSortKey = useSymbolsStore((s) => s.setSortKey);
-  const toggleSortOrder = useSymbolsStore((s) => s.toggleSortOrder);
+  }, [renderOrder]);
 
   const query = typeof searchTerm === "string" ? searchTerm : localQuery;
   const handleQueryChange = (value: string) => {
@@ -165,18 +185,32 @@ export default function SymbolTable({
     else setLocalQuery(value);
   };
 
-  const filtered = useMemo(() => {
-    const base = data ?? [];
-    const prefiltered = filterFn ? base.filter(filterFn) : base;
+  const filteredOrder = useMemo(() => {
     const q = query.trim().toUpperCase();
-    if (!q) return prefiltered;
-    return prefiltered.filter((row) => row.symbol.includes(q) || row.baseAsset.toUpperCase().includes(q));
-  }, [data, query, filterFn]);
+    const out: string[] = [];
+    for (const sym of renderOrder) {
+      const row = rowMap[sym];
+      if (!row) continue;
+      if (filterFn && !filterFn(row)) continue;
+      if (q && !(row.symbol.includes(q) || row.baseAsset.toUpperCase().includes(q))) continue;
+      out.push(sym);
+    }
+    return out;
+  }, [filterFn, query, renderOrder, rowMap]);
 
   const displayData = useMemo(() => {
-    if (!limit || limit <= 0) return filtered;
-    return filtered.slice(0, limit);
-  }, [filtered, limit]);
+    const orderList = !limit || limit <= 0 ? filteredOrder : filteredOrder.slice(0, limit);
+    return orderList.map((sym) => rowMap[sym]).filter(Boolean);
+  }, [filteredOrder, limit, rowMap]);
+
+  const sortValue = useCallback((row: MarketRow, key: SortKey): number => {
+    if (key === "price") return row.price ?? Number.NEGATIVE_INFINITY;
+    if (key === "volume") return row.volume ?? Number.NEGATIVE_INFINITY;
+    if (key === "quoteVolume") return row.quoteVolume ?? Number.NEGATIVE_INFINITY;
+    if (key === "change24h") return row.change24h ?? Number.NEGATIVE_INFINITY;
+    if (key === "time") return row.onboardDate ?? 0;
+    return 0;
+  }, []);
 
   const columns = useMemo(() => {
     const wl = winLabel(win);
@@ -192,8 +226,10 @@ export default function SymbolTable({
         id: "price",
         header: () => t("table.price"),
         cell: (info) => {
-          const value = info.getValue() as number;
-          if (isLoading && (!value || value === 0)) return <LoadingBar />;
+          const value = info.getValue() as number | null;
+          if (value === null || value === undefined) {
+            return isLoading ? <LoadingBar /> : <span className="text-xs text-gray-400">-</span>;
+          }
           const sym = info.row.original.symbol;
           const flash = flashRef.current[sym];
           const now = Date.now();
@@ -209,8 +245,10 @@ export default function SymbolTable({
         id: "volume",
         header: () => `${wl} ${t("table.volume")}`,
         cell: (info) => {
-          const value = info.getValue() as number;
-          if (isLoading && (!value || value === 0)) return <LoadingBar />;
+          const value = info.getValue() as number | null;
+          if (value === null || value === undefined) {
+            return isLoading ? <LoadingBar /> : <span className="text-xs text-gray-400">-</span>;
+          }
           const sym = info.row.original.symbol;
           const flash = flashRef.current[sym];
           const now = Date.now();
@@ -225,8 +263,10 @@ export default function SymbolTable({
         id: "quoteVolume",
         header: () => `${wl} ${t("table.turnover")}`,
         cell: (info) => {
-          const value = info.getValue() as number;
-          if (isLoading && (!value || value === 0)) return <LoadingBar />;
+          const value = info.getValue() as number | null;
+          if (value === null || value === undefined) {
+            return isLoading ? <LoadingBar /> : <span className="text-xs text-gray-400">-</span>;
+          }
           const sym = info.row.original.symbol;
           const flash = flashRef.current[sym];
           const now = Date.now();
@@ -243,8 +283,10 @@ export default function SymbolTable({
         id: "change24h",
         header: () => t("table.change", { tf: wl }),
         cell: (info) => {
-          const value = info.getValue() as number;
-          if (isLoading && (!value && value !== 0)) return <LoadingBar />;
+          const value = info.getValue() as number | null;
+          if (value === null || value === undefined) {
+            return isLoading ? <LoadingBar /> : <span className="text-xs text-gray-400">-</span>;
+          }
           const isUp = value >= 0;
           const sym = info.row.original.symbol;
           const flash = flashRef.current[sym];
@@ -262,13 +304,13 @@ export default function SymbolTable({
         id: "time",
         header: () => t("table.onboardDate"),
         cell: (info) => {
-          const value = info.getValue() as number;
+          const value = info.getValue() as number | null;
           if (!value || value <= 0) return <span className="text-xs text-gray-400">-</span>;
           return <span className="text-xs text-gray-500">{new Date(value).toLocaleDateString(locale)}</span>;
         }
       })
     ];
-  }, [isLoading, win, t, locale]);
+  }, [isLoading, sortValue, win, t, locale]);
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
@@ -277,11 +319,19 @@ export default function SymbolTable({
     getCoreRowModel: getCoreRowModel()
   });
   const rows = table.getRowModel().rows;
+  const parentRef = useRef<HTMLDivElement>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => ROW_ESTIMATE,
+    overscan: VIRTUAL_OVERSCAN
+  });
+  const virtualRows = rowVirtualizer.getVirtualItems();
+
   const handleSort = (id: string) => {
     if (!SORTABLE.has(id)) return;
-
     const k = id as SortKey;
-    if (k === sortKey) toggleSortOrder();
+    if (k === sortKey) setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
     else setSortKey(k);
   };
 
@@ -290,6 +340,65 @@ export default function SymbolTable({
     if (id !== sortKey) return null;
     return sortOrder === "desc" ? <ChevronDown className="ml-1 h-3 w-3" /> : <ChevronUp className="ml-1 h-3 w-3" />;
   };
+
+  useEffect(() => {
+    if (!virtualRows.length) return;
+    visibleRangeRef.current = {
+      start: virtualRows[0].index,
+      end: virtualRows[virtualRows.length - 1].index
+    };
+  }, [virtualRows]);
+
+  useEffect(() => {
+    if (!virtualRows.length) return;
+    if (!hasMore || isLoadingMore) return;
+    const lastIndex = virtualRows[virtualRows.length - 1].index;
+    const threshold = Math.floor(rows.length * 0.7);
+    const triggerKey = `${lastIndex}:${rows.length}`;
+    if (lastIndex >= threshold && triggerKey !== loadTriggerRef.current) {
+      loadTriggerRef.current = triggerKey;
+      loadMore();
+    }
+  }, [hasMore, isLoadingMore, loadMore, rows.length, virtualRows]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setRenderOrder((prev) => {
+        const { start, end } = visibleRangeRef.current;
+        if (!prev.length || end <= start) return prev;
+        const head = prev.slice(0, start);
+        const mid = prev.slice(start, end + 1);
+        const tail = prev.slice(end + 1);
+        const dir = sortOrder === "asc" ? 1 : -1;
+        const sortedMid = [...mid].sort((aSym, bSym) => {
+          if (sortKey === "symbol") {
+            return aSym.localeCompare(bSym) * dir;
+          }
+          const aRow = rowMapRef.current[aSym];
+          const bRow = rowMapRef.current[bSym];
+          if (!aRow || !bRow) return 0;
+          const aVal = sortValue(aRow, sortKey);
+          const bVal = sortValue(bRow, sortKey);
+          return (aVal - bVal) * dir;
+        });
+        // 변경 이유: 보이는 범위만 배치 재정렬해 전체 렌더 부하를 낮춘다
+        return [...head, ...sortedMid, ...tail];
+      });
+    }, RESORT_MS);
+    return () => window.clearInterval(id);
+  }, [sortKey, sortOrder, sortValue]);
+
+  useEffect(() => {
+    if (!displayData.length) {
+      setVisibleSymbols([]);
+      return;
+    }
+    if (!virtualRows.length) return;
+    const start = virtualRows[0].index;
+    const end = virtualRows[virtualRows.length - 1].index;
+    const symbols = displayData.slice(start, end + 1).map((row) => row.symbol);
+    setVisibleSymbols(symbols);
+  }, [displayData, setVisibleSymbols, virtualRows]);
 
   if (isLoading) {
     return <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">{t("table.loading")}</div>;
@@ -303,7 +412,7 @@ export default function SymbolTable({
     );
   }
 
-  if (!data || data.length === 0) {
+  if (!rows || rows.length === 0) {
     return (
       <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">
         {t("table.empty")}
@@ -344,8 +453,8 @@ export default function SymbolTable({
         </div>
       ) : null}
 
-      <div className="max-h-[560px] overflow-auto rounded-xl border border-gray-100">
-        <table className="min-w-[860px] w-full table-auto text-left text-gray-900">
+      <div ref={parentRef} className="max-h-[560px] overflow-auto rounded-xl border border-gray-100">
+        <table className="min-w-[860px] w-full table-fixed text-left text-gray-900">
           <thead className="sticky top-0 z-10 bg-white">
             {table.getHeaderGroups().map((hg) => (
               <tr
@@ -373,24 +482,39 @@ export default function SymbolTable({
             ))}
           </thead>
 
-          <tbody className="divide-y divide-gray-200 text-sm">
-            {rows.map((row) => (
-              <tr
-                key={row.id}
-                className="cursor-pointer border-b border-gray-200 transition hover:bg-primary/10"
-                onClick={() => router.push(`/chart/${row.original.symbol}`)}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-3 py-2">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
+          <tbody
+            className="text-sm"
+            style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative", display: "block" }}
+          >
+            {virtualRows.map((virtualRow) => {
+              const row = rows[virtualRow.index];
+              if (!row) return null;
+              return (
+                <tr
+                  key={row.id}
+                  className="cursor-pointer border-b border-gray-200 transition hover:bg-primary/10"
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    transform: `translateY(${virtualRow.start}px)`,
+                    display: "table",
+                    width: "100%",
+                    tableLayout: "fixed"
+                  }}
+                  onClick={() => router.push(`/chart/${row.original.symbol}`)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-3 py-2">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
-      {limit && filtered.length > limit ? (
+      {limit && filteredOrder.length > limit ? (
         <p className="mt-3 text-xs text-gray-400">
           {t("table.limitNotice", { count: limit })}
         </p>
