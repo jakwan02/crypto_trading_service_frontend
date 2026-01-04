@@ -47,3 +47,16 @@
 - Next:
   - market 페이지 WS/스크롤 동작 재확인
   - 타입 오류 여부 체크
+
+## 2026-01-04 12:46 (local)
+- Task: SymbolTable ReferenceError 수정
+- Scope: src/components/SymbolTable.tsx, codex_log.md
+- Why: useEffect 루프에서 sym 중복 선언으로 런타임 오류 발생
+- Key changes:
+  - renderOrder 루프의 sym 재선언 제거
+- Commands run:
+  - none
+- Logs/Artifacts:
+  - none
+- Next:
+  - market 페이지 렌더/WS 갱신 재확인

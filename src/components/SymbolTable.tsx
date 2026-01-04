@@ -136,7 +136,6 @@ export default function SymbolTable({
     for (const sym of renderOrder) {
       const row = rowMapRef.current[sym];
       if (!row) continue;
-      const sym = row.symbol;
       const prevRow = prev[sym];
 
       if (prevRow) {
