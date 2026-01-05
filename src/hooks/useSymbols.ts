@@ -1,5 +1,5 @@
 // filename: frontend/hooks/useSymbols.ts
-// 변경 이유: ws_rt replace 및 심볼 필터로 차트 과다 fetch 제거 + WS URL/토큰 정합화
+// 변경 이유: ws_rt 초기 연결 보장 + 차트 과다 fetch 제거 + WS URL/토큰 정합화
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -255,7 +255,6 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
   }, [cacheKey, query.data, useAllTickers]);
 
   // 2) window 메트릭(실시간 스냅샷) - REST
-  const skipMetricsWsRef = useRef(true);
   const metricsRef = useRef<MetricMap>({});
   const [metricsVer, setMetricsVer] = useState(0);
   const metricsFlushRef = useRef<number | null>(null);
@@ -467,10 +466,6 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
 
   // 3-1) window 메트릭 실시간(ws_rt)
   useEffect(() => {
-    if (process.env.NODE_ENV !== "production" && skipMetricsWsRef.current) {
-      skipMetricsWsRef.current = false;
-      return;
-    }
     if (!enableTicker) {
       pendingReplaceRef.current = null;
       try {

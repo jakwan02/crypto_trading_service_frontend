@@ -1,5 +1,5 @@
 // filename: frontend/hooks/useChart.ts
-// 변경 이유: ws_chart 구독 교체(replace)로 연결 유지 + WS URL/토큰 정합화
+// 변경 이유: ws_chart 초기 연결 보장 + REST 스냅샷 time 파싱 보강
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -128,8 +128,14 @@ function getWsProtocols(): string[] | undefined {
   return [`token.${token}`];
 }
 
-function toMs(t: number): number {
+function toMs(raw: unknown): number {
   // 2025년 기준 ms epoch은 1e12 이상, seconds epoch은 1e9대
+  if (raw === null || raw === undefined || raw === "") return 0;
+  if (typeof raw === "string") {
+    const parsed = Date.parse(raw);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  const t = Number(raw);
   if (!Number.isFinite(t) || t <= 0) return 0;
   if (t < 100_000_000_000) return Math.floor(t * 1000);
   return Math.floor(t);
@@ -139,8 +145,7 @@ function parseCandle(x: unknown): Candle | null {
   if (!x || typeof x !== "object") return null;
 
   const obj = x as Record<string, unknown>;
-  const tRaw = Number(obj.t ?? obj.time ?? 0);
-  const t = toMs(tRaw);
+  const t = toMs(obj.t ?? obj.time ?? 0);
   if (!Number.isFinite(t) || t <= 0) return null;
 
   const o = Number(obj.o ?? obj.open ?? 0);
@@ -215,7 +220,6 @@ export function useChart(symbol: string | null, timeframe: string) {
   const dataRef = useRef<Candle[]>([]);
   const noticeTimerRef = useRef<number | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
-  const skipInitialWsRef = useRef(true);
   const pendingReplaceRef = useRef<{ market: string; symbol: string; tf: string; limit: number } | null>(null);
   const paramsRef = useRef<{ market: string; symbol: string; tf: string; limit: number }>({
     market: String(market || "spot").trim().toLowerCase(),
@@ -487,12 +491,6 @@ export function useChart(symbol: string | null, timeframe: string) {
     retryRef.current = 0;
 
     fetchSnapshot("init");
-
-    const skipWs = process.env.NODE_ENV !== "production" && skipInitialWsRef.current;
-    if (skipWs) {
-      skipInitialWsRef.current = false;
-      return;
-    }
 
     pendingReplaceRef.current = { market: m, symbol: sym, tf: tfNorm, limit };
     sendReplace();

@@ -204,3 +204,17 @@ Logs/Artifacts:
 - 없음
 Next:
 - 프론트 재빌드 후 WS 연결 확인
+2026-01-05 07:07 (local)
+Task: SPA 진입 실시간/차트 스냅샷/증분 로딩 안정화
+Scope: src/hooks/useChart.ts, src/hooks/useSymbols.ts, src/components/SymbolTable.tsx, codex_log.md
+Why: 페이지 이동 후 WS 연결/차트 초기 데이터/페이징이 멈추는 문제 해결
+Key changes:
+- dev 스킵 제거로 ws_rt/ws_chart 첫 연결 보장
+- chart REST 스냅샷 time 파싱 보강(ISO 문자열 지원)
+- market 테이블 하단 감시로 loadMore 트리거 안정화
+Commands run (user):
+- 없음
+Logs/Artifacts:
+- 없음
+Next:
+- 프론트 재시작 후 실시간/차트/페이징 동작 확인

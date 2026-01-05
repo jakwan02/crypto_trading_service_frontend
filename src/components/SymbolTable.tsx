@@ -316,6 +316,7 @@ export default function SymbolTable({
   });
   const rows = table.getRowModel().rows;
   const parentRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
@@ -346,17 +347,35 @@ export default function SymbolTable({
     };
   }, [virtualRows]);
 
+  // 변경 이유: 페이지 이동 후에도 증분 로딩 트리거를 안정적으로 보장
+  const requestLoadMore = useCallback(() => {
+    if (!hasMore || isLoadingMore) return;
+    const triggerKey = `more:${rows.length}`;
+    if (loadTriggerRef.current === triggerKey) return;
+    loadTriggerRef.current = triggerKey;
+    loadMore();
+  }, [hasMore, isLoadingMore, loadMore, rows.length]);
+
   useEffect(() => {
     if (!virtualRows.length) return;
-    if (!hasMore || isLoadingMore) return;
     const lastIndex = virtualRows[virtualRows.length - 1].index;
     const threshold = Math.floor(rows.length * 0.7);
-    const triggerKey = `${lastIndex}:${rows.length}`;
-    if (lastIndex >= threshold && triggerKey !== loadTriggerRef.current) {
-      loadTriggerRef.current = triggerKey;
-      loadMore();
-    }
-  }, [hasMore, isLoadingMore, loadMore, rows.length, virtualRows]);
+    if (lastIndex >= threshold) requestLoadMore();
+  }, [requestLoadMore, rows.length, virtualRows]);
+
+  useEffect(() => {
+    const root = parentRef.current;
+    const target = bottomRef.current;
+    if (!root || !target) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) requestLoadMore();
+      },
+      { root, rootMargin: "200px 0px", threshold: 0 }
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [requestLoadMore]);
 
 
   useEffect(() => {
@@ -501,6 +520,7 @@ export default function SymbolTable({
             })}
           </tbody>
         </table>
+        <div ref={bottomRef} className="h-1" />
       </div>
       {limit && filteredOrder.length > limit ? (
         <p className="mt-3 text-xs text-gray-400">
