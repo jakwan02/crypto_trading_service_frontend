@@ -115,3 +115,41 @@
   - none
 - Next:
   - 스크롤 시 콘솔 경고와 행 간격 확인
+2026-01-05 02:17 (local)
+Task: WS replace 전환 + market 서버 정렬/검색 + 차트 최소 fetch
+Scope: src/hooks/useMarketSymbols.ts, src/hooks/useSymbols.ts, src/hooks/useChart.ts, src/components/SymbolTable.tsx, codex_log.md
+Why: WS 재연결 없이 구독 변경하고 전 심볼 정렬/검색 및 로딩 지연을 완화
+Key changes:
+- ws_rt replace 기반으로 연결 유지 및 재연결 버그 수정
+- market 정렬/검색 서버화 + scope UI 추가
+- 차트/심볼 fetch 범위 축소 및 flush 주기 상향
+Commands run (user):
+- 없음
+Logs/Artifacts:
+- 없음
+Next:
+- 프론트/백 통합 확인 및 빌드/스모크 테스트
+2026-01-05 02:23 (local)
+Task: useSymbols 훅 useCallback import 보완
+Scope: src/hooks/useSymbols.ts, codex_log.md
+Why: useCallback 사용에 맞게 React import 누락을 보완
+Key changes:
+- useCallback 추가 import
+Commands run (user):
+- 없음
+Logs/Artifacts:
+- 없음
+Next:
+- 없음
+2026-01-05 02:30 (local)
+Task: 변경 이유 주석 추가(차트/심볼 훅)
+Scope: src/hooks/useSymbols.ts, src/hooks/useChart.ts, codex_log.md
+Why: 사용자 규칙(변경 이유 주석) 준수
+Key changes:
+- 파일 상단에 변경 이유 주석 추가
+Commands run (user):
+- 없음
+Logs/Artifacts:
+- 없음
+Next:
+- 없음

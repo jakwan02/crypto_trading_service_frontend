@@ -5,9 +5,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { nextBackoff } from "@/lib/backoff";
 import { MetricItemSchema, SymbolItemSchema } from "@/lib/schemas";
-import { useSymbolsStore } from "@/store/useSymbolStore";
+import { useSymbolsStore, type SortKey } from "@/store/useSymbolStore";
 
 type MetricWindow = "1m" | "5m" | "15m" | "1h" | "4h" | "1d" | "1w" | "1M" | "1Y";
+type MarketScope = "managed" | "all";
 
 export type MarketRow = {
   market: string;
@@ -37,12 +38,23 @@ type MarketPayload = {
   tickers: unknown[];
   metrics: unknown[];
   cursor_next: number | null;
+  order_dir?: string;
+  scope?: string;
+  sort?: string;
+  q?: string | null;
+};
+
+type UseMarketSymbolsOptions = {
+  sortKey?: SortKey;
+  sortOrder?: "asc" | "desc";
+  query?: string;
+  scope?: MarketScope;
 };
 
 const DEFAULT_API_BASE_URL = "http://localhost:8001";
 const DEFAULT_WS_BASE_URL = "ws://localhost:8002";
-const METRICS_FLUSH_MS = 200;
-const SWAP_DEBOUNCE_MS = 200;
+const METRICS_FLUSH_MS = Number(process.env.NEXT_PUBLIC_OVERVIEW_FLUSH_MS || 1200);
+const SWAP_DEBOUNCE_MS = Number(process.env.NEXT_PUBLIC_OVERVIEW_REPLACE_DEBOUNCE_MS || 200);
 
 function stripSlash(u: string) {
   return String(u || "").trim().replace(/\/+$/, "");
@@ -158,39 +170,71 @@ function normalizeSymbol(item: Record<string, unknown>, fallbackMarket: string):
   };
 }
 
-function buildWsUrl(base: string, market: string, window: string, symbols: string[]): string {
+function buildWsUrl(
+  base: string,
+  market: string,
+  window: string,
+  scope: MarketScope,
+  symbols: string[]
+): string {
   const m = encodeURIComponent(market);
   const w = encodeURIComponent(window);
-  let url = `${base}/ws_metrics?market=${m}&window=${w}`;
+  const sc = encodeURIComponent(scope);
+  let url = `${base}/ws_rt?market=${m}&window=${w}&scope=${sc}`;
   if (symbols.length) {
     url += `&symbols=${encodeURIComponent(symbols.join(","))}`;
+  } else {
+    url += "&symbols=";
   }
   return url;
+}
+
+function toSortParam(key: SortKey): string {
+  if (key === "symbol") return "symbol";
+  if (key === "price") return "price";
+  if (key === "volume") return "volume";
+  if (key === "quoteVolume") return "qv";
+  if (key === "change24h") return "pct";
+  return "time";
 }
 
 async function fetchMarketPayload(
   endpoint: "bootstrap" | "page",
   market: string,
   window: MetricWindow,
+  scope: MarketScope,
+  sortKey: SortKey,
+  sortOrder: "asc" | "desc",
+  query: string,
   limit: number,
   cursor?: number
 ): Promise<MarketPayload> {
   const api = toApiBase();
   const params = new URLSearchParams({
     market,
-    sort: "qv",
+    scope,
+    sort: toSortParam(sortKey),
+    order: sortOrder,
     window,
     limit: String(limit)
   });
   if (endpoint === "page") params.set("cursor", String(cursor || 0));
+  if (query) params.set("q", query);
   const url = `${api}/market/${endpoint}?${params.toString()}`;
   const res = await fetch(url, { cache: "no-store", headers: withApiToken() });
   if (!res.ok) throw new Error(`market_${endpoint}_${res.status}`);
   return (await res.json()) as MarketPayload;
 }
 
-export function useMarketSymbols(metricWindow: MetricWindow = "1d") {
+export function useMarketSymbols(
+  metricWindow: MetricWindow = "1d",
+  options: UseMarketSymbolsOptions = {}
+) {
   const market = useSymbolsStore((s) => s.market);
+  const sortKey = options.sortKey ?? "quoteVolume";
+  const sortOrder = options.sortOrder ?? "desc";
+  const scope = options.scope ?? "managed";
+  const query = String(options.query || "").trim();
   const [order, setOrder] = useState<string[]>([]);
   const [rowMap, setRowMap] = useState<Record<string, MarketRow>>({});
   const [cursorNext, setCursorNext] = useState<number | null>(null);
@@ -201,16 +245,27 @@ export function useMarketSymbols(metricWindow: MetricWindow = "1d") {
   const orderRef = useRef<string[]>([]);
   const rowMapRef = useRef<Record<string, MarketRow>>({});
   const flushTimerRef = useRef<number | null>(null);
-  const lastMarketRef = useRef<string>("");
+  const lastQueryKeyRef = useRef<string>("");
 
   const wsRef = useRef<WebSocket | null>(null);
-  const wsKeyRef = useRef<string>("");
   const desiredSymbolsRef = useRef<string[]>([]);
   const desiredKeyRef = useRef<string>("");
   const swapTimerRef = useRef<number | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
   const retryRef = useRef(0);
   const closedRef = useRef(false);
+  const pendingReplaceRef = useRef<{
+    market: string;
+    window: MetricWindow;
+    scope: MarketScope;
+    symbols: string[];
+  } | null>(null);
+  const connectRef = useRef<() => void>(() => {});
+  const paramsRef = useRef<{ market: string; window: MetricWindow; scope: MarketScope }>({
+    market: String(market || "spot").trim().toLowerCase(),
+    window: metricWindow,
+    scope
+  });
 
   const flushRows = useCallback(() => {
     if (flushTimerRef.current) return;
@@ -251,113 +306,102 @@ export function useMarketSymbols(metricWindow: MetricWindow = "1d") {
     [flushRows]
   );
 
-  const closeActiveWs = useCallback((reason: string) => {
-    const active = wsRef.current;
-    if (!active) return;
-    try {
-      active.close(1000, reason);
-    } catch {}
-    wsRef.current = null;
-    wsKeyRef.current = "";
-  }, []);
-
   const scheduleReconnect = useCallback(() => {
     if (closedRef.current) return;
-    if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
+    if (reconnectTimerRef.current) return;
     const delay = nextBackoff(retryRef.current, { maxMs: 3000 });
     retryRef.current += 1;
     reconnectTimerRef.current = window.setTimeout(() => {
       reconnectTimerRef.current = null;
-      const symbols = desiredSymbolsRef.current;
-      if (symbols.length === 0) return;
-      const key = desiredKeyRef.current;
-      const wsBase = toWsBase();
-      const url = buildWsUrl(wsBase, market, metricWindow, symbols);
-      const next = new WebSocket(url, getWsProtocols());
-      next.onopen = () => {
-        retryRef.current = 0;
-        wsRef.current = next;
-        wsKeyRef.current = key;
-      };
-      next.onmessage = (ev) => {
-        let msg: unknown;
-        try {
-          msg = JSON.parse(ev.data as string) as unknown;
-        } catch {
-          return;
-        }
-        const items =
-          msg && typeof msg === "object" && Array.isArray((msg as { items?: unknown[] }).items)
-            ? (msg as { items?: unknown[] }).items ?? []
-            : [];
-        const parsed = MetricItemSchema.array().safeParse(items);
-        const safeItems = parsed.success ? parsed.data : [];
-        if (safeItems.length) applyMetricItems(safeItems as Record<string, unknown>[]);
-      };
-      next.onerror = () => {
-        try {
-          next.close();
-        } catch {}
-      };
-      next.onclose = () => {
-        if (wsRef.current !== next) return;
-        scheduleReconnect();
-      };
+      connectRef.current();
     }, delay);
-  }, [applyMetricItems, market, metricWindow]);
+  }, []);
 
-  const swapWs = useCallback(
-    (symbols: string[], key: string) => {
-      if (closedRef.current) return;
-      if (!symbols.length) {
-        closeActiveWs("no_symbols");
+  const sendReplace = useCallback(
+    (payload?: { market: string; window: MetricWindow; scope: MarketScope; symbols: string[] }) => {
+      const ws = wsRef.current;
+      const next = payload || pendingReplaceRef.current;
+      if (!next) return;
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        pendingReplaceRef.current = next;
         return;
       }
-      if (key === wsKeyRef.current && wsRef.current) return;
-      const wsBase = toWsBase();
-      const url = buildWsUrl(wsBase, market, metricWindow, symbols);
-      const next = new WebSocket(url, getWsProtocols());
-      let opened = false;
-      next.onopen = () => {
-        opened = true;
-        retryRef.current = 0;
-        const old = wsRef.current;
-        wsRef.current = next;
-        wsKeyRef.current = key;
-        if (old && old.readyState <= 1) {
-          try {
-            old.close(1000, "swap");
-          } catch {}
-        }
-      };
-      next.onmessage = (ev) => {
-        let msg: unknown;
-        try {
-          msg = JSON.parse(ev.data as string) as unknown;
-        } catch {
-          return;
-        }
-        const items =
-          msg && typeof msg === "object" && Array.isArray((msg as { items?: unknown[] }).items)
-            ? (msg as { items?: unknown[] }).items ?? []
-            : [];
-        const parsed = MetricItemSchema.array().safeParse(items);
-        const safeItems = parsed.success ? parsed.data : [];
-        if (safeItems.length) applyMetricItems(safeItems as Record<string, unknown>[]);
-      };
-      next.onerror = () => {
-        try {
-          next.close();
-        } catch {}
-      };
-      next.onclose = () => {
-        if (!opened) return;
-        if (wsRef.current !== next) return;
-        scheduleReconnect();
-      };
+      try {
+        ws.send(
+          JSON.stringify({
+            op: "replace",
+            kind: "rt",
+            market: next.market,
+            window: next.window,
+            scope: next.scope,
+            symbols: next.symbols
+          })
+        );
+        pendingReplaceRef.current = null;
+      } catch {}
     },
-    [applyMetricItems, closeActiveWs, market, metricWindow, scheduleReconnect]
+    []
   );
+
+  const queueReplace = useCallback(
+    (payload: { market: string; window: MetricWindow; scope: MarketScope; symbols: string[] }) => {
+      pendingReplaceRef.current = payload;
+      if (swapTimerRef.current) window.clearTimeout(swapTimerRef.current);
+      swapTimerRef.current = window.setTimeout(() => {
+        swapTimerRef.current = null;
+        sendReplace();
+      }, SWAP_DEBOUNCE_MS);
+    },
+    [sendReplace]
+  );
+
+  const connect = useCallback(() => {
+    if (closedRef.current) return;
+    const { market: m, window: w, scope: sc } = paramsRef.current;
+    const symbols = desiredSymbolsRef.current;
+    const wsBase = toWsBase();
+    const url = buildWsUrl(wsBase, m, w, sc, symbols);
+    let next: WebSocket;
+    try {
+      next = new WebSocket(url, getWsProtocols());
+    } catch {
+      scheduleReconnect();
+      return;
+    }
+    wsRef.current = next;
+    next.onopen = () => {
+      retryRef.current = 0;
+      sendReplace({ market: m, window: w, scope: sc, symbols });
+    };
+    next.onmessage = (ev) => {
+      let msg: unknown;
+      try {
+        msg = JSON.parse(ev.data as string) as unknown;
+      } catch {
+        return;
+      }
+      const items =
+        msg && typeof msg === "object" && Array.isArray((msg as { items?: unknown[] }).items)
+          ? (msg as { items?: unknown[] }).items ?? []
+          : [];
+      const parsed = MetricItemSchema.array().safeParse(items);
+      const safeItems = parsed.success ? parsed.data : [];
+      if (safeItems.length) applyMetricItems(safeItems as Record<string, unknown>[]);
+    };
+    next.onerror = () => {
+      try {
+        next.close();
+      } catch {}
+    };
+    next.onclose = () => {
+      if (wsRef.current !== next) return;
+      scheduleReconnect();
+    };
+  }, [applyMetricItems, scheduleReconnect, sendReplace]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   const setVisibleSymbols = useCallback(
     (symbols: string[]) => {
@@ -365,17 +409,18 @@ export function useMarketSymbols(metricWindow: MetricWindow = "1d") {
         new Set(symbols.map((s) => String(s || "").trim().toUpperCase()).filter(Boolean))
       );
       uniq.sort();
-      const key = `${metricWindow}:${uniq.join(",")}`;
+      const key = `${metricWindow}:${scope}:${uniq.join(",")}`;
       if (key === desiredKeyRef.current) return;
       desiredKeyRef.current = key;
       desiredSymbolsRef.current = uniq;
-      if (swapTimerRef.current) window.clearTimeout(swapTimerRef.current);
-      swapTimerRef.current = window.setTimeout(() => {
-        swapTimerRef.current = null;
-        swapWs(uniq, key);
-      }, SWAP_DEBOUNCE_MS);
+      queueReplace({
+        market: paramsRef.current.market,
+        window: paramsRef.current.window,
+        scope: paramsRef.current.scope,
+        symbols: uniq
+      });
     },
-    [metricWindow, swapWs]
+    [metricWindow, queueReplace, scope]
   );
 
   const mergePayload = useCallback(
@@ -445,57 +490,91 @@ export function useMarketSymbols(metricWindow: MetricWindow = "1d") {
     [market]
   );
 
-  const loadBootstrap = useCallback(
-    async (win: MetricWindow) => {
-      setIsLoading(true);
-      setIsError(false);
-      try {
-        const payload = await fetchMarketPayload("bootstrap", market, win, 30);
-        rowMapRef.current = {};
-        mergePayload(payload, false);
-      } catch {
-        setIsError(true);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [market, mergePayload]
-  );
+  const loadBootstrap = useCallback(async () => {
+    setIsLoading(true);
+    setIsError(false);
+    try {
+      const payload = await fetchMarketPayload(
+        "bootstrap",
+        market,
+        metricWindow,
+        scope,
+        sortKey,
+        sortOrder,
+        query,
+        30
+      );
+      rowMapRef.current = {};
+      mergePayload(payload, false);
+    } catch {
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [market, mergePayload, metricWindow, query, scope, sortKey, sortOrder]);
 
   const loadMore = useCallback(async () => {
     if (cursorNext === null || isLoadingMore) return;
     setIsLoadingMore(true);
     try {
-      const payload = await fetchMarketPayload("page", market, metricWindow, 80, cursorNext);
+      const payload = await fetchMarketPayload(
+        "page",
+        market,
+        metricWindow,
+        scope,
+        sortKey,
+        sortOrder,
+        query,
+        80,
+        cursorNext
+      );
       mergePayload(payload, true);
     } catch {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [cursorNext, isLoadingMore, market, metricWindow, mergePayload]);
+  }, [cursorNext, isLoadingMore, market, metricWindow, mergePayload, query, scope, sortKey, sortOrder]);
+
+  const queryKey = useMemo(
+    () => `${market}:${metricWindow}:${scope}:${sortKey}:${sortOrder}:${query}`,
+    [market, metricWindow, query, scope, sortKey, sortOrder]
+  );
 
   useEffect(() => {
-    const m = String(market || "spot").trim().toLowerCase();
-    if (lastMarketRef.current === m) return;
-    lastMarketRef.current = m;
+    if (lastQueryKeyRef.current === queryKey) return;
+    lastQueryKeyRef.current = queryKey;
     rowMapRef.current = {};
     orderRef.current = [];
     setOrder([]);
     setRowMap({});
     setCursorNext(null);
-    closeActiveWs("market_change");
-    loadBootstrap(metricWindow);
-  }, [closeActiveWs, loadBootstrap, market, metricWindow]);
+    loadBootstrap();
+  }, [loadBootstrap, queryKey]);
 
   useEffect(() => {
+    const m = String(market || "spot").trim().toLowerCase();
+    paramsRef.current = { market: m, window: metricWindow, scope };
+    queueReplace({
+      market: m,
+      window: metricWindow,
+      scope,
+      symbols: desiredSymbolsRef.current
+    });
+  }, [market, metricWindow, queueReplace, scope]);
+
+  useEffect(() => {
+    connectRef.current();
     return () => {
       closedRef.current = true;
       if (flushTimerRef.current) window.clearTimeout(flushTimerRef.current);
       if (swapTimerRef.current) window.clearTimeout(swapTimerRef.current);
       if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
-      closeActiveWs("cleanup");
+      try {
+        wsRef.current?.close(1000, "cleanup");
+      } catch {}
+      wsRef.current = null;
     };
-  }, [closeActiveWs]);
+  }, []);
 
   const rows = useMemo(() => {
     return order.map((sym) => rowMap[sym]).filter(Boolean);

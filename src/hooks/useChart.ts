@@ -1,7 +1,8 @@
 // filename: frontend/hooks/useChart.ts
+// 변경 이유: ws_chart 구독 교체(replace)로 연결 유지
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSymbolsStore } from "@/store/useSymbolStore";
 import { nextBackoff } from "@/lib/backoff";
 
@@ -224,16 +225,26 @@ export function useChart(symbol: string | null, timeframe: string) {
 
   const wsRef = useRef<WebSocket | null>(null);
   const aliveRef = useRef(true);
-  const connIdRef = useRef(0);
+  const restReqIdRef = useRef(0);
   const retryRef = useRef(0);
   const dataRef = useRef<Candle[]>([]);
   const noticeTimerRef = useRef<number | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
   const skipInitialWsRef = useRef(true);
+  const pendingReplaceRef = useRef<{ market: string; symbol: string; tf: string; limit: number } | null>(null);
+  const paramsRef = useRef<{ market: string; symbol: string; tf: string; limit: number }>({
+    market: String(market || "spot").trim().toLowerCase(),
+    symbol: String(symbol || "").trim().toUpperCase(),
+    tf: tf,
+    limit: getTfLimit(tf)
+  });
+  const connectRef = useRef<() => void>(() => {});
+  const closedRef = useRef(false);
 
   useEffect(() => {
     aliveRef.current = true;
     return () => {
+      closedRef.current = true;
       aliveRef.current = false;
       try {
         wsRef.current?.close();
@@ -262,79 +273,32 @@ export function useChart(symbol: string | null, timeframe: string) {
     }, 2400);
   };
 
-  useEffect(() => {
-    if (process.env.NODE_ENV !== "production" && skipInitialWsRef.current) {
-      skipInitialWsRef.current = false;
-      return;
-    }
-    const sym = String(symbol || "").trim().toUpperCase();
-    const m = String(market || "").trim().toLowerCase();
-    const tfNorm = normTf(tf);
-    const limit = getTfLimit(tfNorm);
-    const cacheKey = `${m}:${sym}:${tfNorm}`;
+  const buildSnapshot = useCallback((raw: unknown[], tempRaw?: unknown | null): Candle[] => {
+    const out: Candle[] = [];
+    const seen = new Set<number>();
+    const limit = paramsRef.current.limit;
 
-    if (!sym) {
-      setData([]);
-      setError(null);
-      return;
+    for (const x of raw) {
+      const c = parseCandle(x);
+      if (!c) continue;
+      if (seen.has(c.time)) continue;
+      seen.add(c.time);
+      out.push(c);
     }
 
-    connIdRef.current += 1;
-    const myConnId = connIdRef.current;
+    out.sort((a, b) => a.time - b.time);
 
-    // 기존 소켓 종료
-    try {
-      wsRef.current?.close();
-    } catch {}
-    wsRef.current = null;
-
-    const cached = chartCache.get(cacheKey);
-    if (cached && Date.now() - cached.ts <= CHART_CACHE_TTL_MS) {
-      setData(cached.data);
-    } else {
-      setData([]);
+    const temp = parseCandle(tempRaw);
+    if (temp) {
+      const lastTime = out.length ? out[out.length - 1].time : 0;
+      if (!lastTime || temp.time > lastTime) return upsert(out, temp, Math.max(limit, 1));
     }
-    setError(null);
-    retryRef.current = 0;
+    return out;
+  }, []);
 
-    const wsBase = toWsBase();
-    const apiBase = toApiBase();
-    const url =
-      `${wsBase}/ws_chart` +
-      `?market=${encodeURIComponent(m)}` +
-      `&symbol=${encodeURIComponent(sym)}` +
-      `&tf=${encodeURIComponent(tfNorm)}` +
-      `&limit=${encodeURIComponent(String(limit))}`;
-
-    let ws: WebSocket | null = null;
-    let stopped = false;
-    let restReqId = 0;
-
-    const buildSnapshot = (raw: unknown[], tempRaw?: unknown | null): Candle[] => {
-      const out: Candle[] = [];
-      const seen = new Set<number>();
-
-      for (const x of raw) {
-        const c = parseCandle(x);
-        if (!c) continue;
-        if (seen.has(c.time)) continue;
-        seen.add(c.time);
-        out.push(c);
-      }
-
-      out.sort((a, b) => a.time - b.time);
-
-      const temp = parseCandle(tempRaw);
-      if (temp) {
-        const lastTime = out.length ? out[out.length - 1].time : 0;
-        if (!lastTime || temp.time > lastTime) return upsert(out, temp, Math.max(limit, 1));
-      }
-      return out;
-    };
-
-    const applySnapshot = (next: Candle[], source: "ws" | "rest") => {
+  const applySnapshot = useCallback(
+    (next: Candle[], source: "ws" | "rest") => {
       if (!next.length) return;
-
       const cur = dataRef.current || [];
       const curLast = cur.length ? cur[cur.length - 1].time : 0;
       const nextLast = next[next.length - 1].time;
@@ -344,19 +308,26 @@ export function useChart(symbol: string | null, timeframe: string) {
         return;
       }
 
+      const { market: m, symbol: s, tf: t } = paramsRef.current;
       setData(next);
-      chartCache.set(cacheKey, { ts: Date.now(), data: next });
-    };
+      chartCache.set(`${m}:${s}:${t}`, { ts: Date.now(), data: next });
+    },
+    [setData]
+  );
 
-    const fetchSnapshot = async (reason: "init" | "ws_error") => {
-      restReqId += 1;
-      const rid = restReqId;
+  const fetchSnapshot = useCallback(
+    async (reason: "init" | "ws_error") => {
+      restReqIdRef.current += 1;
+      const rid = restReqIdRef.current;
+      const { market: m, symbol: s, tf: t, limit } = paramsRef.current;
+      if (!s) return;
 
+      const apiBase = toApiBase();
       const snapUrl =
         `${apiBase}/chart` +
         `?market=${encodeURIComponent(m)}` +
-        `&symbol=${encodeURIComponent(sym)}` +
-        `&tf=${encodeURIComponent(tfNorm)}` +
+        `&symbol=${encodeURIComponent(s)}` +
+        `&tf=${encodeURIComponent(t)}` +
         `&limit=${encodeURIComponent(String(limit))}`;
 
       try {
@@ -366,8 +337,8 @@ export function useChart(symbol: string | null, timeframe: string) {
         const items = Array.isArray(js?.items) ? js.items : [];
         const temp = js?.temp ?? null;
         const snap = buildSnapshot(items, temp);
-        if (rid !== restReqId) return;
-        if (!aliveRef.current || stopped || connIdRef.current !== myConnId) return;
+        if (rid !== restReqIdRef.current) return;
+        if (!aliveRef.current || closedRef.current) return;
         if (reason === "ws_error" && dataRef.current.length > 0) return;
         applySnapshot(snap, "rest");
       } catch {
@@ -375,107 +346,173 @@ export function useChart(symbol: string | null, timeframe: string) {
           setError("snapshot_error");
         }
       }
+    },
+    [applySnapshot, buildSnapshot]
+  );
+
+  const scheduleReconnect = useCallback(() => {
+    if (closedRef.current) return;
+    if (reconnectTimerRef.current) return;
+    const delay = nextBackoff(retryRef.current);
+    retryRef.current += 1;
+    reconnectTimerRef.current = window.setTimeout(() => {
+      reconnectTimerRef.current = null;
+      connectRef.current();
+    }, delay);
+  }, []);
+
+  const sendReplace = useCallback(
+    (payload?: { market: string; symbol: string; tf: string; limit: number }) => {
+      const ws = wsRef.current;
+      const next = payload || pendingReplaceRef.current;
+      if (!next) return;
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        pendingReplaceRef.current = next;
+        return;
+      }
+      try {
+        ws.send(
+          JSON.stringify({
+            op: "replace",
+            kind: "chart",
+            market: next.market,
+            symbol: next.symbol,
+            tf: next.tf,
+            limit: next.limit
+          })
+        );
+        pendingReplaceRef.current = null;
+      } catch {}
+    },
+    []
+  );
+
+  const connect = useCallback(() => {
+    if (closedRef.current) return;
+    const nextParams =
+      pendingReplaceRef.current || {
+        market: paramsRef.current.market,
+        symbol: paramsRef.current.symbol,
+        tf: paramsRef.current.tf,
+        limit: paramsRef.current.limit
+      };
+    const wsBase = toWsBase();
+    const url =
+      `${wsBase}/ws_chart` +
+      `?market=${encodeURIComponent(nextParams.market)}` +
+      `&symbol=${encodeURIComponent(nextParams.symbol)}` +
+      `&tf=${encodeURIComponent(nextParams.tf)}` +
+      `&limit=${encodeURIComponent(String(nextParams.limit))}`;
+
+    let next: WebSocket;
+    try {
+      next = new WebSocket(url, getWsProtocols());
+    } catch {
+      scheduleReconnect();
+      return;
+    }
+    wsRef.current = next;
+
+    next.onopen = () => {
+      retryRef.current = 0;
+      setError(null);
+      sendReplace(nextParams);
     };
 
-    const connect = () => {
-      if (!aliveRef.current || stopped) return;
-      if (connIdRef.current !== myConnId) return;
+    next.onmessage = (ev) => {
+      let msg: unknown;
+      try {
+        msg = JSON.parse(ev.data) as unknown;
+      } catch {
+        return;
+      }
 
-      ws = new WebSocket(url, getWsProtocols());
-      wsRef.current = ws;
+      const { market: m, symbol: s, tf: t } = paramsRef.current;
 
-      ws.onopen = () => {
-        if (!aliveRef.current || stopped || connIdRef.current !== myConnId) {
-          try {
-            ws?.close();
-          } catch {}
-          return;
-        }
-        retryRef.current = 0;
-        setError(null);
-      };
+      if (isSnapshotMsg(msg)) {
+        const snap = msg as WsSnap;
+        if (snap.tf && normTf(String(snap.tf)) !== t) return;
+        if (snap.market && String(snap.market).toLowerCase() !== m) return;
+        if (snap.symbol && String(snap.symbol).toUpperCase() !== s) return;
+        const raw = Array.isArray(snap.candles) ? snap.candles : Array.isArray(snap.final) ? snap.final : [];
+        const merged = buildSnapshot(raw, snap.temp);
+        applySnapshot(merged, "ws");
+        return;
+      }
 
-      ws.onmessage = (ev) => {
-        if (!aliveRef.current || stopped || connIdRef.current !== myConnId) return;
+      const upd = msg as WsUpd;
+      const uSym = String(upd.symbol ?? upd.s ?? "").trim().toUpperCase();
+      if (uSym && uSym !== s) return;
+      const uMkt = String(upd.market ?? upd.m ?? "").trim().toLowerCase();
+      if (uMkt && uMkt !== m) return;
+      const mtf = upd.tf ? normTf(String(upd.tf)) : t;
+      if (mtf !== t) return;
 
-        let msg: unknown;
-        try {
-          msg = JSON.parse(ev.data) as unknown;
-        } catch {
-          return;
-        }
+      let c = parseCandle(upd.candle);
+      if (!c) c = parseCandle(upd);
+      if (!c) return;
 
-        // SNAPSHOT(type 유무 모두 지원)
-        if (isSnapshotMsg(msg)) {
-          const snap = msg as WsSnap;
-
-          if (snap.tf && normTf(String(snap.tf)) !== tfNorm) return;
-          if (snap.market && String(snap.market).toLowerCase() !== m) return;
-          if (snap.symbol && String(snap.symbol).toUpperCase() !== sym) return;
-
-          const raw = Array.isArray(snap.candles) ? snap.candles : Array.isArray(snap.final) ? snap.final : [];
-          const merged = buildSnapshot(raw, snap.temp);
-          applySnapshot(merged, "ws");
-          return;
-        }
-
-        // UPDATE
-        const upd = msg as WsUpd;
-
-        const uSym = String(upd.symbol ?? upd.s ?? "").trim().toUpperCase();
-        if (uSym && uSym !== sym) return;
-
-        const uMkt = String(upd.market ?? upd.m ?? "").trim().toLowerCase();
-        if (uMkt && uMkt !== m) return;
-
-        const mtf = upd.tf ? normTf(String(upd.tf)) : tfNorm;
-        if (mtf !== tfNorm) return;
-
-        let c = parseCandle(upd.candle);
-        if (!c) c = parseCandle(upd);
-        if (!c) return;
-
-        setData((prev) => {
-          const next = upsert(prev, c as Candle, 1200);
-          chartCache.set(cacheKey, { ts: Date.now(), data: next });
-          return next;
-        });
-      };
-
-      ws.onerror = () => {
-        if (!aliveRef.current || stopped || connIdRef.current !== myConnId) return;
-        setError("ws_error");
-        fetchSnapshot("ws_error");
-      };
-
-      ws.onclose = () => {
-        if (!aliveRef.current || stopped || connIdRef.current !== myConnId) return;
-
-        const delay = nextBackoff(retryRef.current);
-        retryRef.current += 1;
-
-        if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
-        reconnectTimerRef.current = window.setTimeout(() => {
-          if (!aliveRef.current || stopped || connIdRef.current !== myConnId) return;
-          connect();
-        }, delay);
-      };
+      setData((prev) => {
+        const nextList = upsert(prev, c as Candle, 1200);
+        chartCache.set(`${m}:${s}:${t}`, { ts: Date.now(), data: nextList });
+        return nextList;
+      });
     };
+
+    next.onerror = () => {
+      setError("ws_error");
+      fetchSnapshot("ws_error");
+      try {
+        next.close();
+      } catch {}
+    };
+
+    next.onclose = () => {
+      scheduleReconnect();
+    };
+  }, [applySnapshot, buildSnapshot, fetchSnapshot, scheduleReconnect, sendReplace]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
+
+  useEffect(() => {
+    const sym = String(symbol || "").trim().toUpperCase();
+    const m = String(market || "").trim().toLowerCase();
+    const tfNorm = normTf(tf);
+    const limit = getTfLimit(tfNorm);
+    paramsRef.current = { market: m, symbol: sym, tf: tfNorm, limit };
+
+    if (!sym) {
+      setData([]);
+      setError(null);
+      return;
+    }
+
+    const cacheKey = `${m}:${sym}:${tfNorm}`;
+    const cached = chartCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts <= CHART_CACHE_TTL_MS) {
+      setData(cached.data);
+    } else {
+      setData([]);
+    }
+    setError(null);
+    retryRef.current = 0;
 
     fetchSnapshot("init");
-    connect();
 
-    return () => {
-      stopped = true;
-      try {
-        ws?.close();
-      } catch {}
-      if (reconnectTimerRef.current) {
-        window.clearTimeout(reconnectTimerRef.current);
-        reconnectTimerRef.current = null;
-      }
-    };
-  }, [symbol, market, tf]);
+    const skipWs = process.env.NODE_ENV !== "production" && skipInitialWsRef.current;
+    if (skipWs) {
+      skipInitialWsRef.current = false;
+      return;
+    }
+
+    pendingReplaceRef.current = { market: m, symbol: sym, tf: tfNorm, limit };
+    sendReplace();
+    if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
+      connectRef.current();
+    }
+  }, [fetchSnapshot, market, sendReplace, symbol, tf]);
 
     const loadMore = async () => {
       const sym = String(symbol || "").trim().toUpperCase();

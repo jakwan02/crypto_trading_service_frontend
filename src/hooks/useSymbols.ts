@@ -1,7 +1,8 @@
 // filename: frontend/hooks/useSymbols.ts
+// 변경 이유: ws_rt replace 및 심볼 필터로 차트 과다 fetch 제거
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSymbolsStore } from "@/store/useSymbolStore";
 import { nextBackoff } from "@/lib/backoff";
@@ -49,7 +50,7 @@ const DEFAULT_API_BASE_URL = "http://localhost:8001";
 const DEFAULT_WS_BASE_URL = "ws://localhost:8002";
 const SYMBOLS_CACHE_TTL_MS = 15_000;
 const METRICS_CACHE_TTL_MS = 15_000;
-const METRICS_FLUSH_MS = 800;
+const METRICS_FLUSH_MS = Number(process.env.NEXT_PUBLIC_SYMBOLS_FLUSH_MS || 800);
 const symbolsCache: Record<string, SymbolCache> = {};
 const metricsCache: Record<string, { ts: number; data: MetricMap }> = {};
 
@@ -117,6 +118,26 @@ function getWsProtocols(): string[] | undefined {
   return [`token.${token}`];
 }
 
+function buildRtWsUrl(
+  base: string,
+  market: string,
+  window: string,
+  symbols?: string[] | null
+): string {
+  const m = encodeURIComponent(market);
+  const w = encodeURIComponent(window);
+  let url = `${base}/ws_rt?market=${m}&window=${w}&scope=managed`;
+  if (symbols === null || symbols === undefined) {
+    return url;
+  }
+  if (symbols.length) {
+    url += `&symbols=${encodeURIComponent(symbols.join(","))}`;
+  } else {
+    url += "&symbols=";
+  }
+  return url;
+}
+
 function num(x: unknown, d = 0): number {
   const v = Number(x);
   return Number.isFinite(v) ? v : d;
@@ -153,12 +174,16 @@ function sortSymbols(rows: SymbolRow[], sortKey: SortKey, sortOrder: "asc" | "de
   return out;
 }
 
-async function fetchSymbols(market: string): Promise<SymbolRow[]> {
+async function fetchSymbols(market: string, symbols?: string[]): Promise<SymbolRow[]> {
   const api = toApiBase();
   const m = String(market || "spot").trim().toLowerCase();
 
   // 실제 확인된 엔드포인트: /api/symbols?market=spot (응답에 items 포함)
-  const url = `${api}/symbols?market=${encodeURIComponent(m)}`;
+  const params = new URLSearchParams({ market: m });
+  if (symbols && symbols.length) {
+    params.set("symbols", symbols.join(","));
+  }
+  const url = `${api}/symbols?${params.toString()}`;
   const res = await fetch(url, { cache: "no-store", headers: withApiToken() });
   if (!res.ok) throw new Error(`symbols_http_${res.status}`);
 
@@ -199,29 +224,36 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
   const sortKey = useSymbolsStore((s) => s.sortKey);
   const sortOrder = useSymbolsStore((s) => s.sortOrder);
   const tickerOverride = options.tickerSymbols;
-  const tickerKey = useMemo(() => {
-    if (!tickerOverride || tickerOverride.length === 0) return "";
+  const tickerList = useMemo(() => {
+    if (!tickerOverride || tickerOverride.length === 0) return [];
     const uniq = Array.from(
       new Set(tickerOverride.map((s) => String(s || "").trim().toUpperCase()).filter(Boolean))
     );
     uniq.sort();
-    return uniq.join(",");
+    return uniq;
   }, [tickerOverride]);
+  const tickerKey = useMemo(() => tickerList.join(","), [tickerList]);
   const useAllTickers = tickerOverride === undefined;
-  const enableTicker = useAllTickers || tickerKey.length > 0;
+  const enableTicker = useAllTickers || tickerList.length > 0;
 
   const cacheKey = String(market || "spot").trim().toLowerCase();
-  const cached = symbolsCache[cacheKey];
+  const cached = useAllTickers ? symbolsCache[cacheKey] : undefined;
   const cachedData =
     cached && Date.now() - cached.ts <= SYMBOLS_CACHE_TTL_MS ? cached.data : undefined;
 
   const metricsKey = `${cacheKey}:${metricWindow}`;
   const metricsCached = metricsCache[metricsKey];
 
+  useEffect(() => {
+    metricsKeyRef.current = metricsKey;
+  }, [metricsKey]);
+
   // 1) 심볼 목록(REST)
+  const symbolsEnabled = useAllTickers || tickerList.length > 0;
   const query = useQuery<SymbolRow[]>({
-    queryKey: ["symbols", market],
-    queryFn: () => fetchSymbols(market),
+    queryKey: ["symbols", market, tickerKey],
+    queryFn: () => fetchSymbols(market, useAllTickers ? undefined : tickerList),
+    enabled: symbolsEnabled,
     initialData: cachedData,
     initialDataUpdatedAt: cached?.ts,
     refetchInterval: 60_000,
@@ -229,15 +261,26 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
   });
 
   useEffect(() => {
-    if (!query.data) return;
+    if (!query.data || !useAllTickers) return;
     symbolsCache[cacheKey] = { ts: Date.now(), data: query.data };
-  }, [cacheKey, query.data]);
+  }, [cacheKey, query.data, useAllTickers]);
 
   // 2) window 메트릭(실시간 스냅샷) - REST
   const skipMetricsWsRef = useRef(true);
   const metricsRef = useRef<MetricMap>({});
   const [metricsVer, setMetricsVer] = useState(0);
   const metricsFlushRef = useRef<number | null>(null);
+  const metricsKeyRef = useRef<string>("");
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimerRef = useRef<number | null>(null);
+  const retryRef = useRef(0);
+  const closedRef = useRef(false);
+  const pendingReplaceRef = useRef<{
+    market: string;
+    window: string;
+    symbols?: string[] | null;
+  } | null>(null);
+  const connectRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     if (metricsCached && Date.now() - metricsCached.ts <= METRICS_CACHE_TTL_MS) {
@@ -258,11 +301,16 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
         const api = toApiBase();
         const m = String(market || "spot").trim().toLowerCase();
 
-        const url =
-          `${api}/symbols/metrics` +
-          `?market=${encodeURIComponent(m)}` +
-          `&tf=1m` +
-          `&window=${encodeURIComponent(metricWindow)}`;
+        if (!enableTicker) return;
+        const params = new URLSearchParams({
+          market: m,
+          tf: "1m",
+          window: String(metricWindow || "1d")
+        });
+        if (!useAllTickers && tickerKey) {
+          params.set("symbols", tickerKey);
+        }
+        const url = `${api}/symbols/metrics?${params.toString()}`;
 
         const res = await fetch(url, {
           cache: "no-store",
@@ -312,111 +360,163 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
     };
   }, [market, metricWindow, metricsKey, tickerKey, useAllTickers, enableTicker]);
 
-  // 3-1) window 메트릭 실시간(ws_metrics)
+  const applyMetricsItems = useCallback((items: unknown[]) => {
+    const parsed = MetricItemSchema.array().safeParse(items);
+    const safeItems = parsed.success ? parsed.data : [];
+    if (!safeItems.length) return;
+
+    const next = { ...metricsRef.current };
+    for (const it of safeItems) {
+      const sym = String(it.symbol || "").toUpperCase();
+      if (!sym) continue;
+      const price = num(it.price ?? it.close ?? 0);
+      next[sym] = {
+        price,
+        volume: num(it.volume ?? it.volume_sum ?? 0),
+        quoteVolume: num(it.quote_volume ?? it.quoteVolume ?? 0),
+        pctChange: num(it.pct_change ?? it.pctChange ?? 0),
+        time: num(it.time ?? it.t ?? 0)
+      };
+    }
+    metricsRef.current = next;
+
+    if (!metricsFlushRef.current) {
+      metricsFlushRef.current = window.setTimeout(() => {
+        metricsFlushRef.current = null;
+        metricsCache[metricsKeyRef.current] = { ts: Date.now(), data: metricsRef.current };
+        setMetricsVer((v) => v + 1);
+      }, METRICS_FLUSH_MS);
+    }
+  }, []);
+
+  const scheduleReconnect = useCallback(() => {
+    if (closedRef.current) return;
+    if (reconnectTimerRef.current) return;
+    const delay = nextBackoff(retryRef.current);
+    retryRef.current += 1;
+    reconnectTimerRef.current = window.setTimeout(() => {
+      reconnectTimerRef.current = null;
+      connectRef.current();
+    }, delay);
+  }, []);
+
+  const sendReplace = useCallback(
+    (payload?: { market: string; window: string; symbols?: string[] | null }) => {
+      const ws = wsRef.current;
+      const next = payload || pendingReplaceRef.current;
+      if (!next) return;
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        pendingReplaceRef.current = next;
+        return;
+      }
+      try {
+        const msg: Record<string, unknown> = {
+          op: "replace",
+          kind: "rt",
+          market: next.market,
+          window: next.window
+        };
+        if (next.symbols !== undefined && next.symbols !== null) {
+          msg.symbols = next.symbols;
+        }
+        ws.send(JSON.stringify(msg));
+        pendingReplaceRef.current = null;
+      } catch {}
+    },
+    []
+  );
+
+  const connect = useCallback(() => {
+    if (closedRef.current) return;
+    const nextParams =
+      pendingReplaceRef.current || {
+        market: String(market || "spot").trim().toLowerCase(),
+        window: String(metricWindow || "1d").trim(),
+        symbols: useAllTickers ? null : tickerList
+      };
+    const wsBase = toWsBase();
+    const url = buildRtWsUrl(wsBase, nextParams.market, nextParams.window, nextParams.symbols);
+    let next: WebSocket;
+    try {
+      next = new WebSocket(url, getWsProtocols());
+    } catch {
+      scheduleReconnect();
+      return;
+    }
+    wsRef.current = next;
+    next.onopen = () => {
+      retryRef.current = 0;
+      sendReplace(nextParams);
+    };
+    next.onmessage = (ev) => {
+      let msg: unknown;
+      try {
+        msg = JSON.parse(ev.data as string) as unknown;
+      } catch {
+        return;
+      }
+      const items =
+        msg && typeof msg === "object" && Array.isArray((msg as { items?: unknown[] }).items)
+          ? (msg as { items?: unknown[] }).items ?? []
+          : [];
+      if (items.length) applyMetricsItems(items);
+    };
+    next.onerror = () => {
+      try {
+        next.close();
+      } catch {}
+    };
+    next.onclose = () => {
+      if (wsRef.current !== next) return;
+      scheduleReconnect();
+    };
+  }, [applyMetricsItems, market, metricWindow, scheduleReconnect, sendReplace, tickerList, useAllTickers]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
+
+  // 3-1) window 메트릭 실시간(ws_rt)
   useEffect(() => {
     if (process.env.NODE_ENV !== "production" && skipMetricsWsRef.current) {
       skipMetricsWsRef.current = false;
       return;
     }
-    if (!enableTicker) return;
+    if (!enableTicker) {
+      pendingReplaceRef.current = null;
+      try {
+        wsRef.current?.close(1000, "no_symbols");
+      } catch {}
+      wsRef.current = null;
+      return;
+    }
     const m = String(market || "spot").trim().toLowerCase();
     const w = String(metricWindow || "1d").trim();
-    const wsBase = toWsBase();
-    const symbolsParam = useAllTickers ? "" : `&symbols=${encodeURIComponent(tickerKey)}`;
-    const url =
-      `${wsBase}/ws_metrics` +
-      `?market=${encodeURIComponent(m)}` +
-      `&window=${encodeURIComponent(w)}` +
-      symbolsParam;
+    const symbols = useAllTickers ? null : tickerList;
+    pendingReplaceRef.current = { market: m, window: w, symbols };
+    sendReplace();
+    if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
+      connectRef.current();
+    }
+  }, [market, metricWindow, tickerKey, useAllTickers, enableTicker, sendReplace, tickerList]);
 
-    let ws: WebSocket | null = null;
-    let closed = false;
-    let reconnectTimer: number | null = null;
-    let retry = 0;
-
-    const connect = () => {
-      if (closed) return;
-      try {
-        ws = new WebSocket(url, getWsProtocols());
-      } catch {
-        return;
-      }
-
-      ws.onopen = () => {
-        retry = 0;
-      };
-
-      ws.onmessage = (ev) => {
-        if (closed) return;
-        let msg: unknown;
-        try {
-          msg = JSON.parse(ev.data as string) as unknown;
-        } catch {
-          return;
-        }
-
-        const items =
-          msg && typeof msg === "object" && Array.isArray((msg as { items?: unknown[] }).items)
-            ? (msg as { items?: unknown[] }).items ?? []
-            : [];
-        const parsed = MetricItemSchema.array().safeParse(items);
-        const safeItems = parsed.success ? parsed.data : [];
-        if (!safeItems.length) return;
-
-        const next = { ...metricsRef.current };
-        for (const it of safeItems) {
-          const sym = String(it.symbol || "").toUpperCase();
-          if (!sym) continue;
-          const price = num(it.price ?? it.close ?? 0);
-          next[sym] = {
-            price,
-            volume: num(it.volume ?? it.volume_sum ?? 0),
-            quoteVolume: num(it.quote_volume ?? it.quoteVolume ?? 0),
-            pctChange: num(it.pct_change ?? it.pctChange ?? 0),
-            time: num(it.time ?? it.t ?? 0)
-          };
-        }
-        metricsRef.current = next;
-
-        if (!metricsFlushRef.current) {
-          metricsFlushRef.current = window.setTimeout(() => {
-            metricsFlushRef.current = null;
-            metricsCache[metricsKey] = { ts: Date.now(), data: metricsRef.current };
-            setMetricsVer((v) => v + 1);
-          }, METRICS_FLUSH_MS);
-        }
-      };
-
-      ws.onerror = () => {
-        try {
-          ws?.close();
-        } catch {}
-      };
-
-      ws.onclose = () => {
-        if (closed) return;
-        const delay = nextBackoff(retry);
-        retry += 1;
-        if (reconnectTimer) window.clearTimeout(reconnectTimer);
-        reconnectTimer = window.setTimeout(connect, delay);
-      };
-    };
-
-    connect();
-
+  useEffect(() => {
     return () => {
-      closed = true;
+      closedRef.current = true;
       if (metricsFlushRef.current) {
         window.clearTimeout(metricsFlushRef.current);
         metricsFlushRef.current = null;
       }
-      if (reconnectTimer) window.clearTimeout(reconnectTimer);
+      if (reconnectTimerRef.current) {
+        window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       try {
-        ws?.close(1000, "cleanup");
+        wsRef.current?.close(1000, "cleanup");
       } catch {}
-      ws = null;
+      wsRef.current = null;
     };
-  }, [market, metricWindow, metricsKey]);
+  }, []);
 
   // 4) 병합 + 정렬
   const merged = useMemo(() => {

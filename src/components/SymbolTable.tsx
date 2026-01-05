@@ -36,7 +36,6 @@ const SORTABLE: Set<string> = new Set(["symbol", "price", "volume", "quoteVolume
 const WIN_OPTS: MetricWindow[] = ["1m", "5m", "15m", "1h", "4h", "1d", "1w", "1M", "1Y"];
 const PRICE_FLASH_MS = 520;
 const BLINK_MS = 320;
-const RESORT_MS = 1500;
 const VIRTUAL_OVERSCAN = 20;
 const ROW_ESTIMATE = 40;
 // 변경 이유: 헤더/바디에 동일한 grid 템플릿을 적용해 컬럼 정렬을 고정
@@ -94,13 +93,13 @@ export default function SymbolTable({
   const locale = i18n.language;
 
   const [win, setWin] = useState<MetricWindow>("1d");
-  const { order, rowMap, isLoading, isError, isLoadingMore, hasMore, loadMore, setVisibleSymbols } =
-    useMarketSymbols(win);
-  const [, setFlashTick] = useState(0);
   const [localQuery, setLocalQuery] = useState("");
+  const [scope, setScope] = useState<"managed" | "all">("managed");
   const [sortKey, setSortKey] = useState<SortKey>("quoteVolume");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [renderOrder, setRenderOrder] = useState<string[]>([]);
+  const { order, rowMap, isLoading, isError, isLoadingMore, hasMore, loadMore, setVisibleSymbols } =
+    useMarketSymbols(win, { sortKey, sortOrder, query: searchTerm ?? localQuery, scope });
+  const [, setFlashTick] = useState(0);
 
   const prevRef = useRef<
     Record<string, { price: number | null; volume: number | null; quoteVolume: number | null; change: number | null }>
@@ -132,11 +131,7 @@ export default function SymbolTable({
   }, [rowMap]);
 
   useEffect(() => {
-    setRenderOrder(order);
-  }, [order]);
-
-  useEffect(() => {
-    if (!renderOrder.length) return;
+    if (!order.length) return;
     const now = Date.now();
     let nextTimerAt = 0;
     const prev = prevRef.current;
@@ -144,7 +139,7 @@ export default function SymbolTable({
     const nextPrev: typeof prev = {};
     let changed = false;
 
-    for (const sym of renderOrder) {
+    for (const sym of order) {
       const row = rowMapRef.current[sym];
       if (!row) continue;
       const prevRow = prev[sym];
@@ -187,7 +182,7 @@ export default function SymbolTable({
         setFlashTick((v) => v + 1);
       }, delay + 20);
     }
-  }, [renderOrder]);
+  }, [order]);
 
   const query = typeof searchTerm === "string" ? searchTerm : localQuery;
   const handleQueryChange = (value: string) => {
@@ -196,31 +191,22 @@ export default function SymbolTable({
   };
 
   const filteredOrder = useMemo(() => {
-    const q = query.trim().toUpperCase();
+    if (!filterFn) return order;
     const out: string[] = [];
-    for (const sym of renderOrder) {
+    for (const sym of order) {
       const row = rowMap[sym];
       if (!row) continue;
       if (filterFn && !filterFn(row)) continue;
-      if (q && !(row.symbol.includes(q) || row.baseAsset.toUpperCase().includes(q))) continue;
       out.push(sym);
     }
     return out;
-  }, [filterFn, query, renderOrder, rowMap]);
+  }, [filterFn, order, rowMap]);
 
   const displayData = useMemo(() => {
     const orderList = !limit || limit <= 0 ? filteredOrder : filteredOrder.slice(0, limit);
     return orderList.map((sym) => rowMap[sym]).filter(Boolean);
   }, [filteredOrder, limit, rowMap]);
 
-  const sortValue = useCallback((row: MarketRow, key: SortKey): number => {
-    if (key === "price") return row.price ?? Number.NEGATIVE_INFINITY;
-    if (key === "volume") return row.volume ?? Number.NEGATIVE_INFINITY;
-    if (key === "quoteVolume") return row.quoteVolume ?? Number.NEGATIVE_INFINITY;
-    if (key === "change24h") return row.change24h ?? Number.NEGATIVE_INFINITY;
-    if (key === "time") return row.onboardDate ?? 0;
-    return 0;
-  }, []);
 
   const columns = useMemo(() => {
     const wl = winLabel(win);
@@ -320,7 +306,7 @@ export default function SymbolTable({
         }
       })
     ];
-  }, [isLoading, sortValue, win, t, locale]);
+  }, [isLoading, win, t, locale]);
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
@@ -372,32 +358,6 @@ export default function SymbolTable({
     }
   }, [hasMore, isLoadingMore, loadMore, rows.length, virtualRows]);
 
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setRenderOrder((prev) => {
-        const { start, end } = visibleRangeRef.current;
-        if (!prev.length || end <= start) return prev;
-        const head = prev.slice(0, start);
-        const mid = prev.slice(start, end + 1);
-        const tail = prev.slice(end + 1);
-        const dir = sortOrder === "asc" ? 1 : -1;
-        const sortedMid = [...mid].sort((aSym, bSym) => {
-          if (sortKey === "symbol") {
-            return aSym.localeCompare(bSym) * dir;
-          }
-          const aRow = rowMapRef.current[aSym];
-          const bRow = rowMapRef.current[bSym];
-          if (!aRow || !bRow) return 0;
-          const aVal = sortValue(aRow, sortKey);
-          const bVal = sortValue(bRow, sortKey);
-          return (aVal - bVal) * dir;
-        });
-        // 변경 이유: 보이는 범위만 배치 재정렬해 전체 렌더 부하를 낮춘다
-        return [...head, ...sortedMid, ...tail];
-      });
-    }, RESORT_MS);
-    return () => window.clearInterval(id);
-  }, [sortKey, sortOrder, sortValue]);
 
   useEffect(() => {
     if (!displayData.length) {
@@ -448,6 +408,17 @@ export default function SymbolTable({
                     {w}
                   </option>
                 ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">Scope</span>
+              <select
+                className="rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700"
+                value={scope}
+                onChange={(e) => setScope(e.target.value as "managed" | "all")}
+              >
+                <option value="managed">Managed</option>
+                <option value="all">All</option>
               </select>
             </div>
 
