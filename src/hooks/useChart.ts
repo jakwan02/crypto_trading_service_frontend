@@ -1,5 +1,5 @@
 // filename: frontend/hooks/useChart.ts
-// 변경 이유: ws_chart 구독 교체(replace)로 연결 유지
+// 변경 이유: ws_chart 구독 교체(replace)로 연결 유지 + WS URL/토큰 정합화
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -95,32 +95,11 @@ function toApiBase(): string {
 }
 
 function toWsBase(): string {
-  const wsEnvRaw = String(process.env.NEXT_PUBLIC_WS_BASE_URL || "").trim();
-  const wsEnv = wsEnvRaw || DEFAULT_WS_BASE_URL;
-  const apiEnv = String(process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL).trim();
-  const wsPort = String(process.env.NEXT_PUBLIC_WS_PORT || "").trim();
-
-  const apiBase = stripApiSuffix(apiEnv);
-  let base = stripApiSuffix(wsEnv || apiEnv);
-
+  const raw = String(process.env.NEXT_PUBLIC_WS_BASE_URL || DEFAULT_WS_BASE_URL).trim();
+  let base = raw.replace(/\/+$/, "");
   if (base.startsWith("https://")) base = "wss://" + base.slice("https://".length);
   if (base.startsWith("http://")) base = "ws://" + base.slice("http://".length);
-
-  if (!base.startsWith("ws://") && !base.startsWith("wss://")) return base;
-
-  try {
-    const url = new URL(base);
-    if (wsPort) {
-      url.port = wsPort;
-    } else if (wsEnvRaw && stripApiSuffix(wsEnvRaw) === apiBase && url.port == "8001") {
-      url.port = "8002";
-    }
-    base = url.toString();
-  } catch {
-    return base;
-  }
-
-  return base.replace(/\/+$/, "");
+  return base;
 }
 
 function getApiToken(): string {
@@ -138,7 +117,7 @@ function withApiToken(headers?: HeadersInit): HeadersInit | undefined {
 }
 
 function getWsProtocols(): string[] | undefined {
-  const token = getWsToken() || getApiToken();
+  const token = getApiToken() || getWsToken();
   if (!token) return undefined;
   return [`token.${token}`];
 }

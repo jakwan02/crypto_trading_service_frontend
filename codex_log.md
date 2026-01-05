@@ -153,3 +153,16 @@ Logs/Artifacts:
 - 없음
 Next:
 - 없음
+2026-01-05 03:35 (local)
+Task: WS URL 조립/토큰 선택 로직 정합화
+Scope: src/hooks/useMarketSymbols.ts, src/hooks/useSymbols.ts, src/hooks/useChart.ts, codex_log.md
+Why: Caddy 경로/포트 규약과 WS 토큰 정책 불일치 해소
+Key changes:
+- WS_BASE_URL을 그대로 사용하고 포트/프리픽스 추론 제거
+- WS 토큰은 API 토큰을 우선 사용
+Commands run (user):
+- 없음
+Logs/Artifacts:
+- 없음
+Next:
+- 프론트 env의 API/WS base 및 토큰 일치 확인
