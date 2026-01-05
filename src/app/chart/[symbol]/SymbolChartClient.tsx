@@ -3,11 +3,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Bell, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import ChartContainer from "@/components/ChartContainer";
 import { useSymbols, type MetricWindow } from "@/hooks/useSymbols";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSymbolsStore } from "@/store/useSymbolStore";
 import { formatCompactNumber } from "@/lib/format";
 
 const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
@@ -20,6 +22,8 @@ type Props = {
 
 export default function SymbolChartClient({ symbol }: Props) {
   const [tf, setTf] = useState<string>("1d");
+  const searchParams = useSearchParams();
+  const setMarket = useSymbolsStore((s) => s.setMarket);
   const sym = (symbol || "").toUpperCase();
   const tfWin = tf as MetricWindow;
   const { data: symbols } = useSymbols(tfWin, { tickerSymbols: sym ? [sym] : [] });
@@ -60,6 +64,12 @@ export default function SymbolChartClient({ symbol }: Props) {
       if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    // 변경 이유: 차트 진입 시 market 파라미터를 store에 반영
+    const m = String(searchParams.get("market") || "").trim().toLowerCase();
+    if (m === "spot" || m === "um") setMarket(m);
+  }, [searchParams, setMarket]);
 
   useEffect(() => {
     prevRef.current = null;

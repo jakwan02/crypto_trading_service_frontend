@@ -231,6 +231,8 @@ export function useChart(symbol: string | null, timeframe: string) {
   const closedRef = useRef(false);
 
   useEffect(() => {
+    // 변경 이유: 라우팅 후 재마운트 시 reconnect 차단 해제
+    closedRef.current = false;
     aliveRef.current = true;
     return () => {
       closedRef.current = true;

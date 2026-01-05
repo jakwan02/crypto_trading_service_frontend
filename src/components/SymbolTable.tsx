@@ -130,6 +130,7 @@ export default function SymbolTable({
     rowMapRef.current = rowMap;
   }, [rowMap]);
 
+  // 변경 이유: 실시간 rowMap 변경에도 플래시 반응
   useEffect(() => {
     if (!order.length) return;
     const now = Date.now();
@@ -182,7 +183,7 @@ export default function SymbolTable({
         setFlashTick((v) => v + 1);
       }, delay + 20);
     }
-  }, [order]);
+  }, [order, rowMap]);
 
   const query = typeof searchTerm === "string" ? searchTerm : localQuery;
   const handleQueryChange = (value: string) => {
@@ -206,7 +207,6 @@ export default function SymbolTable({
     const orderList = !limit || limit <= 0 ? filteredOrder : filteredOrder.slice(0, limit);
     return orderList.map((sym) => rowMap[sym]).filter(Boolean);
   }, [filteredOrder, limit, rowMap]);
-
 
   const columns = useMemo(() => {
     const wl = winLabel(win);
@@ -326,6 +326,12 @@ export default function SymbolTable({
   });
   const virtualRows = rowVirtualizer.getVirtualItems();
 
+  useEffect(() => {
+    if (!displayData.length) return;
+    // 변경 이유: 가시 영역 계산이 지연될 때 첫 측정을 강제
+    rowVirtualizer.measure();
+  }, [displayData.length, rowVirtualizer]);
+
   const handleSort = (id: string) => {
     if (!SORTABLE.has(id)) return;
     const k = id as SortKey;
@@ -383,7 +389,12 @@ export default function SymbolTable({
       setVisibleSymbols([]);
       return;
     }
-    if (!virtualRows.length) return;
+    if (!virtualRows.length) {
+      // 변경 이유: 가상 스크롤 계산 전에도 ws_rt 구독을 유지
+      const fallback = displayData.slice(0, Math.min(displayData.length, 40)).map((row) => row.symbol);
+      setVisibleSymbols(fallback);
+      return;
+    }
     const start = virtualRows[0].index;
     const end = virtualRows[virtualRows.length - 1].index;
     const symbols = displayData.slice(start, end + 1).map((row) => row.symbol);
@@ -508,7 +519,9 @@ export default function SymbolTable({
                     gridTemplateColumns: GRID_TEMPLATE,
                     width: "100%"
                   }}
-                  onClick={() => router.push(`/chart/${row.original.symbol}`)}
+                  onClick={() =>
+                    router.push(`/chart/${row.original.symbol}?market=${encodeURIComponent(row.original.market)}`)
+                  }
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="px-3 py-2 truncate">

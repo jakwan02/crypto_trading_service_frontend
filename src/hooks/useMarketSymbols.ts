@@ -552,6 +552,8 @@ export function useMarketSymbols(
   }, [market, metricWindow, queueReplace, scope]);
 
   useEffect(() => {
+    // 변경 이유: 라우팅 복귀 시 reconnect 차단 해제
+    closedRef.current = false;
     connectRef.current();
     return () => {
       closedRef.current = true;

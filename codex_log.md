@@ -218,3 +218,17 @@ Logs/Artifacts:
 - 없음
 Next:
 - 프론트 재시작 후 실시간/차트/페이징 동작 확인
+2026-01-05 08:19 (local)
+Task: SPA 이동 후 WS/차트/마켓 실시간 안정화
+Scope: src/hooks/useChart.ts, src/hooks/useSymbols.ts, src/hooks/useMarketSymbols.ts, src/components/SymbolTable.tsx, src/app/chart/[symbol]/SymbolChartClient.tsx, codex_log.md
+Why: 버튼 이동 후 WS 끊김/market 불일치/플래시 갱신 누락을 해소
+Key changes:
+- closedRef 재설정으로 재마운트 시 재연결 허용
+- 차트 진입 시 market 쿼리 반영 및 링크에 market 전달
+- 가상 스크롤 초기 구독/플래시 갱신 안정화
+Commands run (user):
+- 없음
+Logs/Artifacts:
+- 없음
+Next:
+- 프론트 재시작 후 Home/Market/Chart 이동 실시간 확인

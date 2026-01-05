@@ -485,6 +485,8 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
   }, [market, metricWindow, tickerKey, useAllTickers, enableTicker, sendReplace, tickerList]);
 
   useEffect(() => {
+    // 변경 이유: 라우팅 후 재마운트 시 reconnect 차단 해제
+    closedRef.current = false;
     return () => {
       closedRef.current = true;
       if (metricsFlushRef.current) {
