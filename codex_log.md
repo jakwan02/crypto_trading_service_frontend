@@ -179,3 +179,16 @@ Logs/Artifacts:
 - 없음
 Next:
 - WS 접속 성공 여부 확인
+2026-01-05 05:37 (local)
+Task: WS 토큰 우선순위 수정 및 프론트 토큰 동기화
+Scope: src/hooks/useMarketSymbols.ts, src/hooks/useSymbols.ts, src/hooks/useChart.ts, .env, .env.local, codex_log.md
+Why: WS 토큰 불일치로 핸드셰이크 직전 종료 문제 완화
+Key changes:
+- WS URL/프로토콜에서 WS_TOKEN 우선 사용
+- 프론트 NEXT_PUBLIC_*_TOKEN 값을 백엔드 토큰과 정합화
+Commands run (user):
+- 없음
+Logs/Artifacts:
+- 없음
+Next:
+- 프론트 재빌드 후 WS 연결 확인

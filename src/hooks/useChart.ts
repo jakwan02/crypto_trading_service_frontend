@@ -110,6 +110,10 @@ function getWsToken(): string {
   return String(process.env.NEXT_PUBLIC_WS_TOKEN || "").trim();
 }
 
+function getWsAuthToken(): string {
+  return getWsToken() || getApiToken();
+}
+
 function withApiToken(headers?: HeadersInit): HeadersInit | undefined {
   const token = getApiToken();
   if (!token) return headers;
@@ -117,7 +121,7 @@ function withApiToken(headers?: HeadersInit): HeadersInit | undefined {
 }
 
 function getWsProtocols(): string[] | undefined {
-  const token = getApiToken() || getWsToken();
+  const token = getWsAuthToken();
   if (!token) return undefined;
   return [`token.${token}`];
 }
@@ -382,7 +386,7 @@ export function useChart(symbol: string | null, timeframe: string) {
       `&symbol=${encodeURIComponent(nextParams.symbol)}` +
       `&tf=${encodeURIComponent(nextParams.tf)}` +
       `&limit=${encodeURIComponent(String(nextParams.limit))}`;
-    const token = getApiToken();
+    const token = getWsAuthToken();
     const finalUrl = token ? `${url}&token=${encodeURIComponent(token)}` : url;
 
     let next: WebSocket;

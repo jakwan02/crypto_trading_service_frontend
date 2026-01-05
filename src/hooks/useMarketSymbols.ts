@@ -87,6 +87,10 @@ function getWsToken(): string {
   return String(process.env.NEXT_PUBLIC_WS_TOKEN || "").trim();
 }
 
+function getWsAuthToken(): string {
+  return getWsToken() || getApiToken();
+}
+
 function withApiToken(headers?: HeadersInit): HeadersInit | undefined {
   const token = getApiToken();
   if (!token) return headers;
@@ -94,7 +98,7 @@ function withApiToken(headers?: HeadersInit): HeadersInit | undefined {
 }
 
 function getWsProtocols(): string[] | undefined {
-  const token = getApiToken() || getWsToken();
+  const token = getWsAuthToken();
   if (!token) return undefined;
   return [`token.${token}`];
 }
@@ -160,7 +164,7 @@ function buildWsUrl(
   const w = encodeURIComponent(window);
   const sc = encodeURIComponent(scope);
   let url = `${base}/ws_rt?market=${m}&window=${w}&scope=${sc}`;
-  const token = getApiToken();
+  const token = getWsAuthToken();
   if (token) {
     url += `&token=${encodeURIComponent(token)}`;
   }
