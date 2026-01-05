@@ -44,6 +44,7 @@ type SymbolCache = {
 
 type UseSymbolsOptions = {
   tickerSymbols?: string[];
+  marketOverride?: string;
 };
 
 const DEFAULT_API_BASE_URL = "http://localhost:8001";
@@ -147,6 +148,12 @@ function toMs(x: unknown): number {
   return Number.isFinite(t) ? t : 0;
 }
 
+function normMarket(value: string): string {
+  const m = String(value || "").trim().toLowerCase();
+  if (m === "spot" || m === "um" || m === "cm") return m;
+  return "spot";
+}
+
 function sortSymbols(rows: SymbolRow[], sortKey: SortKey, sortOrder: "asc" | "desc"): SymbolRow[] {
   const out = [...rows];
   const dir = sortOrder === "asc" ? 1 : -1;
@@ -209,7 +216,9 @@ async function fetchSymbols(market: string, symbols?: string[]): Promise<SymbolR
 }
 
 export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbolsOptions = {}) {
-  const market = useSymbolsStore((s) => s.market);
+  // 변경 이유: 차트 경로 market 파라미터 우선 반영
+  const storeMarket = useSymbolsStore((s) => s.market);
+  const market = normMarket(options.marketOverride || storeMarket);
   const sortKey = useSymbolsStore((s) => s.sortKey);
   const sortOrder = useSymbolsStore((s) => s.sortOrder);
   const tickerOverride = options.tickerSymbols;

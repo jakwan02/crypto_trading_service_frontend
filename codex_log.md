@@ -232,3 +232,17 @@ Logs/Artifacts:
 - 없음
 Next:
 - 프론트 재시작 후 Home/Market/Chart 이동 실시간 확인
+2026-01-05 09:37 (local)
+Task: SPA 이동 시 마켓/차트 실시간 및 페이징 재시도 보강
+Scope: src/components/SymbolTable.tsx, src/hooks/useMarketSymbols.ts, src/hooks/useSymbols.ts, src/hooks/useChart.ts, src/components/ChartContainer.tsx, src/app/chart/[symbol]/SymbolChartClient.tsx, codex_log.md
+Why: 버튼 이동 후 페이징/차트 헤더 실시간이 멈추는 현상 완화
+Key changes:
+- loadMore 실패 시 동일 길이 재시도 허용
+- 차트/메트릭에서 market 파라미터 우선 적용
+- chart ws close 가드 및 오류 메시지 완화
+Commands run (user):
+- 없음
+Logs/Artifacts:
+- 없음
+Next:
+- 프론트 재시작 후 Market/Chart 이동 실시간/페이징 확인

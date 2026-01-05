@@ -15,7 +15,7 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useMarketSymbols, type MarketRow } from "@/hooks/useMarketSymbols";
 import { formatCompactNumber } from "@/lib/format";
-import type { SortKey } from "@/store/useSymbolStore";
+import { useSymbolsStore, type SortKey } from "@/store/useSymbolStore";
 
 const columnHelper = createColumnHelper<MarketRow>();
 
@@ -91,13 +91,14 @@ export default function SymbolTable({
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
+  const setMarket = useSymbolsStore((s) => s.setMarket);
 
   const [win, setWin] = useState<MetricWindow>("1d");
   const [localQuery, setLocalQuery] = useState("");
   const [scope, setScope] = useState<"managed" | "all">("managed");
   const [sortKey, setSortKey] = useState<SortKey>("quoteVolume");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const { order, rowMap, isLoading, isError, isLoadingMore, hasMore, loadMore, setVisibleSymbols } =
+  const { order, rowMap, cursorNext, isLoading, isError, isLoadingMore, hasMore, loadMore, setVisibleSymbols } =
     useMarketSymbols(win, { sortKey, sortOrder, query: searchTerm ?? localQuery, scope });
   const [, setFlashTick] = useState(0);
 
@@ -119,6 +120,7 @@ export default function SymbolTable({
   const rowMapRef = useRef<Record<string, MarketRow>>({});
   const visibleRangeRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
   const loadTriggerRef = useRef<string>("");
+  const loadAttemptRef = useRef<{ rowsLen: number; cursor: number | null } | null>(null);
 
   useEffect(() => {
     return () => {
@@ -359,8 +361,20 @@ export default function SymbolTable({
     const triggerKey = `more:${rows.length}`;
     if (loadTriggerRef.current === triggerKey) return;
     loadTriggerRef.current = triggerKey;
+    loadAttemptRef.current = { rowsLen: rows.length, cursor: cursorNext ?? null };
     loadMore();
-  }, [hasMore, isLoadingMore, loadMore, rows.length]);
+  }, [cursorNext, hasMore, isLoadingMore, loadMore, rows.length]);
+
+  // 변경 이유: loadMore 실패 시 동일 길이에서도 재시도 허용
+  useEffect(() => {
+    if (isLoadingMore) return;
+    const attempt = loadAttemptRef.current;
+    if (!attempt) return;
+    if (attempt.rowsLen === rows.length && attempt.cursor === (cursorNext ?? null)) {
+      loadTriggerRef.current = "";
+    }
+    loadAttemptRef.current = null;
+  }, [cursorNext, isLoadingMore, rows.length]);
 
   useEffect(() => {
     if (!virtualRows.length) return;
@@ -519,9 +533,14 @@ export default function SymbolTable({
                     gridTemplateColumns: GRID_TEMPLATE,
                     width: "100%"
                   }}
-                  onClick={() =>
-                    router.push(`/chart/${row.original.symbol}?market=${encodeURIComponent(row.original.market)}`)
-                  }
+                  onClick={() => {
+                    // 변경 이유: 차트 진입 전 market store 동기화
+                    const nextMarket = String(row.original.market || "").trim().toLowerCase();
+                    if (nextMarket === "spot" || nextMarket === "um") {
+                      setMarket(nextMarket as "spot" | "um");
+                    }
+                    router.push(`/chart/${row.original.symbol}?market=${encodeURIComponent(row.original.market)}`);
+                  }}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="px-3 py-2 truncate">

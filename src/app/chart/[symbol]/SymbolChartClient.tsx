@@ -25,8 +25,15 @@ export default function SymbolChartClient({ symbol }: Props) {
   const searchParams = useSearchParams();
   const setMarket = useSymbolsStore((s) => s.setMarket);
   const sym = (symbol || "").toUpperCase();
+  const marketParam = useMemo(() => {
+    const m = String(searchParams.get("market") || "").trim().toLowerCase();
+    return m === "spot" || m === "um" || m === "cm" ? m : "";
+  }, [searchParams]);
   const tfWin = tf as MetricWindow;
-  const { data: symbols } = useSymbols(tfWin, { tickerSymbols: sym ? [sym] : [] });
+  const { data: symbols } = useSymbols(tfWin, {
+    tickerSymbols: sym ? [sym] : [],
+    marketOverride: marketParam || undefined
+  });
   const { isPro } = useAuth();
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
@@ -67,9 +74,9 @@ export default function SymbolChartClient({ symbol }: Props) {
 
   useEffect(() => {
     // 변경 이유: 차트 진입 시 market 파라미터를 store에 반영
-    const m = String(searchParams.get("market") || "").trim().toLowerCase();
-    if (m === "spot" || m === "um") setMarket(m);
-  }, [searchParams, setMarket]);
+    if (!marketParam) return;
+    if (marketParam === "spot" || marketParam === "um") setMarket(marketParam);
+  }, [marketParam, setMarket]);
 
   useEffect(() => {
     prevRef.current = null;
@@ -258,7 +265,7 @@ export default function SymbolChartClient({ symbol }: Props) {
                 </span>
               ) : null}
             </div>
-            <ChartContainer symbol={sym} timeframe={tf} />
+            <ChartContainer symbol={sym} timeframe={tf} market={marketParam || undefined} />
           </div>
 
           <aside className="flex flex-col gap-4">

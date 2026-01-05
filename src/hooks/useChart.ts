@@ -78,6 +78,12 @@ function normTf(tf: string): string {
   return v;
 }
 
+function normMarket(value: string): string {
+  const m = String(value || "").trim().toLowerCase();
+  if (m === "spot" || m === "um" || m === "cm") return m;
+  return "spot";
+}
+
 function getTfLimit(tf: string): number {
   const key = normTf(tf);
   return TF_LIMIT[key] ?? 300;
@@ -204,9 +210,11 @@ function isSnapshotMsg(msg: unknown): boolean {
   return false;
 }
 
-export function useChart(symbol: string | null, timeframe: string) {
+export function useChart(symbol: string | null, timeframe: string, marketOverride?: string) {
   const tf = normTf(timeframe);
-  const market = useSymbolsStore((s) => s.market);
+  // 변경 이유: 차트 경로 market 파라미터 우선 반영
+  const storeMarket = useSymbolsStore((s) => s.market);
+  const market = normMarket(marketOverride || storeMarket);
 
   const [data, setData] = useState<Candle[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -222,7 +230,7 @@ export function useChart(symbol: string | null, timeframe: string) {
   const reconnectTimerRef = useRef<number | null>(null);
   const pendingReplaceRef = useRef<{ market: string; symbol: string; tf: string; limit: number } | null>(null);
   const paramsRef = useRef<{ market: string; symbol: string; tf: string; limit: number }>({
-    market: String(market || "spot").trim().toLowerCase(),
+    market: normMarket(market || "spot"),
     symbol: String(symbol || "").trim().toUpperCase(),
     tf: tf,
     limit: getTfLimit(tf)
@@ -300,10 +308,11 @@ export function useChart(symbol: string | null, timeframe: string) {
       }
 
       const { market: m, symbol: s, tf: t } = paramsRef.current;
+      setError(null);
       setData(next);
       chartCache.set(`${m}:${s}:${t}`, { ts: Date.now(), data: next });
     },
-    [setData]
+    [setData, setError]
   );
 
   const fetchSnapshot = useCallback(
@@ -387,6 +396,7 @@ export function useChart(symbol: string | null, timeframe: string) {
         tf: paramsRef.current.tf,
         limit: paramsRef.current.limit
       };
+    if (!nextParams.symbol) return;
     const wsBase = toWsBase();
     const url =
       `${wsBase}/ws_chart` +
@@ -461,6 +471,7 @@ export function useChart(symbol: string | null, timeframe: string) {
     };
 
     next.onclose = () => {
+      if (wsRef.current !== next) return;
       scheduleReconnect();
     };
   }, [applySnapshot, buildSnapshot, fetchSnapshot, scheduleReconnect, sendReplace]);
@@ -471,7 +482,7 @@ export function useChart(symbol: string | null, timeframe: string) {
 
   useEffect(() => {
     const sym = String(symbol || "").trim().toUpperCase();
-    const m = String(market || "").trim().toLowerCase();
+    const m = normMarket(market || "");
     const tfNorm = normTf(tf);
     const limit = getTfLimit(tfNorm);
     paramsRef.current = { market: m, symbol: sym, tf: tfNorm, limit };

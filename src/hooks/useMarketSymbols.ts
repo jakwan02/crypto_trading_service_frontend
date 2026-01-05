@@ -575,6 +575,8 @@ export function useMarketSymbols(
     rows,
     order,
     rowMap,
+    // 변경 이유: 증분 로딩 재시도 판단용 cursor 노출
+    cursorNext,
     isLoading,
     isError,
     isLoadingMore,

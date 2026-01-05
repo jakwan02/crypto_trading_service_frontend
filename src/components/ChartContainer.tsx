@@ -9,6 +9,7 @@ import { useChart } from "@/hooks/useChart";
 type Props = {
   symbol: string | null;
   timeframe: string;
+  market?: string;
 };
 
 function pricePrecisionByLast(px: number): { precision: number; minMove: number } {
@@ -31,7 +32,7 @@ function fmtPrice(px: number, precision: number, locale: string): string {
   });
 }
 
-export default function ChartContainer({ symbol, timeframe }: Props) {
+export default function ChartContainer({ symbol, timeframe, market }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -45,7 +46,8 @@ export default function ChartContainer({ symbol, timeframe }: Props) {
   const firstTimeRef = useRef<number>(0);
   const restoreRangeRef = useRef<{ from: number; to: number } | null>(null);
 
-  const { data: candles, error, loadMore, loadingMore, historyNotice } = useChart(symbol, timeframe);
+  // 변경 이유: 차트 경로 market 파라미터를 우선 적용
+  const { data: candles, error, loadMore, loadingMore, historyNotice } = useChart(symbol, timeframe, market);
 
   // 마지막 종가로 precision/minMove 동적 선택
   const pf = useMemo(() => {
