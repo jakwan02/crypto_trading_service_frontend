@@ -121,6 +121,8 @@ function withApiToken(headers?: HeadersInit): HeadersInit | undefined {
 }
 
 function getWsProtocols(): string[] | undefined {
+  // 변경 이유: 기본은 subprotocol 미사용(프록시/서버 호환성)
+  if (process.env.NEXT_PUBLIC_WS_SUBPROTO !== "1") return undefined;
   const token = getWsAuthToken();
   if (!token) return undefined;
   return [`token.${token}`];

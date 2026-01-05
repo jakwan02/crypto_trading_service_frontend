@@ -192,3 +192,15 @@ Logs/Artifacts:
 - 없음
 Next:
 - 프론트 재빌드 후 WS 연결 확인
+2026-01-05 05:46 (local)
+Task: WS subprotocol 기본 비활성화 및 환경 플래그 추가
+Scope: src/hooks/useMarketSymbols.ts, src/hooks/useSymbols.ts, src/hooks/useChart.ts, codex_log.md
+Why: 프록시 환경에서 subprotocol 미선택 시 핸드셰이크 실패를 방지
+Key changes:
+- NEXT_PUBLIC_WS_SUBPROTO=1일 때만 subprotocol 요청
+Commands run (user):
+- 없음
+Logs/Artifacts:
+- 없음
+Next:
+- 프론트 재빌드 후 WS 연결 확인
