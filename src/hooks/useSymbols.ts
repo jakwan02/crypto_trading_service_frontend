@@ -483,6 +483,9 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
       wsRef.current = null;
       return;
     }
+    // 변경 이유: SPA 이동 후 reconnect 차단 플래그 해제
+    closedRef.current = false;
+    retryRef.current = 0;
     const m = String(market || "spot").trim().toLowerCase();
     const w = String(metricWindow || "1d").trim();
     const symbols = useAllTickers ? null : tickerList;

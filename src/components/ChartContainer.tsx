@@ -219,7 +219,7 @@ export default function ChartContainer({ symbol, timeframe, market }: Props) {
     );
   }
 
-  if (error && (!candles || candles.length === 0)) {
+  if (error && error !== "ws_error" && (!candles || candles.length === 0)) {
     return (
       <div className="w-full h-[420px] flex items-center justify-center text-sm text-red-500">
         {t("chart.loadError")}

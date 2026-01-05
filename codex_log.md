@@ -246,3 +246,18 @@ Logs/Artifacts:
 - 없음
 Next:
 - 프론트 재시작 후 Market/Chart 이동 실시간/페이징 확인
+2026-01-05 12:09 (local)
+Task: SPA 이동 후 WS 재연결/페이징 트리거 리셋 및 차트 오류 UI 완화
+Scope: src/components/SymbolTable.tsx, src/hooks/useMarketSymbols.ts, src/hooks/useSymbols.ts, src/hooks/useChart.ts, src/components/ChartContainer.tsx, src/app/chart/page.tsx
+Why: 버튼 이동 후 실시간/페이징이 멈추는 현상과 차트 오류 플래시를 줄이기 위함
+Key changes:
+- SymbolTable에서 order 리셋 시 loadMore 트리거 상태 초기화
+- WS 훅(useSymbols/useMarketSymbols/useChart)에서 SPA 재진입 시 reconnect 차단 플래그 해제
+- 차트 오류 UI를 ws_error는 제외하도록 완화하고 chart 링크에 market 파라미터 포함
+Commands run (user):
+- (none)
+Logs/Artifacts:
+- N/A
+Next:
+- 브라우저에서 SPA 이동/스크롤/차트 실시간 수신 확인
+- ws_rt/ws_chart 메시지 샘플 확인

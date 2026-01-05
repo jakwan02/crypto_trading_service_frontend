@@ -121,6 +121,7 @@ export default function SymbolTable({
   const visibleRangeRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
   const loadTriggerRef = useRef<string>("");
   const loadAttemptRef = useRef<{ rowsLen: number; cursor: number | null } | null>(null);
+  const prevOrderLenRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -131,6 +132,15 @@ export default function SymbolTable({
   useEffect(() => {
     rowMapRef.current = rowMap;
   }, [rowMap]);
+
+  useEffect(() => {
+    // 변경 이유: SPA 이동 후 order 리셋 시 loadMore 트리거 고정 해제
+    if (order.length < prevOrderLenRef.current) {
+      loadTriggerRef.current = "";
+      loadAttemptRef.current = null;
+    }
+    prevOrderLenRef.current = order.length;
+  }, [order.length]);
 
   // 변경 이유: 실시간 rowMap 변경에도 플래시 반응
   useEffect(() => {

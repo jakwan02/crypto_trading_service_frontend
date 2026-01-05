@@ -542,6 +542,9 @@ export function useMarketSymbols(
 
   useEffect(() => {
     const m = String(market || "spot").trim().toLowerCase();
+    // 변경 이유: SPA 이동 후 reconnect 차단 플래그 해제
+    closedRef.current = false;
+    retryRef.current = 0;
     paramsRef.current = { market: m, window: metricWindow, scope };
     queueReplace({
       market: m,

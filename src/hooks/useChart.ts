@@ -486,6 +486,8 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
     const tfNorm = normTf(tf);
     const limit = getTfLimit(tfNorm);
     paramsRef.current = { market: m, symbol: sym, tf: tfNorm, limit };
+    // 변경 이유: SPA 이동 후 reconnect 차단 플래그 해제
+    closedRef.current = false;
 
     if (!sym) {
       setData([]);

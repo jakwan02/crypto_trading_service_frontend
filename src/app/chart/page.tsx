@@ -68,7 +68,7 @@ export default function ChartLandingPage() {
           {filtered.map((row) => (
             <Link
               key={row.symbol}
-              href={`/chart/${row.symbol}`}
+              href={`/chart/${row.symbol}?market=${encodeURIComponent(row.market)}`}
               className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:border-primary/30"
             >
               <div className="flex items-center justify-between">
