@@ -160,6 +160,10 @@ function buildWsUrl(
   const w = encodeURIComponent(window);
   const sc = encodeURIComponent(scope);
   let url = `${base}/ws_rt?market=${m}&window=${w}&scope=${sc}`;
+  const token = getApiToken();
+  if (token) {
+    url += `&token=${encodeURIComponent(token)}`;
+  }
   if (symbols.length) {
     url += `&symbols=${encodeURIComponent(symbols.join(","))}`;
   } else {

@@ -106,6 +106,10 @@ function buildRtWsUrl(
   const m = encodeURIComponent(market);
   const w = encodeURIComponent(window);
   let url = `${base}/ws_rt?market=${m}&window=${w}&scope=managed`;
+  const token = getApiToken();
+  if (token) {
+    url += `&token=${encodeURIComponent(token)}`;
+  }
   if (symbols === null || symbols === undefined) {
     return url;
   }

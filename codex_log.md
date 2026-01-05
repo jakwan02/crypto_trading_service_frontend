@@ -166,3 +166,16 @@ Logs/Artifacts:
 - 없음
 Next:
 - 프론트 env의 API/WS base 및 토큰 일치 확인
+2026-01-05 03:59 (local)
+Task: WS URL에 query token 추가 및 WS base 정합화
+Scope: src/hooks/useMarketSymbols.ts, src/hooks/useSymbols.ts, src/hooks/useChart.ts, codex_log.md
+Why: WS 토큰 전달 누락/불일치로 인한 조기 close 방지
+Key changes:
+- ws_rt/ws_chart URL에 token 쿼리 파라미터 추가
+- WS_BASE_URL 변형 로직 제거 유지
+Commands run (user):
+- 없음
+Logs/Artifacts:
+- 없음
+Next:
+- WS 접속 성공 여부 확인

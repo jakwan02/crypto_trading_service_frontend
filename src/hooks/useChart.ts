@@ -382,10 +382,12 @@ export function useChart(symbol: string | null, timeframe: string) {
       `&symbol=${encodeURIComponent(nextParams.symbol)}` +
       `&tf=${encodeURIComponent(nextParams.tf)}` +
       `&limit=${encodeURIComponent(String(nextParams.limit))}`;
+    const token = getApiToken();
+    const finalUrl = token ? `${url}&token=${encodeURIComponent(token)}` : url;
 
     let next: WebSocket;
     try {
-      next = new WebSocket(url, getWsProtocols());
+      next = new WebSocket(finalUrl, getWsProtocols());
     } catch {
       scheduleReconnect();
       return;
