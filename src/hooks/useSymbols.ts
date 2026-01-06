@@ -431,6 +431,10 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
         window: String(metricWindow || "1d").trim(),
         symbols: useAllTickers ? null : tickerList
       };
+    if (Array.isArray(nextParams.symbols) && nextParams.symbols.length === 0) {
+      // 변경 이유: symbols= 빈 상태에서는 WS 연결을 열지 않음
+      return;
+    }
     const wsBase = toWsBase();
     const url = buildRtWsUrl(wsBase, nextParams.market, nextParams.window, nextParams.symbols);
     let next: WebSocket;

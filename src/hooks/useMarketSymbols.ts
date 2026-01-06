@@ -348,6 +348,10 @@ export function useMarketSymbols(
     if (closedRef.current) return;
     const { market: m, window: w, scope: sc } = paramsRef.current;
     const symbols = desiredSymbolsRef.current;
+    if (!symbols.length) {
+      // 변경 이유: symbols= 빈 상태에서는 WS 연결을 열지 않음
+      return;
+    }
     const wsBase = toWsBase();
     const url = buildWsUrl(wsBase, m, w, sc, symbols);
     let next: WebSocket;
@@ -402,12 +406,23 @@ export function useMarketSymbols(
       if (key === desiredKeyRef.current) return;
       desiredKeyRef.current = key;
       desiredSymbolsRef.current = uniq;
+      if (!uniq.length) {
+        // 변경 이유: 심볼이 비어있을 때는 WS 연결을 열지 않음
+        try {
+          wsRef.current?.close(1000, "no_symbols");
+        } catch {}
+        wsRef.current = null;
+        return;
+      }
       queueReplace({
         market: paramsRef.current.market,
         window: paramsRef.current.window,
         scope: paramsRef.current.scope,
         symbols: uniq
       });
+      if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
+        connectRef.current();
+      }
     },
     [metricWindow, queueReplace, scope]
   );
