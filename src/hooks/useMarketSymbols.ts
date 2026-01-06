@@ -255,6 +255,7 @@ export function useMarketSymbols(
     window: metricWindow,
     scope
   });
+  const lastMarketRef = useRef<string>(String(market || "spot").trim().toLowerCase());
 
   const flushRows = useCallback(() => {
     if (flushTimerRef.current) return;
@@ -402,7 +403,7 @@ export function useMarketSymbols(
         new Set(symbols.map((s) => String(s || "").trim().toUpperCase()).filter(Boolean))
       );
       uniq.sort();
-      const key = `${metricWindow}:${scope}:${uniq.join(",")}`;
+      const key = `${market}:${metricWindow}:${scope}:${uniq.join(",")}`;
       if (key === desiredKeyRef.current) return;
       desiredKeyRef.current = key;
       desiredSymbolsRef.current = uniq;
@@ -424,7 +425,7 @@ export function useMarketSymbols(
         connectRef.current();
       }
     },
-    [metricWindow, queueReplace, scope]
+    [market, metricWindow, queueReplace, scope]
   );
 
   const mergePayload = useCallback(
@@ -557,16 +558,29 @@ export function useMarketSymbols(
 
   useEffect(() => {
     const m = String(market || "spot").trim().toLowerCase();
+    const marketChanged = lastMarketRef.current !== m;
+    if (marketChanged) {
+      // 변경 이유: 시장 전환 시 이전 구독 상태를 분리
+      desiredKeyRef.current = "";
+      desiredSymbolsRef.current = [];
+      try {
+        wsRef.current?.close(1000, "market_change");
+      } catch {}
+      wsRef.current = null;
+    }
     // 변경 이유: SPA 이동 후 reconnect 차단 플래그 해제
     closedRef.current = false;
     retryRef.current = 0;
     paramsRef.current = { market: m, window: metricWindow, scope };
-    queueReplace({
-      market: m,
-      window: metricWindow,
-      scope,
-      symbols: desiredSymbolsRef.current
-    });
+    if (desiredSymbolsRef.current.length) {
+      queueReplace({
+        market: m,
+        window: metricWindow,
+        scope,
+        symbols: desiredSymbolsRef.current
+      });
+    }
+    lastMarketRef.current = m;
   }, [market, metricWindow, queueReplace, scope]);
 
   useEffect(() => {

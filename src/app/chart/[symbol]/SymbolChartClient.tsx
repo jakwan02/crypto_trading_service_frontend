@@ -1,13 +1,14 @@
 // filename: frontend/app/chart/[symbol]/SymbolChartClient.tsx
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Bell, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import ChartContainer from "@/components/ChartContainer";
 import { useSymbols, type MetricWindow } from "@/hooks/useSymbols";
+import type { Candle } from "@/hooks/useChart";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSymbolsStore } from "@/store/useSymbolStore";
 import { formatCompactNumber } from "@/lib/format";
@@ -30,8 +31,9 @@ export default function SymbolChartClient({ symbol }: Props) {
     return m === "spot" || m === "um" || m === "cm" ? m : "";
   }, [searchParams]);
   const tfWin = tf as MetricWindow;
+  const tickerSymbols = useMemo(() => (sym ? [sym] : []), [sym]);
   const { data: symbols } = useSymbols(tfWin, {
-    tickerSymbols: sym ? [sym] : [],
+    tickerSymbols,
     marketOverride: marketParam || undefined
   });
   const { isPro } = useAuth();
@@ -40,6 +42,14 @@ export default function SymbolChartClient({ symbol }: Props) {
   const info = useMemo(() => symbols?.find((row) => row.symbol === sym), [symbols, sym]);
   const changeValue = info?.change24h ?? NaN;
   const changeIsNumber = Number.isFinite(changeValue);
+  const [livePrice, setLivePrice] = useState<number | null>(null);
+  const handleLastCandle = useCallback((candle: Candle | null) => {
+    if (!candle || !Number.isFinite(candle.close)) {
+      setLivePrice(null);
+      return;
+    }
+    setLivePrice(candle.close);
+  }, []);
   const tfLabel = tf;
   const [, setFlashTick] = useState(0);
   const prevRef = useRef<{ price: number; change: number; volume: number; quoteVolume: number } | null>(null);
@@ -81,12 +91,15 @@ export default function SymbolChartClient({ symbol }: Props) {
   useEffect(() => {
     prevRef.current = null;
     flashRef.current = {};
+    setLivePrice(null);
   }, [sym, tf]);
+
+  const priceValue = Number.isFinite(livePrice ?? NaN) ? Number(livePrice) : info?.price ?? NaN;
 
   useEffect(() => {
     if (!info) return;
     const next = {
-      price: Number.isFinite(info.price) ? info.price : NaN,
+      price: Number.isFinite(priceValue) ? priceValue : NaN,
       change: Number.isFinite(info.change24h) ? info.change24h : NaN,
       volume: Number.isFinite(info.volume) ? info.volume : NaN,
       quoteVolume: Number.isFinite(info.quoteVolume) ? info.quoteVolume : NaN
@@ -137,7 +150,7 @@ export default function SymbolChartClient({ symbol }: Props) {
         setFlashTick((v) => v + 1);
       }, delay + 20);
     }
-  }, [info]);
+  }, [info, priceValue]);
 
   const flash = flashRef.current;
   const now = Date.now();
@@ -205,7 +218,7 @@ export default function SymbolChartClient({ symbol }: Props) {
           <div className="fade-up rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <p className="text-xs text-gray-500">{t("chart.currentPrice")}</p>
             <p className={`mt-2 text-xl font-semibold text-gray-900 ${priceFlash}`}>
-              {Number.isFinite(info?.price) ? fmtPrice(info?.price ?? NaN) : "-"}
+              {Number.isFinite(priceValue) ? fmtPrice(priceValue) : "-"}
             </p>
           </div>
           <div className="fade-up rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -265,7 +278,12 @@ export default function SymbolChartClient({ symbol }: Props) {
                 </span>
               ) : null}
             </div>
-            <ChartContainer symbol={sym} timeframe={tf} market={marketParam || undefined} />
+            <ChartContainer
+              symbol={sym}
+              timeframe={tf}
+              market={marketParam || undefined}
+              onLastCandle={handleLastCandle}
+            />
           </div>
 
           <aside className="flex flex-col gap-4">

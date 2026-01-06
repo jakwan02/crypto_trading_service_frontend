@@ -261,3 +261,31 @@ Logs/Artifacts:
 Next:
 - 브라우저에서 SPA 이동/스크롤/차트 실시간 수신 확인
 - ws_rt/ws_chart 메시지 샘플 확인
+2026-01-06 04:06 (local)
+Task: 빈 symbols 상태에서 WS 연결 차단
+Scope: src/hooks/useMarketSymbols.ts, src/hooks/useSymbols.ts
+Why: symbols= 빈 상태의 WS 접속으로 인한 403/조기 종료를 방지
+Key changes:
+- symbols 길이가 0이면 connect()를 스킵하도록 가드 추가
+- 가시 심볼이 비어지면 WS를 정상 종료
+Commands run (user):
+- 없음
+Logs/Artifacts:
+- 없음
+Next:
+- Market/Home 진입 시 symbols= 빈 연결이 발생하지 않는지 확인
+2026-01-06 09:13 (local)
+Task: 차트 헤더 실시간 가격 동기화 및 market별 상태 분리
+Scope: src/app/chart/[symbol]/SymbolChartClient.tsx, src/components/ChartContainer.tsx, src/components/SymbolTable.tsx, src/hooks/useMarketSymbols.ts, codex_log.md
+Why: 차트 페이지 실시간 지표 지연과 market 전환 시 스크롤/구독 상태 공유 문제를 해소하기 위함
+Key changes:
+- ChartContainer가 마지막 캔들을 상단 지표로 전달해 현재가를 차트와 동일 타이밍으로 갱신
+- SymbolTable 상태/스크롤을 market별로 저장·복원하여 spot/um 전환 간섭 제거
+- useMarketSymbols의 구독 키에 market 포함 및 전환 시 이전 구독 정리
+Commands run (user):
+- 없음
+Logs/Artifacts:
+- 없음
+Next:
+- 차트 페이지에서 현재가가 캔들 갱신과 동기화되는지 확인
+- Market Overview에서 spot/um 전환 시 스크롤/정렬 상태가 분리되는지 확인

@@ -32,6 +32,14 @@ function LoadingBar() {
 }
 
 type MetricWindow = "1m" | "5m" | "15m" | "1h" | "4h" | "1d" | "1w" | "1M" | "1Y";
+type MarketState = {
+  win: MetricWindow;
+  scope: "managed" | "all";
+  sortKey: SortKey;
+  sortOrder: "asc" | "desc";
+  query: string;
+  scrollTop: number;
+};
 const SORTABLE: Set<string> = new Set(["symbol", "price", "volume", "quoteVolume", "change24h", "time"]);
 const WIN_OPTS: MetricWindow[] = ["1m", "5m", "15m", "1h", "4h", "1d", "1w", "1M", "1Y"];
 const PRICE_FLASH_MS = 520;
@@ -91,6 +99,7 @@ export default function SymbolTable({
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
+  const market = useSymbolsStore((s) => s.market);
   const setMarket = useSymbolsStore((s) => s.setMarket);
 
   const [win, setWin] = useState<MetricWindow>("1d");
@@ -122,6 +131,9 @@ export default function SymbolTable({
   const loadTriggerRef = useRef<string>("");
   const loadAttemptRef = useRef<{ rowsLen: number; cursor: number | null } | null>(null);
   const prevOrderLenRef = useRef(0);
+  const marketStateRef = useRef<Record<string, MarketState>>({});
+  const prevMarketRef = useRef<string | null>(null);
+  const pendingScrollRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
@@ -202,6 +214,35 @@ export default function SymbolTable({
     if (onSearchTermChange) onSearchTermChange(value);
     else setLocalQuery(value);
   };
+
+  useEffect(() => {
+    const prev = prevMarketRef.current;
+    if (prev && prev !== market) {
+      // 변경 이유: 시장별 상태(정렬/필터/스크롤)를 분리 저장
+      marketStateRef.current[prev] = {
+        win,
+        scope,
+        sortKey,
+        sortOrder,
+        query,
+        scrollTop: parentRef.current?.scrollTop ?? 0
+      };
+    }
+
+    const saved = marketStateRef.current[market];
+    if (saved) {
+      if (saved.win !== win) setWin(saved.win);
+      if (saved.scope !== scope) setScope(saved.scope);
+      if (saved.sortKey !== sortKey) setSortKey(saved.sortKey);
+      if (saved.sortOrder !== sortOrder) setSortOrder(saved.sortOrder);
+      if (typeof searchTerm !== "string" && saved.query !== localQuery) setLocalQuery(saved.query);
+      pendingScrollRef.current = saved.scrollTop ?? 0;
+    } else if (prev && prev !== market) {
+      pendingScrollRef.current = 0;
+    }
+
+    prevMarketRef.current = market;
+  }, [market]);
 
   const filteredOrder = useMemo(() => {
     if (!filterFn) return order;
@@ -343,6 +384,17 @@ export default function SymbolTable({
     // 변경 이유: 가시 영역 계산이 지연될 때 첫 측정을 강제
     rowVirtualizer.measure();
   }, [displayData.length, rowVirtualizer]);
+
+  useEffect(() => {
+    if (pendingScrollRef.current === null) return;
+    const root = parentRef.current;
+    if (!root) return;
+    // 변경 이유: 시장 전환 시 저장된 스크롤 위치 복원
+    const nextTop = pendingScrollRef.current;
+    pendingScrollRef.current = null;
+    root.scrollTop = nextTop;
+    rowVirtualizer.scrollToOffset(nextTop);
+  }, [displayData.length, market, rowVirtualizer]);
 
   const handleSort = (id: string) => {
     if (!SORTABLE.has(id)) return;

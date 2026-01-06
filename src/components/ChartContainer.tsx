@@ -4,12 +4,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CandlestickData, IChartApi, ISeriesApi, UTCTimestamp } from "lightweight-charts";
 import { useTranslation } from "react-i18next";
-import { useChart } from "@/hooks/useChart";
+import { useChart, type Candle } from "@/hooks/useChart";
 
 type Props = {
   symbol: string | null;
   timeframe: string;
   market?: string;
+  onLastCandle?: (candle: Candle | null) => void;
 };
 
 function pricePrecisionByLast(px: number): { precision: number; minMove: number } {
@@ -32,7 +33,7 @@ function fmtPrice(px: number, precision: number, locale: string): string {
   });
 }
 
-export default function ChartContainer({ symbol, timeframe, market }: Props) {
+export default function ChartContainer({ symbol, timeframe, market, onLastCandle }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -48,6 +49,13 @@ export default function ChartContainer({ symbol, timeframe, market }: Props) {
 
   // 변경 이유: 차트 경로 market 파라미터를 우선 적용
   const { data: candles, error, loadMore, loadingMore, historyNotice } = useChart(symbol, timeframe, market);
+
+  useEffect(() => {
+    // 변경 이유: 차트 실시간 가격을 상단 지표와 동기화
+    if (!onLastCandle) return;
+    const last = candles && candles.length > 0 ? candles[candles.length - 1] : null;
+    onLastCandle(last || null);
+  }, [candles, onLastCandle]);
 
   // 마지막 종가로 precision/minMove 동적 선택
   const pf = useMemo(() => {
