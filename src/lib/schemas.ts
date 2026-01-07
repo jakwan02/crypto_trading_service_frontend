@@ -9,8 +9,9 @@ export const SymbolItemSchema = z
     baseAsset: z.string().optional(),
     quote_asset: z.string().optional(),
     quoteAsset: z.string().optional(),
-    onboard_date: z.union([z.string(), z.number()]).optional(),
-    onboardDate: z.union([z.string(), z.number()]).optional(),
+    // 변경 이유: onboard_date가 null인 심볼도 파싱해 WS 연결이 막히지 않도록 허용
+    onboard_date: z.union([z.string(), z.number(), z.null()]).optional(),
+    onboardDate: z.union([z.string(), z.number(), z.null()]).optional(),
     onboard_date_ms: z.number().optional()
   })
   .passthrough();

@@ -289,3 +289,15 @@ Logs/Artifacts:
 Next:
 - 차트 페이지에서 현재가가 캔들 갱신과 동기화되는지 확인
 - Market Overview에서 spot/um 전환 시 스크롤/정렬 상태가 분리되는지 확인
+2026-01-07 08:46 (local)
+Task: Market Overview spot 심볼 파싱 실패 방지
+Scope: src/lib/schemas.ts, codex_log.md
+Why: onboard_date null 심볼로 인해 symbols 파싱이 실패해 WS 연결이 생성되지 않음
+Key changes:
+- SymbolItemSchema에서 onboard_date/onboardDate에 null 허용
+Commands run (user):
+- 없음
+Logs/Artifacts:
+- 없음
+Next:
+- spot Market Overview 부트스트랩 후 ws_rt 연결이 생성되는지 확인
