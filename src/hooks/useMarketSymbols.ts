@@ -556,6 +556,62 @@ export function useMarketSymbols(
     [market]
   );
 
+  const prefetchPages = useCallback(
+    async (startCursor: number | null, expectedKey: string) => {
+      if (startCursor === null) return;
+      if (prefetchRef.current.inFlight && prefetchRef.current.key === expectedKey) return;
+      prefetchRef.current = { key: expectedKey, inFlight: true };
+
+      let cursor = startCursor;
+      let remaining = PREFETCH_PAGES;
+      while (remaining > 0 && cursor !== null) {
+        if (lastQueryKeyRef.current !== expectedKey) break;
+        try {
+          const payload = await fetchMarketPayload(
+            "page",
+            market,
+            metricWindow,
+            scope,
+            sortKey,
+            sortOrder,
+            query,
+            PAGE_LIMIT,
+            cursor
+          );
+          if (lastQueryKeyRef.current !== expectedKey) break;
+          const base = cacheEntryRef.current || {
+            savedAt: Date.now(),
+            order: orderRef.current,
+            rowMap: rowMapRef.current,
+            cursorNext,
+            loadedCount: orderRef.current.length
+          };
+          const merged = mergePayload(payload, true, {
+            applyState: false,
+            baseOrder: base.order,
+            baseRowMap: base.rowMap
+          });
+          const savedAt = Number(payload.server_time_ms || 0) || Date.now();
+          const entry: MarketCacheEntry = {
+            savedAt,
+            order: merged.order,
+            rowMap: merged.rowMap,
+            cursorNext: merged.cursorNext,
+            loadedCount: merged.order.length
+          };
+          persistCache(entry);
+          cursor = merged.cursorNext;
+          remaining -= 1;
+        } catch {
+          break;
+        }
+      }
+
+      prefetchRef.current.inFlight = false;
+    },
+    [cursorNext, market, mergePayload, metricWindow, persistCache, query, scope, sortKey, sortOrder]
+  );
+
   const loadBootstrap = useCallback(async () => {
     if (orderRef.current.length === 0) setIsLoading(true);
     setIsError(false);
@@ -649,62 +705,6 @@ export function useMarketSymbols(
     sortKey,
     sortOrder
   ]);
-
-  const prefetchPages = useCallback(
-    async (startCursor: number | null, expectedKey: string) => {
-      if (startCursor === null) return;
-      if (prefetchRef.current.inFlight && prefetchRef.current.key === expectedKey) return;
-      prefetchRef.current = { key: expectedKey, inFlight: true };
-
-      let cursor = startCursor;
-      let remaining = PREFETCH_PAGES;
-      while (remaining > 0 && cursor !== null) {
-        if (lastQueryKeyRef.current !== expectedKey) break;
-        try {
-          const payload = await fetchMarketPayload(
-            "page",
-            market,
-            metricWindow,
-            scope,
-            sortKey,
-            sortOrder,
-            query,
-            PAGE_LIMIT,
-            cursor
-          );
-          if (lastQueryKeyRef.current !== expectedKey) break;
-          const base = cacheEntryRef.current || {
-            savedAt: Date.now(),
-            order: orderRef.current,
-            rowMap: rowMapRef.current,
-            cursorNext,
-            loadedCount: orderRef.current.length
-          };
-          const merged = mergePayload(payload, true, {
-            applyState: false,
-            baseOrder: base.order,
-            baseRowMap: base.rowMap
-          });
-          const savedAt = Number(payload.server_time_ms || 0) || Date.now();
-          const entry: MarketCacheEntry = {
-            savedAt,
-            order: merged.order,
-            rowMap: merged.rowMap,
-            cursorNext: merged.cursorNext,
-            loadedCount: merged.order.length
-          };
-          persistCache(entry);
-          cursor = merged.cursorNext;
-          remaining -= 1;
-        } catch {
-          break;
-        }
-      }
-
-      prefetchRef.current.inFlight = false;
-    },
-    [cursorNext, market, mergePayload, metricWindow, persistCache, query, scope, sortKey, sortOrder]
-  );
 
   const queryKey = useMemo(
     () => `${market}:${metricWindow}:${scope}:${sortKey}:${sortOrder}:${query}:${BOOTSTRAP_LIMIT}`,

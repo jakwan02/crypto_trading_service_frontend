@@ -456,3 +456,15 @@ Logs/Artifacts:
 Next:
 - Run frontend build/typecheck to confirm no TS errors
 - Verify Market Overview cache/prefetch behavior in browser
+2026-01-08 10:25 (local)
+Task: Fix prefetchPages TDZ error in Market Overview hook
+Scope: src/hooks/useMarketSymbols.ts
+Why: prefetchPages referenced before initialization caused runtime ReferenceError
+Key changes:
+- Moved prefetchPages useCallback above loadBootstrap
+Commands run (user):
+- (none)
+Logs/Artifacts:
+- (none)
+Next:
+- Restart frontend dev server to clear stale bundle
