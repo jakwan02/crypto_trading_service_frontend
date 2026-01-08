@@ -366,3 +366,15 @@ Logs/Artifacts:
 - next build: setVisibleLogicalRange type error
 Next:
 - npm run build 재확인
+2026-01-08 08:52 (local)
+Task: SymbolTable price flash null guard
+Scope: src/components/SymbolTable.tsx
+Why: price가 null인 경우 비교 연산에서 타입 에러 발생
+Key changes:
+- price/prev price가 모두 null이 아닐 때만 방향 계산
+Commands run (user):
+- npm run build -> 실패(SymbolTable price null 타입 에러)
+Logs/Artifacts:
+- next build: row.price possibly null
+Next:
+- npm run build 재확인

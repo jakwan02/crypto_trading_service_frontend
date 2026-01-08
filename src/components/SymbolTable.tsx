@@ -169,7 +169,7 @@ export default function SymbolTable({
       const prevRow = prev[sym];
 
       if (prevRow) {
-        if (row.price !== prevRow.price) {
+        if (row.price !== null && prevRow.price !== null && row.price !== prevRow.price) {
           const dir = row.price > prevRow.price ? 1 : -1;
           flash[sym] = { ...flash[sym], priceDir: dir, priceUntil: now + PRICE_FLASH_MS };
           nextTimerAt = Math.max(nextTimerAt, now + PRICE_FLASH_MS);
