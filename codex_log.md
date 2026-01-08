@@ -468,3 +468,16 @@ Logs/Artifacts:
 - (none)
 Next:
 - Restart frontend dev server to clear stale bundle
+2026-01-08 10:41 (local)
+Task: Reset Market Overview scroll on market switch
+Scope: src/components/SymbolTable.tsx
+Why: Prevent spot/um scroll position interference
+Key changes:
+- Removed per-market scroll state restore
+- Force scrollTop reset to 0 on market change
+Commands run (user):
+- (none)
+Logs/Artifacts:
+- (none)
+Next:
+- Verify spot/um switch starts at top and paging works

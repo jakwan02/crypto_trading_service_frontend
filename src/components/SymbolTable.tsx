@@ -32,13 +32,6 @@ function LoadingBar() {
 }
 
 type MetricWindow = "1m" | "5m" | "15m" | "1h" | "4h" | "1d" | "1w" | "1M" | "1Y";
-type MarketState = {
-  win: MetricWindow;
-  sortKey: SortKey;
-  sortOrder: "asc" | "desc";
-  query: string;
-  scrollTop: number;
-};
 const SORTABLE: Set<string> = new Set(["symbol", "price", "volume", "quoteVolume", "change24h", "time"]);
 const WIN_OPTS: MetricWindow[] = ["1m", "5m", "15m", "1h", "4h", "1d", "1w", "1M", "1Y"];
 const PRICE_FLASH_MS = 800;
@@ -138,7 +131,6 @@ export default function SymbolTable({
   const loadTriggerRef = useRef<string>("");
   const loadAttemptRef = useRef<{ rowsLen: number; cursor: number | null } | null>(null);
   const prevOrderLenRef = useRef(0);
-  const marketStateRef = useRef<Record<string, MarketState>>({});
   const prevMarketRef = useRef<string | null>(null);
   const pendingScrollRef = useRef<number | null>(null);
 
@@ -262,24 +254,7 @@ export default function SymbolTable({
   useEffect(() => {
     const prev = prevMarketRef.current;
     if (prev && prev !== market) {
-      // 변경 이유: 시장별 상태(정렬/필터/스크롤)를 분리 저장
-      marketStateRef.current[prev] = {
-        win,
-        sortKey,
-        sortOrder,
-        query,
-        scrollTop: parentRef.current?.scrollTop ?? 0
-      };
-    }
-
-    const saved = marketStateRef.current[market];
-    if (saved) {
-      if (saved.win !== win) setWin(saved.win);
-      if (saved.sortKey !== sortKey) setSortKey(saved.sortKey);
-      if (saved.sortOrder !== sortOrder) setSortOrder(saved.sortOrder);
-      if (typeof searchTerm !== "string" && saved.query !== localQuery) setLocalQuery(saved.query);
-      pendingScrollRef.current = saved.scrollTop ?? 0;
-    } else if (prev && prev !== market) {
+      // 변경 이유: market 전환 시 스크롤 복원 없이 항상 최상단으로 리셋
       pendingScrollRef.current = 0;
     }
 
