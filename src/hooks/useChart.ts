@@ -1,5 +1,5 @@
 // filename: frontend/hooks/useChart.ts
-// 변경 이유: ws_chart 초기 연결 보장 + REST 스냅샷 time 파싱 보강
+// 변경 이유: REST 스냅샷 단일화 + WS 델타만 반영
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -13,16 +13,6 @@ export type Candle = {
   low: number;
   close: number;
   volume: number;
-};
-
-type WsSnap = {
-  type?: string;
-  market?: string;
-  symbol?: string;
-  tf?: string;
-  candles?: unknown[];
-  final?: unknown[];
-  temp?: unknown | null;
 };
 
 type WsUpd = {
@@ -195,19 +185,6 @@ function upsert(arr: Candle[], it: Candle, maxLen: number): Candle[] {
   const out = Array.from(m.values()).sort((a, b) => a.time - b.time);
   if (out.length > maxLen) return out.slice(out.length - maxLen);
   return out;
-}
-
-function isSnapshotMsg(msg: unknown): boolean {
-  if (!msg || typeof msg !== "object") return false;
-  const obj = msg as Record<string, unknown>;
-  const tp = String(obj.type || "").toLowerCase();
-  if (tp === "snapshot") return true;
-
-  // type이 없어도 스냅샷은 배열을 포함한다
-  if (Array.isArray(obj.candles)) return true;
-  if (Array.isArray(obj.final)) return true;
-
-  return false;
 }
 
 export function useChart(symbol: string | null, timeframe: string, marketOverride?: string) {
@@ -431,17 +408,6 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
       }
 
       const { market: m, symbol: s, tf: t } = paramsRef.current;
-
-      if (isSnapshotMsg(msg)) {
-        const snap = msg as WsSnap;
-        if (snap.tf && normTf(String(snap.tf)) !== t) return;
-        if (snap.market && String(snap.market).toLowerCase() !== m) return;
-        if (snap.symbol && String(snap.symbol).toUpperCase() !== s) return;
-        const raw = Array.isArray(snap.candles) ? snap.candles : Array.isArray(snap.final) ? snap.final : [];
-        const merged = buildSnapshot(raw, snap.temp);
-        applySnapshot(merged, "ws");
-        return;
-      }
 
       const upd = msg as WsUpd;
       const uSym = String(upd.symbol ?? upd.s ?? "").trim().toUpperCase();

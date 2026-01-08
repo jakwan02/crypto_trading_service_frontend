@@ -301,3 +301,16 @@ Logs/Artifacts:
 - 없음
 Next:
 - spot Market Overview 부트스트랩 후 ws_rt 연결이 생성되는지 확인
+2026-01-08 03:46 (local)
+Task: ws_chart 스냅샷 처리 제거
+Scope: src/hooks/useChart.ts
+Why: WS 스냅샷이 REST 스냅샷을 덮어쓰는 문제 방지
+Key changes:
+- ws_chart 메시지에서 SNAPSHOT 처리 제거(델타만 반영)
+- 파일 상단 변경 이유 갱신
+Commands run (user):
+- 없음
+Logs/Artifacts:
+- 없음
+Next:
+- 1w 전환 시 REST 스냅샷이 유지되는지 확인
