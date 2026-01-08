@@ -427,3 +427,17 @@ Logs/Artifacts:
 - next build: row.price possibly null
 Next:
 - npm run build 재확인
+2026-01-08 09:34 (local)
+Task: 실시간 값 플래시를 표시 문자열 기준으로 제한
+Scope: src/components/SymbolTable.tsx, src/app/chart/[symbol]/SymbolChartClient.tsx, src/app/globals.css
+Why: 표시값이 안 바뀐 경우 깜빡임을 방지하고 price 강조 시간을 늘리기 위해
+Key changes:
+- SymbolTable 플래시를 displayKey 비교로 전환하고 until 연장 방식 적용
+- Chart 상단 지표 플래시를 displayKey 기준으로 전환하고 비가격은 중립 깜빡임만 적용
+- flash 애니메이션 시간(price 800ms, 기타 300ms) 조정
+Commands run (user):
+- (none)
+Logs/Artifacts:
+- (none)
+Next:
+- npm run build

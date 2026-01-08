@@ -14,8 +14,8 @@ import { useSymbolsStore } from "@/store/useSymbolStore";
 import { formatCompactNumber } from "@/lib/format";
 
 const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
-const FLASH_MS = 520;
-const BLINK_MS = 320;
+const FLASH_MS = 800;
+const BLINK_MS = 300;
 
 type Props = {
   symbol: string;
@@ -52,15 +52,21 @@ export default function SymbolChartClient({ symbol }: Props) {
   }, []);
   const tfLabel = tf;
   const [, setFlashTick] = useState(0);
-  const prevRef = useRef<{ price: number; change: number; volume: number; quoteVolume: number } | null>(null);
+  const prevRef = useRef<{
+    price: number;
+    change: number;
+    volume: number;
+    quoteVolume: number;
+    priceDisplay: string;
+    changeDisplay: string;
+    volumeDisplay: string;
+    quoteDisplay: string;
+  } | null>(null);
   const flashRef = useRef<{
     priceDir?: number;
     priceUntil?: number;
-    changeDir?: number;
     changeUntil?: number;
-    volumeDir?: number;
     volumeUntil?: number;
-    quoteDir?: number;
     quoteUntil?: number;
   }>({});
   const flashTimerRef = useRef<number | null>(null);
@@ -76,6 +82,7 @@ export default function SymbolChartClient({ symbol }: Props) {
     return u ? `${base} ${u}` : base;
   };
 
+  // 변경 이유: 표시 문자열 기준으로 갱신된 값만 플래시 처리
   useEffect(() => {
     return () => {
       if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
@@ -98,11 +105,23 @@ export default function SymbolChartClient({ symbol }: Props) {
 
   useEffect(() => {
     if (!info) return;
+    const priceDisplay = Number.isFinite(priceValue) ? fmtPrice(priceValue) : "-";
+    const changeDisplay = changeIsNumber ? `${changeValue.toFixed(2)}%` : "-";
+    const volumeDisplay = Number.isFinite(info.volume)
+      ? fmtWithUnit(info.volume ?? NaN, info.baseAsset?.toUpperCase())
+      : "-";
+    const quoteDisplay = Number.isFinite(info.quoteVolume)
+      ? fmtWithUnit(info.quoteVolume ?? NaN, (info.quoteAsset || "USDT").toUpperCase())
+      : "-";
     const next = {
       price: Number.isFinite(priceValue) ? priceValue : NaN,
       change: Number.isFinite(info.change24h) ? info.change24h : NaN,
       volume: Number.isFinite(info.volume) ? info.volume : NaN,
-      quoteVolume: Number.isFinite(info.quoteVolume) ? info.quoteVolume : NaN
+      quoteVolume: Number.isFinite(info.quoteVolume) ? info.quoteVolume : NaN,
+      priceDisplay,
+      changeDisplay,
+      volumeDisplay,
+      quoteDisplay
     };
     const prev = prevRef.current;
     const now = Date.now();
@@ -110,34 +129,48 @@ export default function SymbolChartClient({ symbol }: Props) {
     let changed = false;
 
     if (prev) {
-      if (Number.isFinite(next.price) && Number.isFinite(prev.price) && next.price !== prev.price) {
+      const nextFlash = { ...flashRef.current };
+      if (
+        next.priceDisplay !== "-" &&
+        prev.priceDisplay !== "-" &&
+        next.priceDisplay !== prev.priceDisplay &&
+        Number.isFinite(next.price) &&
+        Number.isFinite(prev.price)
+      ) {
         const dir = next.price > prev.price ? 1 : -1;
-        flashRef.current = { ...flashRef.current, priceDir: dir, priceUntil: now + FLASH_MS };
-        nextTimerAt = Math.max(nextTimerAt, now + FLASH_MS);
-        changed = true;
-      }
-      if (Number.isFinite(next.change) && Number.isFinite(prev.change) && next.change !== prev.change) {
-        const dir = next.change > prev.change ? 1 : -1;
-        flashRef.current = { ...flashRef.current, changeDir: dir, changeUntil: now + BLINK_MS };
-        nextTimerAt = Math.max(nextTimerAt, now + BLINK_MS);
-        changed = true;
-      }
-      if (Number.isFinite(next.volume) && Number.isFinite(prev.volume) && next.volume !== prev.volume) {
-        const dir = next.volume > prev.volume ? 1 : -1;
-        flashRef.current = { ...flashRef.current, volumeDir: dir, volumeUntil: now + BLINK_MS };
-        nextTimerAt = Math.max(nextTimerAt, now + BLINK_MS);
+        nextFlash.priceDir = dir;
+        nextFlash.priceUntil = Math.max(nextFlash.priceUntil ?? 0, now + FLASH_MS);
+        nextTimerAt = Math.max(nextTimerAt, nextFlash.priceUntil);
         changed = true;
       }
       if (
-        Number.isFinite(next.quoteVolume) &&
-        Number.isFinite(prev.quoteVolume) &&
-        next.quoteVolume !== prev.quoteVolume
+        next.changeDisplay !== "-" &&
+        prev.changeDisplay !== "-" &&
+        next.changeDisplay !== prev.changeDisplay
       ) {
-        const dir = next.quoteVolume > prev.quoteVolume ? 1 : -1;
-        flashRef.current = { ...flashRef.current, quoteDir: dir, quoteUntil: now + BLINK_MS };
-        nextTimerAt = Math.max(nextTimerAt, now + BLINK_MS);
+        nextFlash.changeUntil = Math.max(nextFlash.changeUntil ?? 0, now + BLINK_MS);
+        nextTimerAt = Math.max(nextTimerAt, nextFlash.changeUntil);
         changed = true;
       }
+      if (
+        next.volumeDisplay !== "-" &&
+        prev.volumeDisplay !== "-" &&
+        next.volumeDisplay !== prev.volumeDisplay
+      ) {
+        nextFlash.volumeUntil = Math.max(nextFlash.volumeUntil ?? 0, now + BLINK_MS);
+        nextTimerAt = Math.max(nextTimerAt, nextFlash.volumeUntil);
+        changed = true;
+      }
+      if (
+        next.quoteDisplay !== "-" &&
+        prev.quoteDisplay !== "-" &&
+        next.quoteDisplay !== prev.quoteDisplay
+      ) {
+        nextFlash.quoteUntil = Math.max(nextFlash.quoteUntil ?? 0, now + BLINK_MS);
+        nextTimerAt = Math.max(nextTimerAt, nextFlash.quoteUntil);
+        changed = true;
+      }
+      flashRef.current = nextFlash;
     }
 
     prevRef.current = next;
@@ -160,18 +193,9 @@ export default function SymbolChartClient({ symbol }: Props) {
         ? "flash-price-up"
         : "flash-price-down"
       : "";
-  const changeFlash =
-    flash.changeUntil && flash.changeUntil > now
-      ? `${flash.changeDir && flash.changeDir > 0 ? "flash-price-up" : "flash-price-down"} flash-blink`
-      : "";
-  const volumeFlash =
-    flash.volumeUntil && flash.volumeUntil > now
-      ? `${flash.volumeDir && flash.volumeDir > 0 ? "flash-price-up" : "flash-price-down"} flash-blink`
-      : "";
-  const quoteFlash =
-    flash.quoteUntil && flash.quoteUntil > now
-      ? `${flash.quoteDir && flash.quoteDir > 0 ? "flash-price-up" : "flash-price-down"} flash-blink`
-      : "";
+  const changeFlash = flash.changeUntil && flash.changeUntil > now ? "flash-blink" : "";
+  const volumeFlash = flash.volumeUntil && flash.volumeUntil > now ? "flash-blink" : "";
+  const quoteFlash = flash.quoteUntil && flash.quoteUntil > now ? "flash-blink" : "";
 
   if (!sym) {
     return (

@@ -41,8 +41,8 @@ type MarketState = {
 };
 const SORTABLE: Set<string> = new Set(["symbol", "price", "volume", "quoteVolume", "change24h", "time"]);
 const WIN_OPTS: MetricWindow[] = ["1m", "5m", "15m", "1h", "4h", "1d", "1w", "1M", "1Y"];
-const PRICE_FLASH_MS = 520;
-const BLINK_MS = 320;
+const PRICE_FLASH_MS = 800;
+const BLINK_MS = 300;
 const VIRTUAL_OVERSCAN = 20;
 const ROW_ESTIMATE = 40;
 const SKELETON_ROWS = 12;
@@ -107,7 +107,19 @@ export default function SymbolTable({
   const [, setFlashTick] = useState(0);
 
   const prevRef = useRef<
-    Record<string, { price: number | null; volume: number | null; quoteVolume: number | null; change: number | null }>
+    Record<
+      string,
+      {
+        price: number | null;
+        volume: number | null;
+        quoteVolume: number | null;
+        change: number | null;
+        priceDisplay: string;
+        volumeDisplay: string;
+        quoteVolumeDisplay: string;
+        changeDisplay: string;
+      }
+    >
   >({});
   const flashRef = useRef<
     Record<
@@ -149,7 +161,7 @@ export default function SymbolTable({
     prevOrderLenRef.current = order.length;
   }, [order.length]);
 
-  // 변경 이유: 실시간 rowMap 변경에도 플래시 반응
+  // 변경 이유: 표시 문자열 기준으로 변경된 값만 플래시 처리
   useEffect(() => {
     if (!order.length) return;
     const now = Date.now();
@@ -163,31 +175,68 @@ export default function SymbolTable({
       const row = rowMapRef.current[sym];
       if (!row) continue;
       const prevRow = prev[sym];
+      const priceDisplay = fmtPrice(row.price, locale);
+      const volumeUnit = row.baseAsset?.toUpperCase();
+      const volumeDisplay = fmtWithUnit(row.volume, volumeUnit, locale);
+      const quoteUnit = (row.quoteAsset || "USDT").toUpperCase();
+      const quoteVolumeDisplay = fmtWithUnit(row.quoteVolume, quoteUnit, locale);
+      const changeDisplay =
+        row.change24h === null || !Number.isFinite(row.change24h) ? "-" : `${row.change24h.toFixed(2)}%`;
 
       if (prevRow) {
-        if (row.price !== null && prevRow.price !== null && row.price !== prevRow.price) {
+        const nextFlash = { ...flash[sym] };
+        if (
+          priceDisplay !== "-" &&
+          prevRow.priceDisplay !== "-" &&
+          priceDisplay !== prevRow.priceDisplay &&
+          row.price !== null &&
+          prevRow.price !== null
+        ) {
           const dir = row.price > prevRow.price ? 1 : -1;
-          flash[sym] = { ...flash[sym], priceDir: dir, priceUntil: now + PRICE_FLASH_MS };
-          nextTimerAt = Math.max(nextTimerAt, now + PRICE_FLASH_MS);
+          nextFlash.priceDir = dir;
+          nextFlash.priceUntil = Math.max(nextFlash.priceUntil ?? 0, now + PRICE_FLASH_MS);
+          nextTimerAt = Math.max(nextTimerAt, nextFlash.priceUntil);
           changed = true;
         }
-        if (row.volume !== prevRow.volume || row.quoteVolume !== prevRow.quoteVolume) {
-          flash[sym] = { ...flash[sym], volumeUntil: now + BLINK_MS };
-          nextTimerAt = Math.max(nextTimerAt, now + BLINK_MS);
+        if (
+          volumeDisplay !== "-" &&
+          prevRow.volumeDisplay !== "-" &&
+          volumeDisplay !== prevRow.volumeDisplay
+        ) {
+          nextFlash.volumeUntil = Math.max(nextFlash.volumeUntil ?? 0, now + BLINK_MS);
+          nextTimerAt = Math.max(nextTimerAt, nextFlash.volumeUntil);
           changed = true;
         }
-        if (row.change24h !== prevRow.change) {
-          flash[sym] = { ...flash[sym], changeUntil: now + BLINK_MS };
-          nextTimerAt = Math.max(nextTimerAt, now + BLINK_MS);
+        if (
+          quoteVolumeDisplay !== "-" &&
+          prevRow.quoteVolumeDisplay !== "-" &&
+          quoteVolumeDisplay !== prevRow.quoteVolumeDisplay
+        ) {
+          nextFlash.volumeUntil = Math.max(nextFlash.volumeUntil ?? 0, now + BLINK_MS);
+          nextTimerAt = Math.max(nextTimerAt, nextFlash.volumeUntil);
           changed = true;
         }
+        if (
+          changeDisplay !== "-" &&
+          prevRow.changeDisplay !== "-" &&
+          changeDisplay !== prevRow.changeDisplay
+        ) {
+          nextFlash.changeUntil = Math.max(nextFlash.changeUntil ?? 0, now + BLINK_MS);
+          nextTimerAt = Math.max(nextTimerAt, nextFlash.changeUntil);
+          changed = true;
+        }
+        flash[sym] = nextFlash;
       }
 
       nextPrev[sym] = {
         price: row.price,
         volume: row.volume,
         quoteVolume: row.quoteVolume,
-        change: row.change24h
+        change: row.change24h,
+        priceDisplay,
+        volumeDisplay,
+        quoteVolumeDisplay,
+        changeDisplay
       };
     }
 
