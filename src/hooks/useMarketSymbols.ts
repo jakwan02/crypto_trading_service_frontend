@@ -239,6 +239,7 @@ export function useMarketSymbols(
   const wsRef = useRef<WebSocket | null>(null);
   const desiredSymbolsRef = useRef<string[]>([]);
   const desiredKeyRef = useRef<string>("");
+  const lastNonEmptySymbolsRef = useRef<string[]>([]);
   const swapTimerRef = useRef<number | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
   const retryRef = useRef(0);
@@ -348,7 +349,9 @@ export function useMarketSymbols(
   const connect = useCallback(() => {
     if (closedRef.current) return;
     const { market: m, window: w, scope: sc } = paramsRef.current;
-    const symbols = desiredSymbolsRef.current;
+    const symbols = desiredSymbolsRef.current.length
+      ? desiredSymbolsRef.current
+      : lastNonEmptySymbolsRef.current;
     if (!symbols.length) {
       // 변경 이유: symbols= 빈 상태에서는 WS 연결을 열지 않음
       return;
@@ -403,18 +406,23 @@ export function useMarketSymbols(
         new Set(symbols.map((s) => String(s || "").trim().toUpperCase()).filter(Boolean))
       );
       uniq.sort();
-      const key = `${market}:${metricWindow}:${scope}:${uniq.join(",")}`;
-      if (key === desiredKeyRef.current) return;
-      desiredKeyRef.current = key;
-      desiredSymbolsRef.current = uniq;
       if (!uniq.length) {
-        // 변경 이유: 심볼이 비어있을 때는 WS 연결을 열지 않음
+        // 변경 이유: 심볼이 비어있을 때는 WS 연결을 닫고 상태를 초기화
+        desiredKeyRef.current = "";
+        desiredSymbolsRef.current = [];
+        lastNonEmptySymbolsRef.current = [];
+        pendingReplaceRef.current = null;
         try {
           wsRef.current?.close(1000, "no_symbols");
         } catch {}
         wsRef.current = null;
         return;
       }
+      const key = `${market}:${metricWindow}:${scope}:${uniq.join(",")}`;
+      if (key === desiredKeyRef.current) return;
+      desiredKeyRef.current = key;
+      desiredSymbolsRef.current = uniq;
+      lastNonEmptySymbolsRef.current = uniq;
       queueReplace({
         market: paramsRef.current.market,
         window: paramsRef.current.window,
@@ -498,6 +506,7 @@ export function useMarketSymbols(
   const loadBootstrap = useCallback(async () => {
     setIsLoading(true);
     setIsError(false);
+    const expectedKey = `${market}:${metricWindow}:${scope}:${sortKey}:${sortOrder}:${query}`;
     try {
       const payload = await fetchMarketPayload(
         "bootstrap",
@@ -509,6 +518,7 @@ export function useMarketSymbols(
         query,
         30
       );
+      if (lastQueryKeyRef.current !== expectedKey) return;
       rowMapRef.current = {};
       mergePayload(payload, false);
     } catch {
@@ -521,6 +531,7 @@ export function useMarketSymbols(
   const loadMore = useCallback(async () => {
     if (cursorNext === null || isLoadingMore) return;
     setIsLoadingMore(true);
+    const expectedKey = `${market}:${metricWindow}:${scope}:${sortKey}:${sortOrder}:${query}`;
     try {
       const payload = await fetchMarketPayload(
         "page",
@@ -533,6 +544,7 @@ export function useMarketSymbols(
         80,
         cursorNext
       );
+      if (lastQueryKeyRef.current !== expectedKey) return;
       mergePayload(payload, true);
     } catch {
     } finally {
@@ -563,6 +575,7 @@ export function useMarketSymbols(
       // 변경 이유: 시장 전환 시 이전 구독 상태를 분리
       desiredKeyRef.current = "";
       desiredSymbolsRef.current = [];
+      lastNonEmptySymbolsRef.current = [];
       try {
         wsRef.current?.close(1000, "market_change");
       } catch {}
@@ -572,12 +585,12 @@ export function useMarketSymbols(
     closedRef.current = false;
     retryRef.current = 0;
     paramsRef.current = { market: m, window: metricWindow, scope };
-    if (desiredSymbolsRef.current.length) {
+    if (lastNonEmptySymbolsRef.current.length) {
       queueReplace({
         market: m,
         window: metricWindow,
         scope,
-        symbols: desiredSymbolsRef.current
+        symbols: lastNonEmptySymbolsRef.current
       });
     }
     lastMarketRef.current = m;

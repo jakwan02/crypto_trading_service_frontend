@@ -34,7 +34,6 @@ function LoadingBar() {
 type MetricWindow = "1m" | "5m" | "15m" | "1h" | "4h" | "1d" | "1w" | "1M" | "1Y";
 type MarketState = {
   win: MetricWindow;
-  scope: "managed" | "all";
   sortKey: SortKey;
   sortOrder: "asc" | "desc";
   query: string;
@@ -46,6 +45,7 @@ const PRICE_FLASH_MS = 520;
 const BLINK_MS = 320;
 const VIRTUAL_OVERSCAN = 20;
 const ROW_ESTIMATE = 40;
+const SKELETON_ROWS = 12;
 // 변경 이유: 헤더/바디에 동일한 grid 템플릿을 적용해 컬럼 정렬을 고정
 const GRID_TEMPLATE =
   "minmax(140px, 18%) minmax(120px, 15%) minmax(150px, 17%) minmax(180px, 20%) minmax(120px, 12%) minmax(120px, 18%)";
@@ -104,11 +104,10 @@ export default function SymbolTable({
 
   const [win, setWin] = useState<MetricWindow>("1d");
   const [localQuery, setLocalQuery] = useState("");
-  const [scope, setScope] = useState<"managed" | "all">("managed");
   const [sortKey, setSortKey] = useState<SortKey>("quoteVolume");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const { order, rowMap, cursorNext, isLoading, isError, isLoadingMore, hasMore, loadMore, setVisibleSymbols } =
-    useMarketSymbols(win, { sortKey, sortOrder, query: searchTerm ?? localQuery, scope });
+    useMarketSymbols(win, { sortKey, sortOrder, query: searchTerm ?? localQuery });
   const [, setFlashTick] = useState(0);
 
   const prevRef = useRef<
@@ -221,7 +220,6 @@ export default function SymbolTable({
       // 변경 이유: 시장별 상태(정렬/필터/스크롤)를 분리 저장
       marketStateRef.current[prev] = {
         win,
-        scope,
         sortKey,
         sortOrder,
         query,
@@ -232,7 +230,6 @@ export default function SymbolTable({
     const saved = marketStateRef.current[market];
     if (saved) {
       if (saved.win !== win) setWin(saved.win);
-      if (saved.scope !== scope) setScope(saved.scope);
       if (saved.sortKey !== sortKey) setSortKey(saved.sortKey);
       if (saved.sortOrder !== sortOrder) setSortOrder(saved.sortOrder);
       if (typeof searchTerm !== "string" && saved.query !== localQuery) setLocalQuery(saved.query);
@@ -242,6 +239,8 @@ export default function SymbolTable({
     }
 
     prevMarketRef.current = market;
+    loadTriggerRef.current = "";
+    loadAttemptRef.current = null;
   }, [market]);
 
   const filteredOrder = useMemo(() => {
@@ -260,6 +259,25 @@ export default function SymbolTable({
     const orderList = !limit || limit <= 0 ? filteredOrder : filteredOrder.slice(0, limit);
     return orderList.map((sym) => rowMap[sym]).filter(Boolean);
   }, [filteredOrder, limit, rowMap]);
+  const isInitialLoading = isLoading && displayData.length === 0;
+  const skeletonRows = useMemo(
+    () =>
+      Array.from({ length: SKELETON_ROWS }, (_, idx) => ({
+        market,
+        symbol: `__loading__${idx}`,
+        status: "",
+        baseAsset: "",
+        quoteAsset: "",
+        onboardDate: null,
+        price: null,
+        volume: null,
+        quoteVolume: null,
+        change24h: null,
+        time: null
+      })),
+    [market]
+  );
+  const tableData = isInitialLoading ? skeletonRows : displayData;
 
   const columns = useMemo(() => {
     const wl = winLabel(win);
@@ -268,7 +286,11 @@ export default function SymbolTable({
       columnHelper.accessor("symbol", {
         id: "symbol",
         header: () => t("table.symbol"),
-        cell: (info) => <span className="font-medium text-gray-900">{info.getValue()}</span>
+        cell: (info) => {
+          const value = String(info.getValue() ?? "");
+          if (isLoading && value.startsWith("__loading__")) return <LoadingBar />;
+          return <span className="font-medium text-gray-900">{value}</span>;
+        }
       }),
 
       columnHelper.accessor("price", {
@@ -354,6 +376,7 @@ export default function SymbolTable({
         header: () => t("table.onboardDate"),
         cell: (info) => {
           const value = info.getValue() as number | null;
+          if (isLoading && (!value || value <= 0)) return <LoadingBar />;
           if (!value || value <= 0) return <span className="text-xs text-gray-400">-</span>;
           return <span className="text-xs text-gray-500">{new Date(value).toLocaleDateString(locale)}</span>;
         }
@@ -363,7 +386,7 @@ export default function SymbolTable({
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    data: displayData ?? [],
+    data: tableData ?? [],
     columns,
     getCoreRowModel: getCoreRowModel()
   });
@@ -462,7 +485,7 @@ export default function SymbolTable({
 
   useEffect(() => {
     if (!displayData.length) {
-      setVisibleSymbols([]);
+      if (!isLoading) setVisibleSymbols([]);
       return;
     }
     if (!virtualRows.length) {
@@ -475,11 +498,7 @@ export default function SymbolTable({
     const end = virtualRows[virtualRows.length - 1].index;
     const symbols = displayData.slice(start, end + 1).map((row) => row.symbol);
     setVisibleSymbols(symbols);
-  }, [displayData, setVisibleSymbols, virtualRows]);
-
-  if (isLoading) {
-    return <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">{t("table.loading")}</div>;
-  }
+  }, [displayData, isLoading, setVisibleSymbols, virtualRows]);
 
   if (isError) {
     return (
@@ -489,7 +508,7 @@ export default function SymbolTable({
     );
   }
 
-  if (!rows || rows.length === 0) {
+  if (!isInitialLoading && (!rows || rows.length === 0)) {
     return (
       <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">
         {t("table.empty")}
@@ -516,17 +535,6 @@ export default function SymbolTable({
                 ))}
               </select>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">Scope</span>
-              <select
-                className="rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700"
-                value={scope}
-                onChange={(e) => setScope(e.target.value as "managed" | "all")}
-              >
-                <option value="managed">Managed</option>
-                <option value="all">All</option>
-              </select>
-            </div>
 
             <input
               type="search"
@@ -541,7 +549,20 @@ export default function SymbolTable({
         </div>
       ) : null}
 
-      <div ref={parentRef} className="max-h-[560px] overflow-auto rounded-xl border border-gray-100">
+      <div
+        ref={parentRef}
+        className="max-h-[560px] overflow-auto rounded-xl border border-gray-100"
+        style={{ overscrollBehavior: "contain" }}
+        onWheel={(event) => {
+          const root = parentRef.current;
+          if (!root) return;
+          const atTop = root.scrollTop <= 0;
+          const atBottom = root.scrollTop + root.clientHeight >= root.scrollHeight - 1;
+          if ((atTop && event.deltaY < 0) || (atBottom && event.deltaY > 0)) {
+            event.preventDefault();
+          }
+        }}
+      >
         <table className="min-w-[1000px] w-full table-fixed border-collapse border-spacing-0 text-left text-gray-900">
           <thead className="sticky top-0 z-10 bg-white">
             {table.getHeaderGroups().map((hg) => (
@@ -614,6 +635,9 @@ export default function SymbolTable({
             })}
           </tbody>
         </table>
+        {isLoadingMore ? (
+          <div className="py-2 text-center text-xs text-gray-400">{t("table.loading")}</div>
+        ) : null}
         <div ref={bottomRef} className="h-1" />
       </div>
       {limit && filteredOrder.length > limit ? (

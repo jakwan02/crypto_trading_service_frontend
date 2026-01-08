@@ -327,3 +327,16 @@ Logs/Artifacts:
 - 없음
 Next:
 - 차트 첫 진입/TF 변경 시 스냅샷 전체 및 최신 구간 포커스 확인
+2026-01-08 07:32 (local)
+Task: Market Overview 상태 분리 + 로딩 스켈레톤/스크롤 UX 개선
+Scope: src/components/SymbolTable.tsx, src/hooks/useMarketSymbols.ts
+Why: 시장 전환 시 스크롤/페이징 간섭과 템플릿 점프를 줄이고 WS 재연결을 최소화
+Key changes:
+- market 전환 시 스크롤/페이징 트리거 분리 및 응답 가드 추가
+- 초기 로딩 스켈레톤 유지 + 스크롤 체인 차단 + 로딩 중 표시
+Commands run (user):
+- 없음
+Logs/Artifacts:
+- 없음
+Next:
+- Market Overview에서 spot/um 전환 후 스크롤/증분 로딩 정상 여부 확인
