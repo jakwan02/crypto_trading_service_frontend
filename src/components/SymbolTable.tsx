@@ -468,7 +468,11 @@ export default function SymbolTable({
     if (!SORTABLE.has(id)) return;
     const k = id as SortKey;
     if (k === sortKey) setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-    else setSortKey(k);
+    else {
+      // 변경 이유: 다른 컬럼 클릭 시 항상 desc부터 시작
+      setSortKey(k);
+      setSortOrder("desc");
+    }
   };
 
   const renderSortIcon = (id: string) => {

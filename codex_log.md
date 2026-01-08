@@ -441,3 +441,18 @@ Logs/Artifacts:
 - (none)
 Next:
 - npm run build
+2026-01-08 10:11 (local)
+Task: Cache Market Overview pages and chart tempByTf in bundle cache
+Scope: src/hooks/useMarketSymbols.ts, src/lib/marketCache.ts, src/hooks/useChart.ts, src/lib/chartCache.ts, src/lib/chartBundle.ts, src/components/SymbolTable.tsx
+Why: Speed up initial render, avoid market cross-talk, and cache current candle per TF
+Key changes:
+- Added Market Overview incremental cache with memory+IDB and prefetch pages
+- Chart bundle cache stores tempByTf for all TFs and updates on WS deltas
+- Sort click resets to desc when changing columns
+Commands run (user):
+- (none)
+Logs/Artifacts:
+- (none)
+Next:
+- Run frontend build/typecheck to confirm no TS errors
+- Verify Market Overview cache/prefetch behavior in browser

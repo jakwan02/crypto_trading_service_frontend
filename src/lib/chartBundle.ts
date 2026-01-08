@@ -8,6 +8,7 @@ export type ChartBundle = {
   symbol: string;
   now: number;
   items: Record<string, unknown[]>;
+  tempByTf?: Record<string, unknown | null>;
   temp?: Record<string, unknown>;
 };
 

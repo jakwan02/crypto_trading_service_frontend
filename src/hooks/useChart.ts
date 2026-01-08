@@ -307,7 +307,8 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
     []
   );
 
-  const applySnapshot = useCallback((next: Candle[], savedAt?: number) => {
+  const applySnapshot = useCallback(
+    (next: Candle[], savedAt?: number, tempByTf?: Record<string, Candle | null>) => {
     const { market: m, symbol: s, tf: t } = paramsRef.current;
     const pending = pendingDeltaRef.current;
     const merged = pending ? upsert(next, pending, 1200) : next;
@@ -315,6 +316,7 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
     const prev = getMemoryBundle(cacheKey);
     const nextSavedAt = savedAt ?? prev?.savedAt ?? Date.now();
     const nextDataByTf = { ...(prev?.dataByTf || {}), [t]: merged };
+    const nextTempByTf = tempByTf ?? prev?.tempByTf;
 
     pendingDeltaRef.current = null;
     restReadyRef.current = true;
@@ -324,20 +326,24 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
     }
     setError(null);
     setData(merged);
-    setMemoryBundle(cacheKey, nextDataByTf, nextSavedAt);
+    setMemoryBundle(cacheKey, nextDataByTf, nextTempByTf, nextSavedAt);
   }, []);
 
   // 변경 이유: 번들 응답을 TF별 Candle[]로 변환해 캐시와 UI에 재사용
-  const buildDataByTf = useCallback(
-    (bundle: ChartBundle): Record<string, Candle[]> => {
-      const out: Record<string, Candle[]> = {};
-      if (!bundle || !bundle.items) return out;
+  // 변경 이유: 번들에서 tempByTf까지 캐시로 반영
+  const buildBundleCache = useCallback(
+    (bundle: ChartBundle): { dataByTf: Record<string, Candle[]>; tempByTf: Record<string, Candle | null> } => {
+      const dataByTf: Record<string, Candle[]> = {};
+      const tempByTf: Record<string, Candle | null> = {};
+      if (!bundle || !bundle.items) return { dataByTf, tempByTf };
+      const temps = bundle.tempByTf || {};
       for (const [tfKey, raw] of Object.entries(bundle.items)) {
         if (!Array.isArray(raw)) continue;
-        const temp = bundle.temp ? bundle.temp[tfKey] : null;
-        out[tfKey] = buildSnapshot(raw, temp, getTfLimit(tfKey));
+        const tempRaw = (tfKey in temps ? temps[tfKey] : bundle.temp?.[tfKey]) ?? null;
+        tempByTf[tfKey] = tempRaw ? parseCandle(tempRaw) : null;
+        dataByTf[tfKey] = buildSnapshot(raw, tempRaw, getTfLimit(tfKey));
       }
-      return out;
+      return { dataByTf, tempByTf };
     },
     [buildSnapshot]
   );
@@ -364,9 +370,9 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         if (bundleKeyRef.current && bundleKeyRef.current !== cacheKey) return;
 
         const savedAt = Number(res.bundle?.now || 0) || Date.now();
-        const dataByTf = buildDataByTf(res.bundle);
+        const { dataByTf, tempByTf } = buildBundleCache(res.bundle);
         lastBundleAtRef.current = savedAt;
-        setMemoryBundle(cacheKey, dataByTf, savedAt);
+        setMemoryBundle(cacheKey, dataByTf, tempByTf, savedAt);
         if (res.bytes?.length) {
           await putIdbBundleBytes(cacheKey, res.bytes, savedAt);
           broadcastBundleReady(cacheKey, savedAt);
@@ -375,7 +381,7 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         const currentTf = paramsRef.current.tf;
         const current = dataByTf[currentTf];
         if (current && current.length) {
-          applySnapshot(current, savedAt);
+          applySnapshot(current, savedAt, tempByTf);
         }
       } catch {
         if (reason === "init" && dataRef.current.length === 0) {
@@ -385,7 +391,7 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         hardRefreshInFlightRef.current = false;
       }
     },
-    [applySnapshot, buildDataByTf]
+    [applySnapshot, buildBundleCache]
   );
 
   const scheduleReconnect = useCallback(() => {
@@ -514,9 +520,11 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         const cacheKey = `${m}:${s}`;
         const prevBundle = getMemoryBundle(cacheKey);
         if (prevBundle) {
+          const nextTempByTf = { ...(prevBundle.tempByTf || {}), [t]: c };
           setMemoryBundle(
             cacheKey,
             { ...prevBundle.dataByTf, [t]: nextList },
+            nextTempByTf,
             prevBundle.savedAt
           );
         }
@@ -551,11 +559,11 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         const cached = await getIdbBundleBytes(msg.key);
         if (!cached || cached.savedAt < msg.savedAt) return;
         const bundle = decodeBundleBytes(cached.data);
-        const dataByTf = buildDataByTf(bundle);
-        setMemoryBundle(msg.key, dataByTf, cached.savedAt);
+        const { dataByTf, tempByTf } = buildBundleCache(bundle);
+        setMemoryBundle(msg.key, dataByTf, tempByTf, cached.savedAt);
         const current = dataByTf[paramsRef.current.tf];
         if (current && current.length > 0) {
-          applySnapshot(current, cached.savedAt);
+          applySnapshot(current, cached.savedAt, tempByTf);
         }
       })();
     });
@@ -563,7 +571,7 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
     return () => {
       unsubscribe();
     };
-  }, [applySnapshot, buildDataByTf]);
+  }, [applySnapshot, buildBundleCache]);
 
   useEffect(() => {
     const sym = String(symbol || "").trim().toUpperCase();
@@ -592,7 +600,7 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
 
     const mem = getMemoryBundle(cacheKey);
     if (mem && mem.dataByTf[tfNorm] && mem.dataByTf[tfNorm].length > 0) {
-      applySnapshot(mem.dataByTf[tfNorm], mem.savedAt);
+      applySnapshot(mem.dataByTf[tfNorm], mem.savedAt, mem.tempByTf);
     } else {
       setData([]);
       void (async () => {
@@ -601,11 +609,11 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         // 변경 이유: 최신 번들 적용 이후 오래된 IDB 스냅샷 덮어쓰기 방지
         if (cached.savedAt <= lastBundleAtRef.current) return;
         const bundle = decodeBundleBytes(cached.data);
-        const dataByTf = buildDataByTf(bundle);
-        setMemoryBundle(cacheKey, dataByTf, cached.savedAt);
+        const { dataByTf, tempByTf } = buildBundleCache(bundle);
+        setMemoryBundle(cacheKey, dataByTf, tempByTf, cached.savedAt);
         const current = dataByTf[paramsRef.current.tf];
         if (current && current.length > 0) {
-          applySnapshot(current, cached.savedAt);
+          applySnapshot(current, cached.savedAt, tempByTf);
         }
       })();
     }
@@ -638,7 +646,7 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         swrTimerRef.current = null;
       }
     };
-  }, [applySnapshot, buildDataByTf, fetchBundle, market, sendReplace, symbol, tf]);
+  }, [applySnapshot, buildBundleCache, fetchBundle, market, sendReplace, symbol, tf]);
 
     const loadMore = async () => {
       const sym = String(symbol || "").trim().toUpperCase();
@@ -686,7 +694,7 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         const cacheKey = `${m}:${sym}`;
         const prev = getMemoryBundle(cacheKey);
         const savedAt = prev?.savedAt ?? Date.now();
-        setMemoryBundle(cacheKey, { ...(prev?.dataByTf || {}), [tfNorm]: out }, savedAt);
+        setMemoryBundle(cacheKey, { ...(prev?.dataByTf || {}), [tfNorm]: out }, prev?.tempByTf, savedAt);
       } else {
         pushNotice("end", "과거 데이터가 더 없습니다.");
       }

@@ -4,6 +4,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { nextBackoff } from "@/lib/backoff";
+import {
+  getIdbMarketCache,
+  getMemoryMarketCache,
+  putIdbMarketCache,
+  setMemoryMarketCache,
+  type MarketCacheEntry
+} from "@/lib/marketCache";
 import { MetricItemSchema, SymbolItemSchema } from "@/lib/schemas";
 import { useSymbolsStore, type SortKey } from "@/store/useSymbolStore";
 
@@ -38,6 +45,7 @@ type MarketPayload = {
   tickers: unknown[];
   metrics: unknown[];
   cursor_next: number | null;
+  server_time_ms?: number;
   order_dir?: string;
   scope?: string;
   sort?: string;
@@ -55,6 +63,9 @@ const DEFAULT_API_BASE_URL = "http://localhost:8001";
 const DEFAULT_WS_BASE_URL = "ws://localhost:8002";
 const METRICS_FLUSH_MS = Number(process.env.NEXT_PUBLIC_OVERVIEW_FLUSH_MS || 1200);
 const SWAP_DEBOUNCE_MS = Number(process.env.NEXT_PUBLIC_OVERVIEW_REPLACE_DEBOUNCE_MS || 200);
+const BOOTSTRAP_LIMIT = 30;
+const PAGE_LIMIT = 80;
+const PREFETCH_PAGES = 3;
 
 function stripSlash(u: string) {
   return String(u || "").trim().replace(/\/+$/, "");
@@ -235,6 +246,10 @@ export function useMarketSymbols(
   const rowMapRef = useRef<Record<string, MarketRow>>({});
   const flushTimerRef = useRef<number | null>(null);
   const lastQueryKeyRef = useRef<string>("");
+  const cacheKeyRef = useRef<string>("");
+  const cacheEntryRef = useRef<MarketCacheEntry | null>(null);
+  const cacheWriteTimerRef = useRef<number | null>(null);
+  const prefetchRef = useRef<{ key: string; inFlight: boolean }>({ key: "", inFlight: false });
 
   const wsRef = useRef<WebSocket | null>(null);
   const desiredSymbolsRef = useRef<string[]>([]);
@@ -264,6 +279,29 @@ export function useMarketSymbols(
       flushTimerRef.current = null;
       setRowMap({ ...rowMapRef.current });
     }, METRICS_FLUSH_MS);
+  }, []);
+
+  const persistCache = useCallback((entry: MarketCacheEntry) => {
+    cacheEntryRef.current = entry;
+    const key = cacheKeyRef.current;
+    setMemoryMarketCache(key, entry);
+    if (cacheWriteTimerRef.current) window.clearTimeout(cacheWriteTimerRef.current);
+    cacheWriteTimerRef.current = window.setTimeout(() => {
+      cacheWriteTimerRef.current = null;
+      void putIdbMarketCache(key, entry);
+    }, 200);
+  }, []);
+
+  const applyCacheEntry = useCallback((entry: MarketCacheEntry, key: string) => {
+    cacheEntryRef.current = entry;
+    setMemoryMarketCache(key, entry);
+    rowMapRef.current = { ...entry.rowMap };
+    orderRef.current = [...entry.order];
+    setOrder(orderRef.current);
+    setRowMap({ ...rowMapRef.current });
+    setCursorNext(entry.cursorNext ?? null);
+    setIsError(false);
+    setIsLoading(false);
   }, []);
 
   const applyMetricItems = useCallback(
@@ -437,7 +475,14 @@ export function useMarketSymbols(
   );
 
   const mergePayload = useCallback(
-    (payload: MarketPayload, append: boolean) => {
+    (
+      payload: MarketPayload,
+      append: boolean,
+      opts?: { applyState?: boolean; baseOrder?: string[]; baseRowMap?: Record<string, MarketRow> }
+    ): { order: string[]; rowMap: Record<string, MarketRow>; cursorNext: number | null } => {
+      const applyState = opts?.applyState !== false;
+      const baseOrder = append ? opts?.baseOrder ?? orderRef.current : [];
+      const baseRowMap = append ? opts?.baseRowMap ?? rowMapRef.current : {};
       const orderRaw = Array.isArray(payload.order) ? payload.order : [];
       const symParsed = SymbolItemSchema.array().safeParse(payload.symbols ?? []);
       const symbols = symParsed.success ? symParsed.data : [];
@@ -467,11 +512,12 @@ export function useMarketSymbols(
         tickerMap[sym] = metricFromItem(it as Record<string, unknown>);
       }
 
-      const nextOrder = append ? [...orderRef.current] : [];
+      const nextOrder = append ? [...baseOrder] : [];
       const existing = new Set(nextOrder);
+      const nextRowMap: Record<string, MarketRow> = { ...baseRowMap };
       for (const symRaw of orderRaw) {
         const sym = String(symRaw || "").trim().toUpperCase();
-        if (!sym || existing.has(sym)) continue;
+        if (!sym) continue;
         const meta = metaMap[sym];
         if (!meta) continue;
         const metric = metricsMap[sym];
@@ -483,7 +529,7 @@ export function useMarketSymbols(
         const change24h = metric?.pctChange ?? ticker?.pctChange ?? null;
         const time = metric?.time ?? ticker?.time ?? null;
 
-        rowMapRef.current[sym] = {
+        nextRowMap[sym] = {
           ...meta,
           price,
           volume,
@@ -491,22 +537,29 @@ export function useMarketSymbols(
           change24h,
           time
         };
-        nextOrder.push(sym);
-        existing.add(sym);
+        if (!existing.has(sym)) {
+          nextOrder.push(sym);
+          existing.add(sym);
+        }
       }
 
-      orderRef.current = nextOrder;
-      setOrder(nextOrder);
-      setRowMap({ ...rowMapRef.current });
-      setCursorNext(payload.cursor_next ?? null);
+      const cursor = payload.cursor_next ?? null;
+      if (applyState) {
+        rowMapRef.current = nextRowMap;
+        orderRef.current = nextOrder;
+        setOrder(nextOrder);
+        setRowMap({ ...nextRowMap });
+        setCursorNext(cursor);
+      }
+      return { order: nextOrder, rowMap: nextRowMap, cursorNext: cursor };
     },
     [market]
   );
 
   const loadBootstrap = useCallback(async () => {
-    setIsLoading(true);
+    if (orderRef.current.length === 0) setIsLoading(true);
     setIsError(false);
-    const expectedKey = `${market}:${metricWindow}:${scope}:${sortKey}:${sortOrder}:${query}`;
+    const expectedKey = `${market}:${metricWindow}:${scope}:${sortKey}:${sortOrder}:${query}:${BOOTSTRAP_LIMIT}`;
     try {
       const payload = await fetchMarketPayload(
         "bootstrap",
@@ -516,22 +569,47 @@ export function useMarketSymbols(
         sortKey,
         sortOrder,
         query,
-        30
+        BOOTSTRAP_LIMIT
       );
       if (lastQueryKeyRef.current !== expectedKey) return;
       rowMapRef.current = {};
-      mergePayload(payload, false);
+      orderRef.current = [];
+      const merged = mergePayload(payload, false);
+      const savedAt = Number(payload.server_time_ms || 0) || Date.now();
+      const entry: MarketCacheEntry = {
+        savedAt,
+        order: merged.order,
+        rowMap: merged.rowMap,
+        cursorNext: merged.cursorNext,
+        loadedCount: merged.order.length
+      };
+      persistCache(entry);
+      if (merged.cursorNext !== null) {
+        void prefetchPages(merged.cursorNext, expectedKey);
+      }
     } catch {
       setIsError(true);
     } finally {
       setIsLoading(false);
     }
-  }, [market, mergePayload, metricWindow, query, scope, sortKey, sortOrder]);
+  }, [market, mergePayload, metricWindow, persistCache, prefetchPages, query, scope, sortKey, sortOrder]);
 
   const loadMore = useCallback(async () => {
     if (cursorNext === null || isLoadingMore) return;
+    const cacheKey = cacheKeyRef.current;
+    const cached = cacheEntryRef.current || getMemoryMarketCache(cacheKey);
+    if (cached && cached.order.length > orderRef.current.length) {
+      const nextLen = Math.min(cached.order.length, orderRef.current.length + PAGE_LIMIT);
+      const nextOrder = cached.order.slice(0, nextLen);
+      rowMapRef.current = { ...cached.rowMap };
+      orderRef.current = nextOrder;
+      setOrder(nextOrder);
+      setRowMap({ ...rowMapRef.current });
+      setCursorNext(cached.cursorNext ?? null);
+      return;
+    }
     setIsLoadingMore(true);
-    const expectedKey = `${market}:${metricWindow}:${scope}:${sortKey}:${sortOrder}:${query}`;
+    const expectedKey = `${market}:${metricWindow}:${scope}:${sortKey}:${sortOrder}:${query}:${BOOTSTRAP_LIMIT}`;
     try {
       const payload = await fetchMarketPayload(
         "page",
@@ -541,32 +619,130 @@ export function useMarketSymbols(
         sortKey,
         sortOrder,
         query,
-        80,
+        PAGE_LIMIT,
         cursorNext
       );
       if (lastQueryKeyRef.current !== expectedKey) return;
-      mergePayload(payload, true);
+      const merged = mergePayload(payload, true);
+      const savedAt = Number(payload.server_time_ms || 0) || Date.now();
+      const entry: MarketCacheEntry = {
+        savedAt,
+        order: merged.order,
+        rowMap: merged.rowMap,
+        cursorNext: merged.cursorNext,
+        loadedCount: merged.order.length
+      };
+      persistCache(entry);
     } catch {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [cursorNext, isLoadingMore, market, metricWindow, mergePayload, query, scope, sortKey, sortOrder]);
+  }, [
+    cursorNext,
+    isLoadingMore,
+    market,
+    mergePayload,
+    metricWindow,
+    persistCache,
+    query,
+    scope,
+    sortKey,
+    sortOrder
+  ]);
+
+  const prefetchPages = useCallback(
+    async (startCursor: number | null, expectedKey: string) => {
+      if (startCursor === null) return;
+      if (prefetchRef.current.inFlight && prefetchRef.current.key === expectedKey) return;
+      prefetchRef.current = { key: expectedKey, inFlight: true };
+
+      let cursor = startCursor;
+      let remaining = PREFETCH_PAGES;
+      while (remaining > 0 && cursor !== null) {
+        if (lastQueryKeyRef.current !== expectedKey) break;
+        try {
+          const payload = await fetchMarketPayload(
+            "page",
+            market,
+            metricWindow,
+            scope,
+            sortKey,
+            sortOrder,
+            query,
+            PAGE_LIMIT,
+            cursor
+          );
+          if (lastQueryKeyRef.current !== expectedKey) break;
+          const base = cacheEntryRef.current || {
+            savedAt: Date.now(),
+            order: orderRef.current,
+            rowMap: rowMapRef.current,
+            cursorNext,
+            loadedCount: orderRef.current.length
+          };
+          const merged = mergePayload(payload, true, {
+            applyState: false,
+            baseOrder: base.order,
+            baseRowMap: base.rowMap
+          });
+          const savedAt = Number(payload.server_time_ms || 0) || Date.now();
+          const entry: MarketCacheEntry = {
+            savedAt,
+            order: merged.order,
+            rowMap: merged.rowMap,
+            cursorNext: merged.cursorNext,
+            loadedCount: merged.order.length
+          };
+          persistCache(entry);
+          cursor = merged.cursorNext;
+          remaining -= 1;
+        } catch {
+          break;
+        }
+      }
+
+      prefetchRef.current.inFlight = false;
+    },
+    [cursorNext, market, mergePayload, metricWindow, persistCache, query, scope, sortKey, sortOrder]
+  );
 
   const queryKey = useMemo(
-    () => `${market}:${metricWindow}:${scope}:${sortKey}:${sortOrder}:${query}`,
+    () => `${market}:${metricWindow}:${scope}:${sortKey}:${sortOrder}:${query}:${BOOTSTRAP_LIMIT}`,
     [market, metricWindow, query, scope, sortKey, sortOrder]
   );
 
   useEffect(() => {
     if (lastQueryKeyRef.current === queryKey) return;
     lastQueryKeyRef.current = queryKey;
+    cacheKeyRef.current = queryKey;
+    prefetchRef.current = { key: queryKey, inFlight: false };
+    cacheEntryRef.current = null;
     rowMapRef.current = {};
     orderRef.current = [];
     setOrder([]);
     setRowMap({});
     setCursorNext(null);
+    setIsError(false);
+    setIsLoading(true);
+
+    let cancelled = false;
+    const mem = getMemoryMarketCache(queryKey);
+    if (mem) {
+      applyCacheEntry(mem, queryKey);
+    } else {
+      void (async () => {
+        const cached = await getIdbMarketCache(queryKey);
+        if (cancelled || !cached) return;
+        if (lastQueryKeyRef.current !== queryKey) return;
+        applyCacheEntry(cached, queryKey);
+      })();
+    }
+
     loadBootstrap();
-  }, [loadBootstrap, queryKey]);
+    return () => {
+      cancelled = true;
+    };
+  }, [applyCacheEntry, loadBootstrap, queryKey]);
 
   useEffect(() => {
     const m = String(market || "spot").trim().toLowerCase();

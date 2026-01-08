@@ -13,6 +13,7 @@ export type CachedCandle = {
 export type MemoryBundle = {
   savedAt: number;
   dataByTf: Record<string, CachedCandle[]>;
+  tempByTf?: Record<string, CachedCandle | null>;
 };
 
 type BundleRecord = {
@@ -111,9 +112,14 @@ export function getMemoryBundle(key: string): MemoryBundle | null {
   return hit;
 }
 
-export function setMemoryBundle(key: string, dataByTf: Record<string, CachedCandle[]>, savedAt: number): void {
+export function setMemoryBundle(
+  key: string,
+  dataByTf: Record<string, CachedCandle[]>,
+  tempByTf: Record<string, CachedCandle | null> | undefined,
+  savedAt: number
+): void {
   if (memCache.has(key)) memCache.delete(key);
-  memCache.set(key, { savedAt, dataByTf });
+  memCache.set(key, { savedAt, dataByTf, tempByTf });
   while (memCache.size > MEM_MAX) {
     const oldestKey = memCache.keys().next().value as string | undefined;
     if (!oldestKey) break;
