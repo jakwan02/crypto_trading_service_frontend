@@ -354,3 +354,15 @@ Logs/Artifacts:
 - 없음
 Next:
 - npm install 후 차트 진입/TF 전환 캐시 동작 확인
+2026-01-08 08:46 (local)
+Task: ChartContainer visible range null guard
+Scope: src/components/ChartContainer.tsx
+Why: setVisibleLogicalRange에 null 전달로 빌드 타입 오류 발생
+Key changes:
+- keepRange 분기에서 null 체크 후에만 setVisibleLogicalRange 호출
+Commands run (user):
+- npm run build -> 실패(ChartContainer 타입 에러)
+Logs/Artifacts:
+- next build: setVisibleLogicalRange type error
+Next:
+- npm run build 재확인

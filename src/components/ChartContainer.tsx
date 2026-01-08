@@ -208,8 +208,14 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
         ts.setVisibleLogicalRange({ from, to });
         restoreRangeRef.current = null;
         initialFocusRef.current = true;
-      } else if (keepRange && (restoreRange || prevRange)) {
-        ts.setVisibleLogicalRange(restoreRange || prevRange);
+      // 변경 이유: null range 전달로 인한 타입 오류 방지
+      } else if (keepRange) {
+        const nextRange = restoreRange || prevRange;
+        if (nextRange) {
+          ts.setVisibleLogicalRange(nextRange);
+        } else {
+          ts.fitContent();
+        }
         restoreRangeRef.current = null;
       } else if (prevRange) {
         ts.setVisibleLogicalRange(prevRange);
