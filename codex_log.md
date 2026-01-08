@@ -366,6 +366,19 @@ Logs/Artifacts:
 - next build: setVisibleLogicalRange type error
 Next:
 - npm run build 재확인
+2026-01-08 08:56 (local)
+Task: SymbolTable observeOffset 타입 정합성 수정
+Scope: src/components/SymbolTable.tsx
+Why: observeElementOffset 제네릭 미지정으로 Virtualizer<Element> 타입 충돌 발생
+Key changes:
+- observeOffsetNoSync에 제네릭 타입 파라미터 적용
+- ObserveOffsetCallBack/Virtualizer 타입 명시
+Commands run (user):
+- npm run build -> 실패(observeElementOffset 타입 에러)
+Logs/Artifacts:
+- next build: observeElementOffset 타입 불일치
+Next:
+- npm run build 재확인
 2026-01-08 08:52 (local)
 Task: SymbolTable price flash null guard
 Scope: src/components/SymbolTable.tsx

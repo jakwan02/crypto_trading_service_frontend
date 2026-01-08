@@ -9,7 +9,12 @@ import {
   getCoreRowModel,
   useReactTable
 } from "@tanstack/react-table";
-import { observeElementOffset, useVirtualizer } from "@tanstack/react-virtual";
+import {
+  observeElementOffset,
+  useVirtualizer,
+  type ObserveOffsetCallBack,
+  type Virtualizer
+} from "@tanstack/react-virtual";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
@@ -51,9 +56,9 @@ const GRID_TEMPLATE =
   "minmax(140px, 18%) minmax(120px, 15%) minmax(150px, 17%) minmax(180px, 20%) minmax(120px, 12%) minmax(120px, 18%)";
 
 // 변경 이유: 스크롤 중 flushSync 경고를 피하기 위해 isScrolling=false로 고정
-function observeOffsetNoSync(
-  instance: Parameters<typeof observeElementOffset>[0],
-  cb: Parameters<typeof observeElementOffset>[1]
+function observeOffsetNoSync<T extends Element>(
+  instance: Virtualizer<T, any>,
+  cb: ObserveOffsetCallBack
 ) {
   return observeElementOffset(instance, (offset) => cb(offset, false));
 }
