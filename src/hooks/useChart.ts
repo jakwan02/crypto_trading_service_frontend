@@ -5,6 +5,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSymbolsStore } from "@/store/useSymbolStore";
 import { nextBackoff } from "@/lib/backoff";
+import { decodeBundleBytes, fetchChartBundle, type ChartBundle } from "@/lib/chartBundle";
+import {
+  broadcastBundleReady,
+  getIdbBundleBytes,
+  getMemoryBundle,
+  onBundleReady,
+  putIdbBundleBytes,
+  setMemoryBundle
+} from "@/lib/chartCache";
 
 export type Candle = {
   time: number; // ms
@@ -43,15 +52,10 @@ type WsUpd = {
   volume?: number;
 };
 
-type ChartCache = {
-  ts: number;
-  data: Candle[];
-};
-
 const DEFAULT_API_BASE_URL = "http://localhost:8001";
 const DEFAULT_WS_BASE_URL = "ws://localhost:8002";
-const CHART_CACHE_TTL_MS = 15_000;
-const chartCache = new Map<string, ChartCache>();
+const REVALIDATE_MS = 300_000;
+const HARD_REFRESH_COOLDOWN_MS = 10_000;
 const TF_LIMIT: Record<string, number> = {
   "1m": 720,
   "5m": 720,
@@ -60,6 +64,15 @@ const TF_LIMIT: Record<string, number> = {
   "4h": 360,
   "1d": 365,
   "1w": 260
+};
+const TF_STEP_MS: Record<string, number> = {
+  "1m": 60_000,
+  "5m": 5 * 60_000,
+  "15m": 15 * 60_000,
+  "1h": 60 * 60_000,
+  "4h": 4 * 60 * 60_000,
+  "1d": 24 * 60 * 60_000,
+  "1w": 7 * 24 * 60 * 60_000
 };
 
 function normTf(tf: string): string {
@@ -77,6 +90,11 @@ function normMarket(value: string): string {
 function getTfLimit(tf: string): number {
   const key = normTf(tf);
   return TF_LIMIT[key] ?? 300;
+}
+
+function getTfStepMs(tf: string): number {
+  const key = normTf(tf);
+  return TF_STEP_MS[key] ?? 60_000;
 }
 
 function stripApiSuffix(url: string): string {
@@ -200,14 +218,21 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
 
   const wsRef = useRef<WebSocket | null>(null);
   const aliveRef = useRef(true);
-  const restReqIdRef = useRef(0);
   const retryRef = useRef(0);
   const dataRef = useRef<Candle[]>([]);
   const restReadyRef = useRef(false);
   const pendingDeltaRef = useRef<Candle | null>(null);
+  const lastCandleTimeRef = useRef(0);
+  const bundleReqIdRef = useRef(0);
+  const lastBundleAtRef = useRef(0);
+  const hardRefreshAtRef = useRef(0);
+  const hardRefreshInFlightRef = useRef(false);
   const noticeTimerRef = useRef<number | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
+  const swrTimerRef = useRef<number | null>(null);
   const pendingReplaceRef = useRef<{ market: string; symbol: string; tf: string; limit: number } | null>(null);
+  const bundleKeyRef = useRef<string>("");
+  const wsEverOpenRef = useRef(false);
   const paramsRef = useRef<{ market: string; symbol: string; tf: string; limit: number }>({
     market: normMarket(market || "spot"),
     symbol: String(symbol || "").trim().toUpperCase(),
@@ -236,6 +261,10 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         window.clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
       }
+      if (swrTimerRef.current) {
+        window.clearTimeout(swrTimerRef.current);
+        swrTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -251,10 +280,12 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
     }, 2400);
   };
 
-  const buildSnapshot = useCallback((raw: unknown[], tempRaw?: unknown | null): Candle[] => {
-    const out: Candle[] = [];
-    const seen = new Set<number>();
-    const limit = paramsRef.current.limit;
+  // 변경 이유: 번들/캐시에서 TF별 limit를 정확히 적용
+  const buildSnapshot = useCallback(
+    (raw: unknown[], tempRaw?: unknown | null, limitOverride?: number): Candle[] => {
+      const out: Candle[] = [];
+      const seen = new Set<number>();
+      const limit = limitOverride ?? paramsRef.current.limit;
 
     for (const x of raw) {
       const c = parseCandle(x);
@@ -271,53 +302,90 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
       const lastTime = out.length ? out[out.length - 1].time : 0;
       if (!lastTime || temp.time > lastTime) return upsert(out, temp, Math.max(limit, 1));
     }
-    return out;
-  }, []);
+      return out;
+    },
+    []
+  );
 
-  const applySnapshot = useCallback((next: Candle[]) => {
+  const applySnapshot = useCallback((next: Candle[], savedAt?: number) => {
     const { market: m, symbol: s, tf: t } = paramsRef.current;
     const pending = pendingDeltaRef.current;
     const merged = pending ? upsert(next, pending, 1200) : next;
+    const cacheKey = `${m}:${s}`;
+    const prev = getMemoryBundle(cacheKey);
+    const nextSavedAt = savedAt ?? prev?.savedAt ?? Date.now();
+    const nextDataByTf = { ...(prev?.dataByTf || {}), [t]: merged };
+
     pendingDeltaRef.current = null;
     restReadyRef.current = true;
+    lastCandleTimeRef.current = merged.length ? merged[merged.length - 1].time : 0;
+    if (nextSavedAt > lastBundleAtRef.current) {
+      lastBundleAtRef.current = nextSavedAt;
+    }
     setError(null);
     setData(merged);
-    chartCache.set(`${m}:${s}:${t}`, { ts: Date.now(), data: merged });
+    setMemoryBundle(cacheKey, nextDataByTf, nextSavedAt);
   }, []);
 
-  const fetchSnapshot = useCallback(
-    async (reason: "init" | "ws_error") => {
-      restReqIdRef.current += 1;
-      const rid = restReqIdRef.current;
-      const { market: m, symbol: s, tf: t, limit } = paramsRef.current;
+  // 변경 이유: 번들 응답을 TF별 Candle[]로 변환해 캐시와 UI에 재사용
+  const buildDataByTf = useCallback(
+    (bundle: ChartBundle): Record<string, Candle[]> => {
+      const out: Record<string, Candle[]> = {};
+      if (!bundle || !bundle.items) return out;
+      for (const [tfKey, raw] of Object.entries(bundle.items)) {
+        if (!Array.isArray(raw)) continue;
+        const temp = bundle.temp ? bundle.temp[tfKey] : null;
+        out[tfKey] = buildSnapshot(raw, temp, getTfLimit(tfKey));
+      }
+      return out;
+    },
+    [buildSnapshot]
+  );
+
+  const fetchBundle = useCallback(
+    async (reason: "init" | "swr" | "ws_reconnect" | "gap") => {
+      bundleReqIdRef.current += 1;
+      const rid = bundleReqIdRef.current;
+      const { market: m, symbol: s, tf: t } = paramsRef.current;
       if (!s) return;
 
       const apiBase = toApiBase();
-      const snapUrl =
-        `${apiBase}/chart` +
-        `?market=${encodeURIComponent(m)}` +
-        `&symbol=${encodeURIComponent(s)}` +
-        `&tf=${encodeURIComponent(t)}` +
-        `&limit=${encodeURIComponent(String(limit))}`;
+      const cacheKey = `${m}:${s}`;
 
       try {
-        const res = await fetch(snapUrl, { cache: "no-store", headers: withApiToken() });
-        if (!res.ok) throw new Error(`chart_http_${res.status}`);
-        const js = await res.json();
-        const items = Array.isArray(js?.items) ? js.items : [];
-        const temp = js?.temp ?? null;
-        const snap = buildSnapshot(items, temp);
-        if (rid !== restReqIdRef.current) return;
-        if (!aliveRef.current || closedRef.current) return;
-        if (reason === "ws_error" && dataRef.current.length > 0) return;
-        applySnapshot(snap);
+        const res = await fetchChartBundle({
+          apiBase,
+          market: m,
+          symbol: s,
+          tf: t,
+          headers: withApiToken()
+        });
+        if (rid !== bundleReqIdRef.current) return;
+        if (bundleKeyRef.current && bundleKeyRef.current !== cacheKey) return;
+
+        const savedAt = Number(res.bundle?.now || 0) || Date.now();
+        const dataByTf = buildDataByTf(res.bundle);
+        lastBundleAtRef.current = savedAt;
+        setMemoryBundle(cacheKey, dataByTf, savedAt);
+        if (res.bytes?.length) {
+          await putIdbBundleBytes(cacheKey, res.bytes, savedAt);
+          broadcastBundleReady(cacheKey, savedAt);
+        }
+
+        const currentTf = paramsRef.current.tf;
+        const current = dataByTf[currentTf];
+        if (current && current.length) {
+          applySnapshot(current, savedAt);
+        }
       } catch {
-        if (reason === "ws_error" && dataRef.current.length === 0) {
+        if (reason === "init" && dataRef.current.length === 0) {
           setError("snapshot_error");
         }
+      } finally {
+        hardRefreshInFlightRef.current = false;
       }
     },
-    [applySnapshot, buildSnapshot]
+    [applySnapshot, buildDataByTf]
   );
 
   const scheduleReconnect = useCallback(() => {
@@ -330,6 +398,18 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
       connectRef.current();
     }, delay);
   }, []);
+
+  const triggerHardRefresh = useCallback(
+    (reason: "ws_reconnect" | "gap") => {
+      const now = Date.now();
+      if (hardRefreshInFlightRef.current) return;
+      if (now - hardRefreshAtRef.current < HARD_REFRESH_COOLDOWN_MS) return;
+      hardRefreshAtRef.current = now;
+      hardRefreshInFlightRef.current = true;
+      void fetchBundle(reason);
+    },
+    [fetchBundle]
+  );
 
   const sendReplace = useCallback(
     (payload?: { market: string; symbol: string; tf: string; limit: number }) => {
@@ -390,6 +470,10 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
       retryRef.current = 0;
       setError(null);
       sendReplace(nextParams);
+      if (wsEverOpenRef.current) {
+        triggerHardRefresh("ws_reconnect");
+      }
+      wsEverOpenRef.current = true;
     };
 
     next.onmessage = (ev) => {
@@ -419,16 +503,30 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         return;
       }
 
+      const lastTime = lastCandleTimeRef.current;
+      const step = getTfStepMs(t);
+      if (lastTime > 0 && c.time - lastTime > step * 2) {
+        triggerHardRefresh("gap");
+      }
+
       setData((prev) => {
         const nextList = upsert(prev, c as Candle, 1200);
-        chartCache.set(`${m}:${s}:${t}`, { ts: Date.now(), data: nextList });
+        const cacheKey = `${m}:${s}`;
+        const prevBundle = getMemoryBundle(cacheKey);
+        if (prevBundle) {
+          setMemoryBundle(
+            cacheKey,
+            { ...prevBundle.dataByTf, [t]: nextList },
+            prevBundle.savedAt
+          );
+        }
+        lastCandleTimeRef.current = nextList.length ? nextList[nextList.length - 1].time : 0;
         return nextList;
       });
     };
 
     next.onerror = () => {
       setError("ws_error");
-      fetchSnapshot("ws_error");
       try {
         next.close();
       } catch {}
@@ -438,11 +536,34 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
       if (wsRef.current !== next) return;
       scheduleReconnect();
     };
-  }, [applySnapshot, buildSnapshot, fetchSnapshot, scheduleReconnect, sendReplace]);
+  }, [scheduleReconnect, sendReplace, triggerHardRefresh]);
 
   useEffect(() => {
     connectRef.current = connect;
   }, [connect]);
+
+  useEffect(() => {
+    const unsubscribe = onBundleReady((msg) => {
+      if (!msg || msg.type !== "bundle_ready") return;
+      if (msg.key !== bundleKeyRef.current) return;
+      if (msg.savedAt <= lastBundleAtRef.current) return;
+      void (async () => {
+        const cached = await getIdbBundleBytes(msg.key);
+        if (!cached || cached.savedAt < msg.savedAt) return;
+        const bundle = decodeBundleBytes(cached.data);
+        const dataByTf = buildDataByTf(bundle);
+        setMemoryBundle(msg.key, dataByTf, cached.savedAt);
+        const current = dataByTf[paramsRef.current.tf];
+        if (current && current.length > 0) {
+          applySnapshot(current, cached.savedAt);
+        }
+      })();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [applySnapshot, buildDataByTf]);
 
   useEffect(() => {
     const sym = String(symbol || "").trim().toUpperCase();
@@ -452,33 +573,72 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
     paramsRef.current = { market: m, symbol: sym, tf: tfNorm, limit };
     restReadyRef.current = false;
     pendingDeltaRef.current = null;
+    lastCandleTimeRef.current = 0;
+    wsEverOpenRef.current = false;
     // 변경 이유: SPA 이동 후 reconnect 차단 플래그 해제
     closedRef.current = false;
-
-    if (!sym) {
-      setData([]);
-      setError(null);
-      return;
-    }
-
-    const cacheKey = `${m}:${sym}:${tfNorm}`;
-    const cached = chartCache.get(cacheKey);
-    if (cached && Date.now() - cached.ts <= CHART_CACHE_TTL_MS) {
-      setData(cached.data);
-    } else {
-      setData([]);
-    }
     setError(null);
     retryRef.current = 0;
 
-    fetchSnapshot("init");
+    if (!sym) {
+      setData([]);
+      return;
+    }
+
+    const cacheKey = `${m}:${sym}`;
+    bundleKeyRef.current = cacheKey;
+
+    let cancelled = false;
+
+    const mem = getMemoryBundle(cacheKey);
+    if (mem && mem.dataByTf[tfNorm] && mem.dataByTf[tfNorm].length > 0) {
+      applySnapshot(mem.dataByTf[tfNorm], mem.savedAt);
+    } else {
+      setData([]);
+      void (async () => {
+        const cached = await getIdbBundleBytes(cacheKey);
+        if (cancelled || !cached) return;
+        // 변경 이유: 최신 번들 적용 이후 오래된 IDB 스냅샷 덮어쓰기 방지
+        if (cached.savedAt <= lastBundleAtRef.current) return;
+        const bundle = decodeBundleBytes(cached.data);
+        const dataByTf = buildDataByTf(bundle);
+        setMemoryBundle(cacheKey, dataByTf, cached.savedAt);
+        const current = dataByTf[paramsRef.current.tf];
+        if (current && current.length > 0) {
+          applySnapshot(current, cached.savedAt);
+        }
+      })();
+    }
+
+    fetchBundle("init");
 
     pendingReplaceRef.current = { market: m, symbol: sym, tf: tfNorm, limit };
     sendReplace();
     if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
       connectRef.current();
     }
-  }, [fetchSnapshot, market, sendReplace, symbol, tf]);
+
+    if (swrTimerRef.current) {
+      window.clearTimeout(swrTimerRef.current);
+      swrTimerRef.current = null;
+    }
+    swrTimerRef.current = window.setTimeout(function tick() {
+      if (closedRef.current) return;
+      const age = Date.now() - lastBundleAtRef.current;
+      if (age >= REVALIDATE_MS) {
+        fetchBundle("swr");
+      }
+      swrTimerRef.current = window.setTimeout(tick, REVALIDATE_MS);
+    }, REVALIDATE_MS);
+
+    return () => {
+      cancelled = true;
+      if (swrTimerRef.current) {
+        window.clearTimeout(swrTimerRef.current);
+        swrTimerRef.current = null;
+      }
+    };
+  }, [applySnapshot, buildDataByTf, fetchBundle, market, sendReplace, symbol, tf]);
 
     const loadMore = async () => {
       const sym = String(symbol || "").trim().toUpperCase();
@@ -523,8 +683,10 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         }
         out.sort((a, b) => a.time - b.time);
         setData(out);
-        const cacheKey = `${m}:${sym}:${tfNorm}`;
-        chartCache.set(cacheKey, { ts: Date.now(), data: out });
+        const cacheKey = `${m}:${sym}`;
+        const prev = getMemoryBundle(cacheKey);
+        const savedAt = prev?.savedAt ?? Date.now();
+        setMemoryBundle(cacheKey, { ...(prev?.dataByTf || {}), [tfNorm]: out }, savedAt);
       } else {
         pushNotice("end", "과거 데이터가 더 없습니다.");
       }

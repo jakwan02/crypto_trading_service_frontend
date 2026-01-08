@@ -340,3 +340,17 @@ Logs/Artifacts:
 - 없음
 Next:
 - Market Overview에서 spot/um 전환 후 스크롤/증분 로딩 정상 여부 확인
+2026-01-08 08:23 (local)
+Task: 차트 번들 캐시 + REST 스냅샷 단일 소스 적용
+Scope: src/hooks/useChart.ts, src/lib/chartBundle.ts, src/lib/chartCache.ts, package.json
+Why: TF 전환 무로딩과 스냅샷 레이스 제거를 동시에 달성하기 위해
+Key changes:
+- /api/chart/bundle(msgpack) 기반 번들 fetch/디코딩 유틸 추가
+- 메모리 LRU + IndexedDB 캐시 + BroadcastChannel 동기화
+- WS 델타는 유지하고 스냅샷은 REST 번들로만 갱신
+Commands run (user):
+- 없음
+Logs/Artifacts:
+- 없음
+Next:
+- npm install 후 차트 진입/TF 전환 캐시 동작 확인
