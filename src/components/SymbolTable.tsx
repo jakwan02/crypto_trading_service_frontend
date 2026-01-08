@@ -532,14 +532,7 @@ export default function SymbolTable({
     );
   }
 
-  if (!isInitialLoading && (!rows || rows.length === 0)) {
-    return (
-      <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">
-        {t("table.empty")}
-      </div>
-    );
-  }
-
+  // 변경 이유: 로딩/정렬 중 빈 상태 메시지로 인한 UX 혼선을 방지
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
       {showToolbar ? (

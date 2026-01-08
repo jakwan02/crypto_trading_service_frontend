@@ -481,3 +481,15 @@ Logs/Artifacts:
 - (none)
 Next:
 - Verify spot/um switch starts at top and paging works
+2026-01-08 10:45 (local)
+Task: Hide empty state during Market Overview reloads
+Scope: src/components/SymbolTable.tsx
+Why: Avoid "표시할 심볼이 없습니다" during sorting/loading
+Key changes:
+- Removed empty-state block and kept error-only message
+Commands run (user):
+- (none)
+Logs/Artifacts:
+- (none)
+Next:
+- Verify Market Overview no empty message during rapid sort/loading
