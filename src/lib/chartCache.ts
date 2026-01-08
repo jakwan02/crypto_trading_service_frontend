@@ -39,7 +39,9 @@ let dbPromise: Promise<IDBDatabase> | null = null;
 let bc: BroadcastChannel | null = null;
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
-  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  const out = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(out).set(bytes);
+  return out;
 }
 
 function getBroadcastChannel(): BroadcastChannel | null {

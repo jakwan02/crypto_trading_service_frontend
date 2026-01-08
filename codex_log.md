@@ -366,6 +366,42 @@ Logs/Artifacts:
 - next build: setVisibleLogicalRange type error
 Next:
 - npm run build 재확인
+2026-01-08 09:05 (local)
+Task: 프론트 빌드 타입 체크 확인
+Scope: (none)
+Why: 타입 오류 수정 후 빌드 정상 여부 확인
+Key changes:
+- (none)
+Commands run (user):
+- npm run build -> 성공
+Logs/Artifacts:
+- next build 성공 로그
+Next:
+- (none)
+2026-01-08 09:05 (local)
+Task: chartCache ArrayBuffer 타입 오류 수정
+Scope: src/lib/chartCache.ts
+Why: Uint8Array.buffer가 SharedArrayBuffer일 수 있어 타입 오류 발생
+Key changes:
+- bytes를 새 ArrayBuffer로 복사하여 저장
+Commands run (user):
+- npm run build -> 실패(chartCache ArrayBuffer 타입 에러)
+Logs/Artifacts:
+- next build: ArrayBuffer | SharedArrayBuffer 타입 불일치
+Next:
+- npm run build 재확인
+2026-01-08 09:01 (local)
+Task: SymbolTable observeOffset 타입 import 제거
+Scope: src/components/SymbolTable.tsx
+Why: ObserveOffsetCallBack 타입 미노출로 build 실패
+Key changes:
+- observeOffsetNoSync를 observeElementOffset과 동일 시그니처로 정의
+Commands run (user):
+- npm run build -> 실패(ObserveOffsetCallBack 미존재)
+Logs/Artifacts:
+- next build: ObserveOffsetCallBack not exported
+Next:
+- npm run build 재확인
 2026-01-08 08:56 (local)
 Task: SymbolTable observeOffset 타입 정합성 수정
 Scope: src/components/SymbolTable.tsx
