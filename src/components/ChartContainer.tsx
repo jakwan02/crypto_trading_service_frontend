@@ -42,6 +42,7 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
   const locale = i18n.language;
 
   const fittedRef = useRef(false);
+  const initialFocusRef = useRef(false);
   const lastTimeRef = useRef<number>(0);
   const lastLenRef = useRef<number>(0);
   const firstTimeRef = useRef<number>(0);
@@ -64,6 +65,7 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
     return pricePrecisionByLast(lastClose);
   }, [candles]);
 
+  const INITIAL_FOCUS_BARS = 150;
   // 차트/시리즈 생성
   useEffect(() => {
     if (!containerRef.current) return;
@@ -116,6 +118,7 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
       setSeriesReady(true);
 
       fittedRef.current = false;
+      initialFocusRef.current = false;
       lastTimeRef.current = 0;
       lastLenRef.current = 0;
 
@@ -137,6 +140,7 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
       chartRef.current = null;
       seriesRef.current = null;
       fittedRef.current = false;
+      initialFocusRef.current = false;
       lastTimeRef.current = 0;
       lastLenRef.current = 0;
       firstTimeRef.current = 0;
@@ -153,6 +157,7 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
     if (!candles || candles.length === 0) {
       series.setData([]);
       fittedRef.current = false;
+      initialFocusRef.current = false;
       lastTimeRef.current = 0;
       lastLenRef.current = 0;
       firstTimeRef.current = 0;
@@ -192,14 +197,22 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
     if (needFull) {
       const ts = chart.timeScale();
       const keepRange = isPrepend || loadingMore || !!restoreRangeRef.current;
-      const prevRange = keepRange ? ts.getVisibleLogicalRange() : null;
+      const prevRange = ts.getVisibleLogicalRange();
       const restoreRange = restoreRangeRef.current;
 
       series.setData(mapped);
 
-      if (keepRange && (restoreRange || prevRange)) {
+      if (!initialFocusRef.current) {
+        const to = mapped.length - 1;
+        const from = Math.max(0, to - (INITIAL_FOCUS_BARS - 1));
+        ts.setVisibleLogicalRange({ from, to });
+        restoreRangeRef.current = null;
+        initialFocusRef.current = true;
+      } else if (keepRange && (restoreRange || prevRange)) {
         ts.setVisibleLogicalRange(restoreRange || prevRange);
         restoreRangeRef.current = null;
+      } else if (prevRange) {
+        ts.setVisibleLogicalRange(prevRange);
       } else {
         ts.fitContent();
       }

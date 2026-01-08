@@ -1,5 +1,5 @@
 // filename: frontend/hooks/useChart.ts
-// 변경 이유: REST 스냅샷 단일화 + WS 델타만 반영
+// 변경 이유: REST 스냅샷 선적용 + WS 델타 버퍼링으로 레이스 제거
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -203,6 +203,8 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
   const restReqIdRef = useRef(0);
   const retryRef = useRef(0);
   const dataRef = useRef<Candle[]>([]);
+  const restReadyRef = useRef(false);
+  const pendingDeltaRef = useRef<Candle | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
   const pendingReplaceRef = useRef<{ market: string; symbol: string; tf: string; limit: number } | null>(null);
@@ -272,25 +274,16 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
     return out;
   }, []);
 
-  const applySnapshot = useCallback(
-    (next: Candle[], source: "ws" | "rest") => {
-      if (!next.length) return;
-      const cur = dataRef.current || [];
-      const curLast = cur.length ? cur[cur.length - 1].time : 0;
-      const nextLast = next[next.length - 1].time;
-
-      if (curLast && nextLast < curLast) {
-        if (source === "rest") return;
-        return;
-      }
-
-      const { market: m, symbol: s, tf: t } = paramsRef.current;
-      setError(null);
-      setData(next);
-      chartCache.set(`${m}:${s}:${t}`, { ts: Date.now(), data: next });
-    },
-    [setData, setError]
-  );
+  const applySnapshot = useCallback((next: Candle[]) => {
+    const { market: m, symbol: s, tf: t } = paramsRef.current;
+    const pending = pendingDeltaRef.current;
+    const merged = pending ? upsert(next, pending, 1200) : next;
+    pendingDeltaRef.current = null;
+    restReadyRef.current = true;
+    setError(null);
+    setData(merged);
+    chartCache.set(`${m}:${s}:${t}`, { ts: Date.now(), data: merged });
+  }, []);
 
   const fetchSnapshot = useCallback(
     async (reason: "init" | "ws_error") => {
@@ -317,7 +310,7 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         if (rid !== restReqIdRef.current) return;
         if (!aliveRef.current || closedRef.current) return;
         if (reason === "ws_error" && dataRef.current.length > 0) return;
-        applySnapshot(snap, "rest");
+        applySnapshot(snap);
       } catch {
         if (reason === "ws_error" && dataRef.current.length === 0) {
           setError("snapshot_error");
@@ -421,6 +414,11 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
       if (!c) c = parseCandle(upd);
       if (!c) return;
 
+      if (!restReadyRef.current) {
+        pendingDeltaRef.current = c;
+        return;
+      }
+
       setData((prev) => {
         const nextList = upsert(prev, c as Candle, 1200);
         chartCache.set(`${m}:${s}:${t}`, { ts: Date.now(), data: nextList });
@@ -452,6 +450,8 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
     const tfNorm = normTf(tf);
     const limit = getTfLimit(tfNorm);
     paramsRef.current = { market: m, symbol: sym, tf: tfNorm, limit };
+    restReadyRef.current = false;
+    pendingDeltaRef.current = null;
     // 변경 이유: SPA 이동 후 reconnect 차단 플래그 해제
     closedRef.current = false;
 

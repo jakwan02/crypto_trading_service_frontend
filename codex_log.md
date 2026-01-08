@@ -314,3 +314,16 @@ Logs/Artifacts:
 - 없음
 Next:
 - 1w 전환 시 REST 스냅샷이 유지되는지 확인
+2026-01-08 05:05 (local)
+Task: 차트 초기 스냅샷 레이스 완화 + 최신 구간 포커스
+Scope: src/hooks/useChart.ts, src/components/ChartContainer.tsx
+Why: 초기 진입에서 WS 델타가 REST 스냅샷을 덮거나 첫 캔들 포커스로 보이는 문제 방지
+Key changes:
+- REST 스냅샷 선적용 및 WS 델타 1건 버퍼링
+- 차트 초기 로딩 시 최근 N개 기준 화면 포커스
+Commands run (user):
+- 없음
+Logs/Artifacts:
+- 없음
+Next:
+- 차트 첫 진입/TF 변경 시 스냅샷 전체 및 최신 구간 포커스 확인
