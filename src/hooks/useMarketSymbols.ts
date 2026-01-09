@@ -562,7 +562,7 @@ export function useMarketSymbols(
       if (prefetchRef.current.inFlight && prefetchRef.current.key === expectedKey) return;
       prefetchRef.current = { key: expectedKey, inFlight: true };
 
-      let cursor = startCursor;
+      let cursor: number | null = startCursor;
       let remaining = PREFETCH_PAGES;
       while (remaining > 0 && cursor !== null) {
         if (lastQueryKeyRef.current !== expectedKey) break;

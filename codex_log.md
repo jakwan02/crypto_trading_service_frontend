@@ -508,3 +508,16 @@ Logs/Artifacts:
 Next:
 - Run npm run build to confirm compilation
 - Run npm run lint to confirm lint status
+2026-01-09 15:26 (local)
+Task: Fix prefetch cursor type in Market Symbols hook
+Scope: src/hooks/useMarketSymbols.ts
+Why: allow cursor to accept null from merged cursorNext without TS error
+Key changes:
+- Explicitly typed cursor as number | null during prefetch loop
+Commands run (user):
+- (none)
+Logs/Artifacts:
+- (none)
+Next:
+- Run npm run build to confirm TS error is resolved
+- Run npm run lint to ensure no lint regressions
