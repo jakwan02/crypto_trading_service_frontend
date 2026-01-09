@@ -545,3 +545,15 @@ Logs/Artifacts:
 - (none)
 Next:
 - Run npm run build to confirm /login prerender passes
+2026-01-09 15:34 (local)
+Task: Validate frontend production build
+Scope: (none)
+Why: Confirm Next.js prerender/typecheck errors are resolved
+Key changes:
+- (none)
+Commands run (user):
+- npm run build -> 성공
+Logs/Artifacts:
+- (none)
+Next:
+- npm run lint
