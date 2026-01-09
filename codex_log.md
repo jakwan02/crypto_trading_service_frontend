@@ -521,3 +521,15 @@ Logs/Artifacts:
 Next:
 - Run npm run build to confirm TS error is resolved
 - Run npm run lint to ensure no lint regressions
+2026-01-09 15:30 (local)
+Task: Fix Next prerender error by removing useSearchParams from RequireAuth
+Scope: src/components/auth/RequireAuth.tsx
+Why: Next.js build fails when useSearchParams triggers CSR bailout without Suspense on /account
+Key changes:
+- Compute next redirect target from window.location instead of useSearchParams
+Commands run (user):
+- (none)
+Logs/Artifacts:
+- (none)
+Next:
+- Run npm run build again
