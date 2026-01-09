@@ -1,20 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/appClient";
 
 export default function VerifyEmailPage() {
-  const searchParams = useSearchParams();
   const { t } = useTranslation();
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [email, setEmail] = useState(() => searchParams?.get("email") || "");
+  const [email, setEmail] = useState("");
+  const [token, setToken] = useState("");
 
-  const token = useMemo(() => searchParams?.get("token") || "", [searchParams]);
+  useEffect(() => {
+    /* # 변경 이유: Next prerender 시 useSearchParams 사용으로 빌드 오류가 발생해, 클라이언트에서만 query 파라미터를 파싱 */
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    setEmail(params.get("email") || "");
+    setToken(params.get("token") || "");
+  }, []);
 
   const handleVerify = async () => {
     if (submitting) return;

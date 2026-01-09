@@ -533,3 +533,15 @@ Logs/Artifacts:
 - (none)
 Next:
 - Run npm run build again
+2026-01-09 15:33 (local)
+Task: Remove useSearchParams from auth pages to unblock prerender
+Scope: src/app/login/page.tsx, src/app/reset-password/page.tsx, src/app/verify-email/page.tsx
+Why: Next.js build fails during prerender when useSearchParams is used without Suspense boundary
+Key changes:
+- Parse query params via window.location + URLSearchParams inside useEffect (client-only)
+Commands run (user):
+- (none)
+Logs/Artifacts:
+- (none)
+Next:
+- Run npm run build to confirm /login prerender passes

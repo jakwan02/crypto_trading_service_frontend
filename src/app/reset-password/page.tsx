@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/appClient";
 
@@ -11,10 +10,15 @@ export default function ResetPasswordPage() {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const searchParams = useSearchParams();
   const { t } = useTranslation();
+  const [token, setToken] = useState("");
 
-  const token = useMemo(() => searchParams?.get("token") || "", [searchParams]);
+  useEffect(() => {
+    /* # 변경 이유: Next prerender 시 useSearchParams 사용으로 빌드 오류가 발생해, 클라이언트에서만 token 파라미터를 파싱 */
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    setToken(params.get("token") || "");
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

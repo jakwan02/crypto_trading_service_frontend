@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -15,16 +15,18 @@ export default function LoginPage() {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [nextPath, setNextPath] = useState("/market");
   const { signInWithGoogle, login } = useAuth();
   const { t } = useTranslation();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  const nextPath = useMemo(() => {
-    const next = searchParams?.get("next");
-    if (next && next.startsWith("/")) return next;
-    return "/market";
-  }, [searchParams]);
+  useEffect(() => {
+    /* # 변경 이유: Next prerender 시 useSearchParams 사용으로 빌드 오류가 발생해, 클라이언트에서만 next 파라미터를 파싱 */
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get("next");
+    if (next && next.startsWith("/")) setNextPath(next);
+  }, []);
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
