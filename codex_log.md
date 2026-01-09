@@ -493,3 +493,18 @@ Logs/Artifacts:
 - (none)
 Next:
 - Verify Market Overview no empty message during rapid sort/loading
+2026-01-09 15:09 (local)
+Task: Switch auth to /app API with email/password + Google OIDC (Day1)
+Scope: src/lib/appClient.ts, src/lib/token.ts, src/lib/googleOidc.ts, src/components/auth/RequireAuth.tsx, src/contexts/AuthContext.tsx, src/app/login/page.tsx, src/app/signup/page.tsx, src/app/forgot-password/page.tsx, src/app/reset-password/page.tsx, src/app/verify-email/page.tsx, src/components/Header.tsx, src/app/account/page.tsx, src/app/upgrade/page.tsx, src/i18n/locales/ko.ts, src/i18n/locales/en.ts, src/i18n/locales/ja.ts, src/i18n/locales/de.ts, .env.example, .env, .env.local, README.md, package.json, package-lock.json
+Why: Remove Supabase and align auth UX to new backend /app contracts with memory-only access tokens
+Key changes:
+- Added app API client, in-memory token store, Google OIDC helper, and RequireAuth guard
+- Rebuilt AuthContext with /app auth/refresh + /app/account/me flow, plus login/signup/2FA handling
+- Updated auth pages, i18n strings, env/README, and removed Supabase dependency
+Commands run (user):
+- npm uninstall @supabase/supabase-js -> 성공
+Logs/Artifacts:
+- (none)
+Next:
+- Run npm run build to confirm compilation
+- Run npm run lint to confirm lint status

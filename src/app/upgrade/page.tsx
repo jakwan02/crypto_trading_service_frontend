@@ -12,14 +12,13 @@ const FEATURES = [
 ];
 
 export default function UpgradePage() {
-  const { isPro, setPlan } = useAuth();
+  const { isPro } = useAuth();
   const [status, setStatus] = useState("");
   const { t } = useTranslation();
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setPlan("pro");
-    setStatus(t("upgrade.statusActivated"));
+    setStatus(t("upgrade.statusPending"));
   };
 
   return (

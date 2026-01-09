@@ -8,7 +8,7 @@ AI 기반 코인 정보 서비스의 프론트엔드입니다. Next.js App Route
 - 실시간 심볼 데이터 (REST + WS)와 차트 히스토리 로딩
 - Spot/UM 마켓 전환, 심볼 검색/필터
 - 반응형 UI, 라이트 테마 기반 디자인
-- Google OAuth (Supabase) 로그인 구조
+- 이메일/비밀번호 + Google OIDC 로그인 구조
 
 ## Getting Started
 
@@ -24,10 +24,9 @@ npm run dev
 - `NEXT_PUBLIC_API_BASE_URL`
 - `NEXT_PUBLIC_WS_BASE_URL`
 
-선택 (Google OAuth - Supabase):
+선택 (Google OIDC):
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
 
 선택 (API/WS 토큰 보호 사용 시):
 
@@ -39,7 +38,7 @@ npm run dev
 - `NEXT_PUBLIC_SENTRY_DSN`
 - `SENTRY_AUTH_TOKEN` (소스맵 업로드 시)
 
-Supabase 변수가 없으면 Google 로그인이 비활성화되며, UI는 그대로 렌더됩니다.
+Google OIDC 클라이언트 ID가 없으면 Google 로그인이 비활성화됩니다.
 
 ## Tests
 

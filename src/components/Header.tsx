@@ -37,10 +37,7 @@ export default function Header() {
   const { t } = useTranslation();
   const displayName = useMemo(() => {
     if (!user) return t("common.guest");
-    return (
-      String(user.user_metadata?.full_name || user.user_metadata?.name || "").trim() ||
-      String(user.email || t("common.user"))
-    );
+    return String(user.name || "").trim() || String(user.email || t("common.user"));
   }, [user, t]);
 
   return (

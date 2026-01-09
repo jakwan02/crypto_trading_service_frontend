@@ -1,140 +1,200 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { apiRequest, type ApiError } from "@/lib/appClient";
+import { clearAcc, getAcc, setAcc } from "@/lib/token";
+import { requestGoogleIdToken } from "@/lib/googleOidc";
 
-type Plan = "free" | "pro";
+type PlanCode = "free" | "pro";
+
+type Plan = {
+  code: PlanCode;
+  name?: string | null;
+};
+
+type AppUser = {
+  id: string;
+  email: string;
+  email_verified: boolean;
+  created_at: string;
+  name?: string | null;
+};
+
+type AuthPayload = {
+  access_token?: string;
+  user?: AppUser;
+  plan?: Plan | null;
+  mfa_required?: boolean;
+  mfa_ticket?: string;
+};
+
+type LoginResult = {
+  mfaRequired?: boolean;
+  mfaTicket?: string;
+};
 
 type AuthContextValue = {
-  user: User | null;
+  user: AppUser | null;
   sessionReady: boolean;
-  plan: Plan;
+  plan: Plan | null;
   isPro: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
-  setPlan: (plan: Plan) => void;
+  login: (email: string, password: string, options?: { otpCode?: string; mfaTicket?: string }) => Promise<LoginResult>;
+  signup: (email: string, password: string) => Promise<void>;
+  refresh: () => Promise<void>;
 };
-
-const SUPABASE_URL = String(process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
-const SUPABASE_ANON = String(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
-
-let supabasePromise: Promise<SupabaseClient | null> | null = null;
-
-async function getSupabaseClient(): Promise<SupabaseClient | null> {
-  if (!SUPABASE_URL || !SUPABASE_ANON) return null;
-  if (!supabasePromise) {
-    supabasePromise = import("@supabase/supabase-js")
-      .then(({ createClient }) =>
-        createClient(SUPABASE_URL, SUPABASE_ANON, {
-          auth: {
-            persistSession: true,
-            autoRefreshToken: true,
-            detectSessionInUrl: true
-          }
-        })
-      )
-      .catch((err) => {
-        console.warn("Supabase client load failed", err);
-        supabasePromise = null;
-        return null;
-      });
-  }
-  return supabasePromise;
-}
 
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   sessionReady: false,
-  plan: "free",
+  plan: null,
   isPro: false,
   signInWithGoogle: async () => {},
   signOut: async () => {},
-  setPlan: () => {}
+  login: async () => ({}),
+  signup: async () => {},
+  refresh: async () => {}
 });
 
+function getAuthHeaders(): HeadersInit {
+  const token = getAcc();
+  if (!token) {
+    throw new Error("Missing access token.");
+  }
+  return {
+    Authorization: `Bearer ${token}`
+  };
+}
+
+function parseMfaError(err: unknown): LoginResult | null {
+  if (!err || typeof err !== "object") return null;
+  const typed = err as ApiError;
+  const payload = typed.payload as Record<string, unknown> | undefined;
+  if (typed.status !== 401 || !payload) return null;
+  if (payload.mfa_required !== true) return null;
+  return {
+    mfaRequired: true,
+    mfaTicket: typeof payload.mfa_ticket === "string" ? payload.mfa_ticket : undefined
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [sessionReady, setSessionReady] = useState(() => !SUPABASE_URL || !SUPABASE_ANON);
-  const [plan, setPlanState] = useState<Plan>(() => {
-    if (typeof window === "undefined") return "free";
-    const saved = window.localStorage.getItem("coindash_plan");
-    return saved === "free" || saved === "pro" ? saved : "free";
-  });
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
+
+  const clearSession = useCallback(() => {
+    clearAcc();
+    setUser(null);
+    setPlan(null);
+  }, []);
+
+  const applyAuthPayload = useCallback((payload: AuthPayload) => {
+    if (!payload?.access_token) {
+      throw new Error("Invalid auth response.");
+    }
+    setAcc(payload.access_token);
+    setUser(payload.user ?? null);
+    setPlan(payload.plan ?? null);
+    setSessionReady(true);
+  }, []);
+
+  const refresh = useCallback(async () => {
+    try {
+      const payload = await apiRequest<AuthPayload>("/auth/refresh", { method: "POST" });
+      if (!payload?.access_token) {
+        throw new Error("Invalid refresh response.");
+      }
+      setAcc(payload.access_token);
+      const me = await apiRequest<{ user: AppUser; plan: Plan | null }>("/account/me", {
+        method: "GET",
+        headers: getAuthHeaders()
+      });
+      setUser(me?.user ?? null);
+      setPlan(me?.plan ?? payload.plan ?? null);
+    } catch {
+      clearSession();
+    } finally {
+      setSessionReady(true);
+    }
+  }, [clearSession]);
 
   useEffect(() => {
-    let alive = true;
-    let subscription: { unsubscribe: () => void } | null = null;
+    void refresh();
+  }, [refresh]);
 
-    const init = async () => {
-      const client = await getSupabaseClient();
-      if (!client) {
-        if (alive) setSessionReady(true);
-        return;
-      }
+  const login = useCallback(
+    async (email: string, password: string, options?: { otpCode?: string; mfaTicket?: string }) => {
+      const payload: Record<string, string> = { email, password };
+      if (options?.otpCode) payload.otp_code = options.otpCode;
+      if (options?.mfaTicket) payload.mfa_ticket = options.mfaTicket;
 
       try {
-        const { data } = await client.auth.getSession();
-        if (!alive) return;
-        setUser(data.session?.user ?? null);
-      } catch {
-        if (!alive) return;
-      } finally {
-        if (alive) setSessionReady(true);
+        const response = await apiRequest<AuthPayload>("/auth/login", {
+          method: "POST",
+          json: payload
+        });
+
+        if (response?.mfa_required) {
+          return { mfaRequired: true, mfaTicket: response.mfa_ticket };
+        }
+
+        applyAuthPayload(response);
+        return {};
+      } catch (err) {
+        const mfa = parseMfaError(err);
+        if (mfa) return mfa;
+        throw err;
       }
+    },
+    [applyAuthPayload]
+  );
 
-      const { data } = client.auth.onAuthStateChange((_event, session) => {
-        if (!alive) return;
-        setUser(session?.user ?? null);
+  const signup = useCallback(
+    async (email: string, password: string) => {
+      const response = await apiRequest<AuthPayload>("/auth/register", {
+        method: "POST",
+        json: { email, password }
       });
-      subscription = data.subscription;
-    };
-
-    init();
-
-    return () => {
-      alive = false;
-      subscription?.unsubscribe();
-    };
-  }, []);
-
-  const setPlan = useCallback((next: Plan) => {
-    setPlanState(next);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("coindash_plan", next);
-    }
-  }, []);
+      applyAuthPayload(response);
+    },
+    [applyAuthPayload]
+  );
 
   const signInWithGoogle = useCallback(async () => {
-    const client = await getSupabaseClient();
-    if (!client) {
-      console.warn("Supabase env is missing: NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY");
-      return;
-    }
-    const origin = typeof window !== "undefined" ? window.location.origin : undefined;
-    await client.auth.signInWithOAuth({
-      provider: "google",
-      options: origin ? { redirectTo: origin } : undefined
+    const idToken = await requestGoogleIdToken();
+    const response = await apiRequest<AuthPayload>("/auth/oidc/google", {
+      method: "POST",
+      json: { id_token: idToken }
     });
-  }, []);
+    applyAuthPayload(response);
+  }, [applyAuthPayload]);
 
   const signOut = useCallback(async () => {
-    const client = await getSupabaseClient();
-    if (!client) return;
-    await client.auth.signOut();
-    setUser(null);
-  }, []);
+    try {
+      await apiRequest("/auth/logout", { method: "POST" });
+    } catch {
+      // ignore
+    } finally {
+      clearSession();
+      setSessionReady(true);
+    }
+  }, [clearSession]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       sessionReady,
       plan,
-      isPro: plan === "pro",
+      isPro: plan?.code === "pro",
       signInWithGoogle,
       signOut,
-      setPlan
+      login,
+      signup,
+      refresh
     }),
-    [plan, signInWithGoogle, signOut, user, sessionReady, setPlan]
+    [login, plan, refresh, sessionReady, signInWithGoogle, signOut, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
