@@ -84,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [plan, setPlan] = useState<Plan | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
 
+  // 변경 이유: 비로그인(쿠키 없음) 최초 방문 시 refresh 401 노이즈를 방지하고, 세션 복구는 쿠키가 있을 때만 시도합니다.
   const clearSession = useCallback(() => {
     clearAcc();
     setUser(null);
@@ -121,6 +122,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clearSession]);
 
   useEffect(() => {
+    if (typeof document !== "undefined") {
+      const hasCsrfCookie = document.cookie.split(";").some((part) => part.trim().startsWith("csrf="));
+      if (!hasCsrfCookie) {
+        setSessionReady(true);
+        return;
+      }
+    }
     void refresh();
   }, [refresh]);
 

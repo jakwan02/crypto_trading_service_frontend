@@ -608,3 +608,16 @@ Logs/Artifacts:
 - (none)
 Next:
 - Verify Google login sets rt/csrf cookies and refresh returns 200
+2026-01-10 11:17 (local)
+Task: Skip refresh call when no auth cookies
+Scope: src/contexts/AuthContext.tsx
+Why: Non-logged-in first visit has no rt/csrf cookie, so refresh always 401 and creates noise in browser/server logs
+Key changes:
+- Detect absence of csrf cookie and mark sessionReady without calling /app/auth/refresh
+Commands run (user):
+- npm run build -> 성공
+Logs/Artifacts:
+- (none)
+Next:
+- Visit http://localhost:3000 and confirm no /app/auth/refresh request before login
+- After login, refresh should run and then GET /app/account/me should succeed
