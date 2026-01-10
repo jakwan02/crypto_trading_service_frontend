@@ -582,3 +582,17 @@ Logs/Artifacts:
 - (none)
 Next:
 - Deploy frontend and verify refresh uses rt+csrf cookies
+2026-01-10 01:54 (local)
+Task: Configure same-origin /app calls via Next rewrites
+Scope: next.config.mjs, .env, .env.local, .env.example
+Why: Ensure cookies/CSRF work in local HTTP by proxying /app and /api through the frontend origin
+Key changes:
+- Added API_PROXY_TARGET-based rewrites for /app and /api
+- Set NEXT_PUBLIC_API_BASE_URL to / and added API_PROXY_TARGET in env files
+Commands run (user):
+- (none)
+Logs/Artifacts:
+- (none)
+Next:
+- Run npm run build
+- Verify /app/auth/refresh sends rt/csrf cookies via localhost origin
