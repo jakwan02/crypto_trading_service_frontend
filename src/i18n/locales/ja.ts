@@ -348,7 +348,8 @@ const ja = {
     verifyResend: "認証メールを再送",
     verifySent: "認証メールを再送しました。",
     verifySuccess: "メール認証が完了しました。",
-    verifyMissing: "トークンまたはメールが必要です。"
+    verifyMissingToken: "認証トークンが必要です。メールのリンクを開いてください。",
+    verifyMissingEmail: "メールアドレスを入力してください。"
   },
   account: {
     title: "アカウント",

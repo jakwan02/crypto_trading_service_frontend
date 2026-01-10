@@ -348,7 +348,8 @@ const en = {
     verifyResend: "Resend verification email",
     verifySent: "Verification email sent again.",
     verifySuccess: "Email verification completed.",
-    verifyMissing: "A token or email address is required."
+    verifyMissingToken: "Verification token is required. Open the link in your email.",
+    verifyMissingEmail: "Please enter your email."
   },
   account: {
     title: "Account",

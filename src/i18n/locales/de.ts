@@ -348,7 +348,8 @@ const de = {
     verifyResend: "Bestätigung erneut senden",
     verifySent: "Bestätigungs-E-Mail erneut gesendet.",
     verifySuccess: "E-Mail wurde bestätigt.",
-    verifyMissing: "Token oder E-Mail-Adresse erforderlich."
+    verifyMissingToken: "Bestätigungs-Token erforderlich. Link aus der E-Mail öffnen.",
+    verifyMissingEmail: "Bitte E-Mail-Adresse eingeben."
   },
   account: {
     title: "Konto",

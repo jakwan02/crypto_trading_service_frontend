@@ -676,3 +676,17 @@ Logs/Artifacts:
 - (none)
 Next:
 - Open home and /chart pages in dev and confirm the warning no longer appears
+2026-01-10 12:21 (local)
+Task: Fix verify-email 422 by requiring token and guide resend flow
+Scope: src/app/verify-email/page.tsx, src/i18n/locales/ko.ts, src/i18n/locales/en.ts, src/i18n/locales/ja.ts, src/i18n/locales/de.ts
+Why: Backend /app/auth/email/verify requires token; frontend was sending email-only payload causing 422
+Key changes:
+- Disable verify action when token is missing; POST /auth/email/verify sends { token } only
+- Resend keeps using email; added clearer i18n messages for missing token/email
+Commands run (user):
+- npm run build -> 성공
+Logs/Artifacts:
+- (none)
+Next:
+- After signup (email-only), verify button should be disabled; resend should work
+- Open email link with token -> verify should return 200 and show success

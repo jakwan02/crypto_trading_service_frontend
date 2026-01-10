@@ -348,7 +348,8 @@ const ko = {
     verifyResend: "인증 메일 재발송",
     verifySent: "인증 메일을 다시 전송했습니다.",
     verifySuccess: "이메일 인증이 완료되었습니다.",
-    verifyMissing: "인증 토큰 또는 이메일이 필요합니다."
+    verifyMissingToken: "인증 토큰이 필요합니다. 이메일의 인증 링크를 열어주세요.",
+    verifyMissingEmail: "이메일을 입력해주세요."
   },
   account: {
     title: "Account",

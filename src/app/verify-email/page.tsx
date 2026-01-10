@@ -30,18 +30,15 @@ export default function VerifyEmailPage() {
     if (submitting) return;
     setError("");
     setStatus("");
-    const payload: Record<string, string> = {};
-    if (token) payload.token = token;
-    if (email) payload.email = email;
-    if (!payload.token && !payload.email) {
-      setError(t("auth.verifyMissing"));
+    if (!token) {
+      setError(t("auth.verifyMissingToken"));
       return;
     }
     setSubmitting(true);
     try {
       await apiRequest("/auth/email/verify", {
         method: "POST",
-        json: payload
+        json: { token }
       });
       setStatus(t("auth.verifySuccess"));
     } catch (err) {
@@ -57,7 +54,7 @@ export default function VerifyEmailPage() {
     setError("");
     setStatus("");
     if (!email) {
-      setError(t("auth.verifyMissing"));
+      setError(t("auth.verifyMissingEmail"));
       return;
     }
     setSubmitting(true);
@@ -97,7 +94,7 @@ export default function VerifyEmailPage() {
             <button
               type="button"
               onClick={handleVerify}
-              disabled={submitting}
+              disabled={submitting || !token}
               className="w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70"
             >
               {t("auth.verifyCta")}
