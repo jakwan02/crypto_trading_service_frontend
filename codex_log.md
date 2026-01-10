@@ -569,3 +569,16 @@ Logs/Artifacts:
 - (none)
 Next:
 - Review key screens for contrast consistency
+2026-01-10 01:34 (local)
+Task: Send CSRF header for /app/auth/refresh
+Scope: src/lib/appClient.ts, src/contexts/AuthContext.tsx
+Why: Backend refresh requires x-csrf-token header matching csrf cookie
+Key changes:
+- Added optional csrf header injection from csrf cookie in apiRequest
+- Enabled csrf header for AuthContext.refresh
+Commands run (user):
+- npm run build -> 성공
+Logs/Artifacts:
+- (none)
+Next:
+- Deploy frontend and verify refresh uses rt+csrf cookies

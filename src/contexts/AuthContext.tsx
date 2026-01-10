@@ -102,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      const payload = await apiRequest<AuthPayload>("/auth/refresh", { method: "POST" });
+      const payload = await apiRequest<AuthPayload>("/auth/refresh", { method: "POST", csrf: true });
       if (!payload?.access_token) {
         throw new Error("Invalid refresh response.");
       }

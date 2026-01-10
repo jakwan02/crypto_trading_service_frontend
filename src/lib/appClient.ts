@@ -65,11 +65,27 @@ function buildUrl(path: string): string {
 
 type ApiRequestInit = RequestInit & {
   json?: Record<string, unknown>;
+  csrf?: boolean;
 };
+
+function getCookieValue(name: string): string {
+  if (typeof document === "undefined") return "";
+  const target = `${encodeURIComponent(name)}=`;
+  const parts = document.cookie.split(";").map((part) => part.trim());
+  for (const part of parts) {
+    if (!part.startsWith(target)) continue;
+    return decodeURIComponent(part.slice(target.length));
+  }
+  return "";
+}
 
 export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   withApiToken(headers);
+  if (init.csrf) {
+    const csrf = getCookieValue("csrf");
+    if (csrf) headers.set("X-CSRF-Token", csrf);
+  }
 
   let body = init.body;
   if (init.json) {
