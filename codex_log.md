@@ -596,3 +596,15 @@ Logs/Artifacts:
 Next:
 - Run npm run build
 - Verify /app/auth/refresh sends rt/csrf cookies via localhost origin
+2026-01-10 11:09 (local)
+Task: Align Google login endpoint with backend
+Scope: src/contexts/AuthContext.tsx
+Why: Backend Google login endpoint is /app/auth/google, not /app/auth/oidc/google
+Key changes:
+- Switched Google login API path to /auth/google
+Commands run (user):
+- npm run build -> 성공
+Logs/Artifacts:
+- (none)
+Next:
+- Verify Google login sets rt/csrf cookies and refresh returns 200

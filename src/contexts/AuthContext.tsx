@@ -164,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = useCallback(async () => {
     const idToken = await requestGoogleIdToken();
-    const response = await apiRequest<AuthPayload>("/auth/oidc/google", {
+    const response = await apiRequest<AuthPayload>("/auth/google", {
       method: "POST",
       json: { id_token: idToken }
     });
