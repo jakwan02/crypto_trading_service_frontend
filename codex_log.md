@@ -663,3 +663,16 @@ Logs/Artifacts:
 - (none)
 Next:
 - Scroll Market Overview and confirm no passive event warning in console
+2026-01-10 11:58 (local)
+Task: Prevent dev-only WebSocket "closed before established" noise
+Scope: src/hooks/useSymbols.ts, src/hooks/useChart.ts
+Why: In React StrictMode(dev), effects mount/unmount immediately; closing a CONNECTING WebSocket triggers browser warning even though it’s intentional cleanup
+Key changes:
+- Delay WebSocket creation to next tick and cancel pending creation on cleanup/disable
+- Keep existing reconnect/replace logic unchanged
+Commands run (user):
+- npm run build -> 성공
+Logs/Artifacts:
+- (none)
+Next:
+- Open home and /chart pages in dev and confirm the warning no longer appears

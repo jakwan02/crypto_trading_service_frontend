@@ -217,6 +217,7 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
   const [historyNotice, setHistoryNotice] = useState<{ kind: "error" | "end"; text: string } | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
+  const connectTimerRef = useRef<number | null>(null);
   const aliveRef = useRef(true);
   const retryRef = useRef(0);
   const dataRef = useRef<Candle[]>([]);
@@ -249,6 +250,10 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
     return () => {
       closedRef.current = true;
       aliveRef.current = false;
+      if (connectTimerRef.current) {
+        window.clearTimeout(connectTimerRef.current);
+        connectTimerRef.current = null;
+      }
       try {
         wsRef.current?.close();
       } catch {}
@@ -453,97 +458,108 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         limit: paramsRef.current.limit
       };
     if (!nextParams.symbol) return;
-    const wsBase = toWsBase();
-    const url =
-      `${wsBase}/ws_chart` +
-      `?market=${encodeURIComponent(nextParams.market)}` +
-      `&symbol=${encodeURIComponent(nextParams.symbol)}` +
-      `&tf=${encodeURIComponent(nextParams.tf)}` +
-      `&limit=${encodeURIComponent(String(nextParams.limit))}`;
-    const token = getWsAuthToken();
-    const finalUrl = token ? `${url}&token=${encodeURIComponent(token)}` : url;
-
-    let next: WebSocket;
-    try {
-      next = new WebSocket(finalUrl, getWsProtocols());
-    } catch {
-      scheduleReconnect();
-      return;
+    // 변경 이유: React StrictMode(dev)에서 mount/unmount가 즉시 발생할 때 CONNECTING 상태에서 close()되어
+    // "WebSocket is closed before the connection is established" 경고가 발생하므로, 실제 WS 생성은 다음 틱으로 지연합니다.
+    if (connectTimerRef.current) {
+      window.clearTimeout(connectTimerRef.current);
+      connectTimerRef.current = null;
     }
-    wsRef.current = next;
+    connectTimerRef.current = window.setTimeout(() => {
+      connectTimerRef.current = null;
+      if (closedRef.current) return;
 
-    next.onopen = () => {
-      retryRef.current = 0;
-      setError(null);
-      sendReplace(nextParams);
-      if (wsEverOpenRef.current) {
-        triggerHardRefresh("ws_reconnect");
-      }
-      wsEverOpenRef.current = true;
-    };
+      const wsBase = toWsBase();
+      const url =
+        `${wsBase}/ws_chart` +
+        `?market=${encodeURIComponent(nextParams.market)}` +
+        `&symbol=${encodeURIComponent(nextParams.symbol)}` +
+        `&tf=${encodeURIComponent(nextParams.tf)}` +
+        `&limit=${encodeURIComponent(String(nextParams.limit))}`;
+      const token = getWsAuthToken();
+      const finalUrl = token ? `${url}&token=${encodeURIComponent(token)}` : url;
 
-    next.onmessage = (ev) => {
-      let msg: unknown;
+      let next: WebSocket;
       try {
-        msg = JSON.parse(ev.data) as unknown;
+        next = new WebSocket(finalUrl, getWsProtocols());
       } catch {
+        scheduleReconnect();
         return;
       }
+      wsRef.current = next;
 
-      const { market: m, symbol: s, tf: t } = paramsRef.current;
-
-      const upd = msg as WsUpd;
-      const uSym = String(upd.symbol ?? upd.s ?? "").trim().toUpperCase();
-      if (uSym && uSym !== s) return;
-      const uMkt = String(upd.market ?? upd.m ?? "").trim().toLowerCase();
-      if (uMkt && uMkt !== m) return;
-      const mtf = upd.tf ? normTf(String(upd.tf)) : t;
-      if (mtf !== t) return;
-
-      let c = parseCandle(upd.candle);
-      if (!c) c = parseCandle(upd);
-      if (!c) return;
-
-      if (!restReadyRef.current) {
-        pendingDeltaRef.current = c;
-        return;
-      }
-
-      const lastTime = lastCandleTimeRef.current;
-      const step = getTfStepMs(t);
-      if (lastTime > 0 && c.time - lastTime > step * 2) {
-        triggerHardRefresh("gap");
-      }
-
-      setData((prev) => {
-        const nextList = upsert(prev, c as Candle, 1200);
-        const cacheKey = `${m}:${s}`;
-        const prevBundle = getMemoryBundle(cacheKey);
-        if (prevBundle) {
-          const nextTempByTf = { ...(prevBundle.tempByTf || {}), [t]: c };
-          setMemoryBundle(
-            cacheKey,
-            { ...prevBundle.dataByTf, [t]: nextList },
-            nextTempByTf,
-            prevBundle.savedAt
-          );
+      next.onopen = () => {
+        retryRef.current = 0;
+        setError(null);
+        sendReplace(nextParams);
+        if (wsEverOpenRef.current) {
+          triggerHardRefresh("ws_reconnect");
         }
-        lastCandleTimeRef.current = nextList.length ? nextList[nextList.length - 1].time : 0;
-        return nextList;
-      });
-    };
+        wsEverOpenRef.current = true;
+      };
 
-    next.onerror = () => {
-      setError("ws_error");
-      try {
-        next.close();
-      } catch {}
-    };
+      next.onmessage = (ev) => {
+        let msg: unknown;
+        try {
+          msg = JSON.parse(ev.data) as unknown;
+        } catch {
+          return;
+        }
 
-    next.onclose = () => {
-      if (wsRef.current !== next) return;
-      scheduleReconnect();
-    };
+        const { market: m, symbol: s, tf: t } = paramsRef.current;
+
+        const upd = msg as WsUpd;
+        const uSym = String(upd.symbol ?? upd.s ?? "").trim().toUpperCase();
+        if (uSym && uSym !== s) return;
+        const uMkt = String(upd.market ?? upd.m ?? "").trim().toLowerCase();
+        if (uMkt && uMkt !== m) return;
+        const mtf = upd.tf ? normTf(String(upd.tf)) : t;
+        if (mtf !== t) return;
+
+        let c = parseCandle(upd.candle);
+        if (!c) c = parseCandle(upd);
+        if (!c) return;
+
+        if (!restReadyRef.current) {
+          pendingDeltaRef.current = c;
+          return;
+        }
+
+        const lastTime = lastCandleTimeRef.current;
+        const step = getTfStepMs(t);
+        if (lastTime > 0 && c.time - lastTime > step * 2) {
+          triggerHardRefresh("gap");
+        }
+
+        setData((prev) => {
+          const nextList = upsert(prev, c as Candle, 1200);
+          const cacheKey = `${m}:${s}`;
+          const prevBundle = getMemoryBundle(cacheKey);
+          if (prevBundle) {
+            const nextTempByTf = { ...(prevBundle.tempByTf || {}), [t]: c };
+            setMemoryBundle(
+              cacheKey,
+              { ...prevBundle.dataByTf, [t]: nextList },
+              nextTempByTf,
+              prevBundle.savedAt
+            );
+          }
+          lastCandleTimeRef.current = nextList.length ? nextList[nextList.length - 1].time : 0;
+          return nextList;
+        });
+      };
+
+      next.onerror = () => {
+        setError("ws_error");
+        try {
+          next.close();
+        } catch {}
+      };
+
+      next.onclose = () => {
+        if (wsRef.current !== next) return;
+        scheduleReconnect();
+      };
+    }, 0);
   }, [scheduleReconnect, sendReplace, triggerHardRefresh]);
 
   useEffect(() => {

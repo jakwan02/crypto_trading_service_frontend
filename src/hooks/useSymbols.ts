@@ -269,6 +269,7 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
   const metricsFlushRef = useRef<number | null>(null);
   const metricsKeyRef = useRef<string>("");
   const wsRef = useRef<WebSocket | null>(null);
+  const connectTimerRef = useRef<number | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
   const retryRef = useRef(0);
   const closedRef = useRef(false);
@@ -435,42 +436,54 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
       // 변경 이유: symbols= 빈 상태에서는 WS 연결을 열지 않음
       return;
     }
-    const wsBase = toWsBase();
-    const url = buildRtWsUrl(wsBase, nextParams.market, nextParams.window, nextParams.symbols);
-    let next: WebSocket;
-    try {
-      next = new WebSocket(url, getWsProtocols());
-    } catch {
-      scheduleReconnect();
-      return;
+
+    // 변경 이유: React StrictMode(dev)에서 mount/unmount가 즉시 발생할 때 CONNECTING 상태에서 close()되어
+    // "WebSocket is closed before the connection is established" 경고가 발생하므로, 실제 WS 생성은 다음 틱으로 지연합니다.
+    if (connectTimerRef.current) {
+      window.clearTimeout(connectTimerRef.current);
+      connectTimerRef.current = null;
     }
-    wsRef.current = next;
-    next.onopen = () => {
-      retryRef.current = 0;
-      sendReplace(nextParams);
-    };
-    next.onmessage = (ev) => {
-      let msg: unknown;
+    connectTimerRef.current = window.setTimeout(() => {
+      connectTimerRef.current = null;
+      if (closedRef.current) return;
+
+      const wsBase = toWsBase();
+      const url = buildRtWsUrl(wsBase, nextParams.market, nextParams.window, nextParams.symbols);
+      let next: WebSocket;
       try {
-        msg = JSON.parse(ev.data as string) as unknown;
+        next = new WebSocket(url, getWsProtocols());
       } catch {
+        scheduleReconnect();
         return;
       }
-      const items =
-        msg && typeof msg === "object" && Array.isArray((msg as { items?: unknown[] }).items)
-          ? (msg as { items?: unknown[] }).items ?? []
-          : [];
-      if (items.length) applyMetricsItems(items);
-    };
-    next.onerror = () => {
-      try {
-        next.close();
-      } catch {}
-    };
-    next.onclose = () => {
-      if (wsRef.current !== next) return;
-      scheduleReconnect();
-    };
+      wsRef.current = next;
+      next.onopen = () => {
+        retryRef.current = 0;
+        sendReplace(nextParams);
+      };
+      next.onmessage = (ev) => {
+        let msg: unknown;
+        try {
+          msg = JSON.parse(ev.data as string) as unknown;
+        } catch {
+          return;
+        }
+        const items =
+          msg && typeof msg === "object" && Array.isArray((msg as { items?: unknown[] }).items)
+            ? (msg as { items?: unknown[] }).items ?? []
+            : [];
+        if (items.length) applyMetricsItems(items);
+      };
+      next.onerror = () => {
+        try {
+          next.close();
+        } catch {}
+      };
+      next.onclose = () => {
+        if (wsRef.current !== next) return;
+        scheduleReconnect();
+      };
+    }, 0);
   }, [applyMetricsItems, market, metricWindow, scheduleReconnect, sendReplace, tickerList, useAllTickers]);
 
   useEffect(() => {
@@ -481,6 +494,10 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
   useEffect(() => {
     if (!enableTicker) {
       pendingReplaceRef.current = null;
+      if (connectTimerRef.current) {
+        window.clearTimeout(connectTimerRef.current);
+        connectTimerRef.current = null;
+      }
       try {
         wsRef.current?.close(1000, "no_symbols");
       } catch {}
@@ -505,6 +522,10 @@ export function useSymbols(metricWindow: MetricWindow = "1d", options: UseSymbol
     closedRef.current = false;
     return () => {
       closedRef.current = true;
+      if (connectTimerRef.current) {
+        window.clearTimeout(connectTimerRef.current);
+        connectTimerRef.current = null;
+      }
       if (metricsFlushRef.current) {
         window.clearTimeout(metricsFlushRef.current);
         metricsFlushRef.current = null;
