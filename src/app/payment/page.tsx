@@ -151,7 +151,7 @@ export default function PaymentPage() {
 
               <button
                 type="submit"
-                className="w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark"
+                className="w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-primary-dark"
               >
                 {t("payment.submit")}
               </button>

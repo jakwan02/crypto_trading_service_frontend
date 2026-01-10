@@ -22,5 +22,5 @@ html, body {
 }
 
 button {
-  @apply px-2 py-1 rounded bg-primary text-white hover:bg-primary-dark;
+  @apply px-2 py-1 rounded bg-primary text-ink hover:bg-primary-dark;
 }

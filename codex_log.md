@@ -557,3 +557,15 @@ Logs/Artifacts:
 - (none)
 Next:
 - npm run lint
+2026-01-09 15:45 (local)
+Task: Replace invisible white text with ink color
+Scope: src/components/Header.tsx, src/app/market/page.tsx, src/app/alerts/page.tsx, src/app/account/page.tsx, src/app/page.tsx, src/app/upgrade/page.tsx, src/app/chart/page.tsx, src/app/login/page.tsx, src/app/payment/page.tsx, src/app/signup/page.tsx, src/app/reset-password/page.tsx, src/app/forgot-password/page.tsx, src/app/verify-email/page.tsx, src/app/chart/[symbol]/SymbolChartClient.tsx, src/styles/globals.css
+Why: Ensure white text is visible on light surfaces while keeping contrast distinct from black
+Key changes:
+- Replaced text-white with text-ink across primary buttons/badges and shared styles
+Commands run (user):
+- npm run build -> 성공
+Logs/Artifacts:
+- (none)
+Next:
+- Review key screens for contrast consistency

@@ -34,7 +34,7 @@ export default function ChartLandingPage() {
                 onClick={() => setMarket("spot")}
                 className={`rounded-full px-4 py-1 text-sm font-medium ${
                   market === "spot"
-                    ? "bg-primary text-white"
+                    ? "bg-primary text-ink"
                     : "text-gray-600 hover:bg-primary/5 hover:text-primary"
                 }`}
               >
@@ -45,7 +45,7 @@ export default function ChartLandingPage() {
                 onClick={() => setMarket("um")}
                 className={`rounded-full px-4 py-1 text-sm font-medium ${
                   market === "um"
-                    ? "bg-primary text-white"
+                    ? "bg-primary text-ink"
                     : "text-gray-600 hover:bg-primary/5 hover:text-primary"
                 }`}
               >

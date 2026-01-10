@@ -66,7 +66,7 @@ export default function AccountPage() {
               </p>
               <Link
                 href="/upgrade"
-                className="mt-4 inline-flex rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white"
+                className="mt-4 inline-flex rounded-full bg-primary px-4 py-2 text-xs font-semibold text-ink"
               >
                 {isPro ? t("footer.subscription") : t("account.planCta")}
               </Link>

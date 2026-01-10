@@ -79,7 +79,7 @@ export default function UpgradePage() {
 
             <button
               type="submit"
-              className="mt-6 w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark"
+              className="mt-6 w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink hover:bg-primary-dark"
             >
               {t("upgrade.cta")}
             </button>

@@ -44,7 +44,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-primary text-sm font-semibold text-white shadow-sm">
+          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-primary text-sm font-semibold text-ink shadow-sm">
             CD
           </span>
           <div className="leading-tight">
@@ -97,7 +97,7 @@ export default function Header() {
               {t("common.proUpgrade")}
             </Link>
           ) : (
-            <span className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-white">
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-ink">
               <Crown className="h-4 w-4" />
               {t("common.pro")}
             </span>
@@ -106,7 +106,7 @@ export default function Header() {
           {!user ? (
             <Link
               href="/login"
-              className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark"
+              className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-primary-dark"
             >
               {t("common.login")}
             </Link>
@@ -209,7 +209,7 @@ export default function Header() {
                   {t("common.proUpgrade")}
                 </Link>
               ) : (
-                <span className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-white">
+                <span className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-ink">
                   <Crown className="h-4 w-4" />
                   {t("common.pro")}
                 </span>
@@ -219,7 +219,7 @@ export default function Header() {
                 <Link
                   href="/login"
                   onClick={() => setMobileOpen(false)}
-                  className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white"
+                  className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink"
                 >
                   {t("common.login")}
                 </Link>

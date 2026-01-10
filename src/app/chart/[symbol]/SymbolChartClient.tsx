@@ -288,7 +288,7 @@ export default function SymbolChartClient({ symbol }: Props) {
                     onClick={() => setTf(item)}
                     className={`rounded-full px-3 py-1 text-xs font-medium sm:text-sm ${
                       tf === item
-                        ? "bg-primary text-white"
+                        ? "bg-primary text-ink"
                         : "text-gray-600 hover:bg-primary/5 hover:text-primary"
                     }`}
                   >
