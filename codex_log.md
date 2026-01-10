@@ -650,3 +650,16 @@ Logs/Artifacts:
 - (none)
 Next:
 - Try signup success -> verify-email shows success banner with email
+2026-01-10 11:53 (local)
+Task: Fix passive wheel preventDefault warning in SymbolTable
+Scope: src/components/SymbolTable.tsx
+Why: onWheel uses preventDefault; React wheel listeners may be passive, causing warnings
+Key changes:
+- Moved wheel boundary preventDefault logic to native wheel listener with { passive: false }
+- Removed React onWheel handler on the scroll container
+Commands run (user):
+- (none)
+Logs/Artifacts:
+- (none)
+Next:
+- Scroll Market Overview and confirm no passive event warning in console

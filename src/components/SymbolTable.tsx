@@ -439,6 +439,20 @@ export default function SymbolTable({
     rowVirtualizer.scrollToOffset(nextTop);
   }, [displayData.length, market, rowVirtualizer]);
 
+  useEffect(() => {
+    const root = parentRef.current;
+    if (!root) return;
+    const handleWheel = (event: WheelEvent) => {
+      const atTop = root.scrollTop <= 0;
+      const atBottom = root.scrollTop + root.clientHeight >= root.scrollHeight - 1;
+      if ((atTop && event.deltaY < 0) || (atBottom && event.deltaY > 0)) {
+        event.preventDefault();
+      }
+    };
+    root.addEventListener("wheel", handleWheel, { passive: false });
+    return () => root.removeEventListener("wheel", handleWheel);
+  }, [parentRef]);
+
   const handleSort = (id: string) => {
     if (!SORTABLE.has(id)) return;
     const k = id as SortKey;
@@ -570,15 +584,6 @@ export default function SymbolTable({
         ref={parentRef}
         className="max-h-[560px] overflow-auto rounded-xl border border-gray-100"
         style={{ overscrollBehavior: "contain" }}
-        onWheel={(event) => {
-          const root = parentRef.current;
-          if (!root) return;
-          const atTop = root.scrollTop <= 0;
-          const atBottom = root.scrollTop + root.clientHeight >= root.scrollHeight - 1;
-          if ((atTop && event.deltaY < 0) || (atBottom && event.deltaY > 0)) {
-            event.preventDefault();
-          }
-        }}
       >
         <table className="min-w-[1000px] w-full table-fixed border-collapse border-spacing-0 text-left text-gray-900">
           <thead className="sticky top-0 z-10 bg-white">
