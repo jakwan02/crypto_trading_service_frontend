@@ -621,3 +621,18 @@ Logs/Artifacts:
 Next:
 - Visit http://localhost:3000 and confirm no /app/auth/refresh request before login
 - After login, refresh should run and then GET /app/account/me should succeed
+2026-01-10 11:25 (local)
+Task: Align password policy messaging with backend
+Scope: src/app/signup/page.tsx, src/app/reset-password/page.tsx, src/i18n/locales/ko.ts, src/i18n/locales/en.ts, src/i18n/locales/ja.ts, src/i18n/locales/de.ts
+Why: Backend enforces minimum 12-character password (rejects 8-char with password_too_short), so frontend should validate early and show clear messages
+Key changes:
+- Added minLength=12 and pre-submit validation (length/whitespace) for signup and reset-password
+- Mapped backend error codes (password_too_short/password_has_whitespace) to localized messages
+- Updated password placeholders and added i18n keys for password policy
+Commands run (user):
+- npm run build -> 성공
+Logs/Artifacts:
+- (none)
+Next:
+- Try signup with <12 chars and confirm inline error (no request)
+- Try signup with >=12 chars and confirm /app/auth/register succeeds

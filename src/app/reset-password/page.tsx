@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/appClient";
 
 export default function ResetPasswordPage() {
+  const PASSWORD_MIN_LENGTH = 12;
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [status, setStatus] = useState("");
@@ -29,6 +30,14 @@ export default function ResetPasswordPage() {
       setError(t("auth.resetMissingToken"));
       return;
     }
+    if (!password || password.length < PASSWORD_MIN_LENGTH) {
+      setError(t("auth.passwordTooShort"));
+      return;
+    }
+    if (/\s/.test(password)) {
+      setError(t("auth.passwordNoWhitespace"));
+      return;
+    }
     if (password !== passwordConfirm) {
       setError(t("auth.passwordMismatch"));
       return;
@@ -42,7 +51,9 @@ export default function ResetPasswordPage() {
       setStatus(t("auth.resetSuccess"));
     } catch (err) {
       const message = err instanceof Error ? err.message : t("auth.loginFailed");
-      setError(message);
+      if (message === "password_too_short") setError(t("auth.passwordTooShort"));
+      else if (message === "password_has_whitespace") setError(t("auth.passwordNoWhitespace"));
+      else setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -61,6 +72,7 @@ export default function ResetPasswordPage() {
               <input
                 required
                 type="password"
+                minLength={PASSWORD_MIN_LENGTH}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder={t("auth.passwordPlaceholder")}
@@ -73,6 +85,7 @@ export default function ResetPasswordPage() {
               <input
                 required
                 type="password"
+                minLength={PASSWORD_MIN_LENGTH}
                 value={passwordConfirm}
                 onChange={(event) => setPasswordConfirm(event.target.value)}
                 placeholder={t("auth.passwordConfirmPlaceholder")}

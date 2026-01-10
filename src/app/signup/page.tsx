@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function SignupPage() {
+  const PASSWORD_MIN_LENGTH = 12;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
@@ -22,6 +23,14 @@ export default function SignupPage() {
     if (submitting) return;
     setError("");
     setStatus("");
+    if (!password || password.length < PASSWORD_MIN_LENGTH) {
+      setError(t("auth.passwordTooShort"));
+      return;
+    }
+    if (/\s/.test(password)) {
+      setError(t("auth.passwordNoWhitespace"));
+      return;
+    }
     if (password !== passwordConfirm) {
       setError(t("auth.passwordMismatch"));
       return;
@@ -32,7 +41,9 @@ export default function SignupPage() {
       router.replace(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : t("auth.signupFailed");
-      setError(message);
+      if (message === "password_too_short") setError(t("auth.passwordTooShort"));
+      else if (message === "password_has_whitespace") setError(t("auth.passwordNoWhitespace"));
+      else setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -79,6 +90,7 @@ export default function SignupPage() {
               <input
                 required
                 type="password"
+                minLength={PASSWORD_MIN_LENGTH}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder={t("auth.passwordPlaceholder")}
@@ -91,6 +103,7 @@ export default function SignupPage() {
               <input
                 required
                 type="password"
+                minLength={PASSWORD_MIN_LENGTH}
                 value={passwordConfirm}
                 onChange={(event) => setPasswordConfirm(event.target.value)}
                 placeholder={t("auth.passwordConfirmPlaceholder")}
