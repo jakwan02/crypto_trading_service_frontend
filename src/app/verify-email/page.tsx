@@ -17,8 +17,13 @@ export default function VerifyEmailPage() {
     /* # 변경 이유: Next prerender 시 useSearchParams 사용으로 빌드 오류가 발생해, 클라이언트에서만 query 파라미터를 파싱 */
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    setEmail(params.get("email") || "");
-    setToken(params.get("token") || "");
+    const nextEmail = params.get("email") || "";
+    const nextToken = params.get("token") || "";
+    setEmail(nextEmail);
+    setToken(nextToken);
+    if (nextEmail && !nextToken) {
+      setStatus(t("auth.signupSuccess"));
+    }
   }, []);
 
   const handleVerify = async () => {

@@ -328,6 +328,8 @@ const ja = {
     agreement: "続行することで利用規約とプライバシーポリシーに同意したことになります。",
     loginFailed: "ログインに失敗しました。もう一度お試しください。",
     signupFailed: "登録に失敗しました。もう一度お試しください。",
+    signupSuccess: "登録が完了しました。メールを確認して認証してください。",
+    emailExists: "既に登録されたメールアドレスです。",
     passwordTooShort: "パスワードは12文字以上で入力してください。",
     passwordNoWhitespace: "パスワードに空白は使用できません。",
     passwordMismatch: "パスワードが一致しません。",

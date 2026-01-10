@@ -636,3 +636,17 @@ Logs/Artifacts:
 Next:
 - Try signup with <12 chars and confirm inline error (no request)
 - Try signup with >=12 chars and confirm /app/auth/register succeeds
+2026-01-10 11:47 (local)
+Task: Fix signup success handling without auto-login
+Scope: src/contexts/AuthContext.tsx, src/app/signup/page.tsx, src/app/verify-email/page.tsx, src/i18n/locales/ko.ts, src/i18n/locales/en.ts, src/i18n/locales/ja.ts, src/i18n/locales/de.ts
+Why: /app/auth/register returns only {ok:true} so expecting access_token caused Invalid auth response; need clear success UX
+Key changes:
+- Signup no longer expects auth payload; success shows message and routes to verify-email
+- Verify-email page shows signup success when email query exists
+- Added localized messages for signup success and email_exists
+Commands run (user):
+- (none)
+Logs/Artifacts:
+- (none)
+Next:
+- Try signup success -> verify-email shows success banner with email

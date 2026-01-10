@@ -328,6 +328,8 @@ const en = {
     agreement: "By continuing, you agree to the Terms of Service and Privacy Policy.",
     loginFailed: "Sign-in failed. Please try again.",
     signupFailed: "Sign-up failed. Please try again.",
+    signupSuccess: "Account created. Check your email to verify.",
+    emailExists: "This email is already registered.",
     passwordTooShort: "Password must be at least 12 characters.",
     passwordNoWhitespace: "Password cannot contain spaces.",
     passwordMismatch: "Passwords do not match.",

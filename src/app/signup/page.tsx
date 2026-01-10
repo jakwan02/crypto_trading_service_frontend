@@ -38,11 +38,13 @@ export default function SignupPage() {
     setSubmitting(true);
     try {
       await signup(email, password);
+      setStatus(t("auth.signupSuccess"));
       router.replace(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : t("auth.signupFailed");
       if (message === "password_too_short") setError(t("auth.passwordTooShort"));
       else if (message === "password_has_whitespace") setError(t("auth.passwordNoWhitespace"));
+      else if (message === "email_exists") setError(t("auth.emailExists"));
       else setError(message);
     } finally {
       setSubmitting(false);

@@ -161,13 +161,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signup = useCallback(
     async (email: string, password: string) => {
-      const response = await apiRequest<AuthPayload>("/auth/register", {
+      await apiRequest<{ ok: boolean }>("/auth/register", {
         method: "POST",
         json: { email, password }
       });
-      applyAuthPayload(response);
     },
-    [applyAuthPayload]
+    []
   );
 
   const signInWithGoogle = useCallback(async () => {

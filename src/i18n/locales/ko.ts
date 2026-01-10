@@ -328,6 +328,8 @@ const ko = {
     agreement: "로그인을 진행하면 서비스 약관과 개인정보 처리방침에 동의하게 됩니다.",
     loginFailed: "로그인에 실패했습니다. 다시 시도해주세요.",
     signupFailed: "회원가입에 실패했습니다. 다시 시도해주세요.",
+    signupSuccess: "회원가입이 완료되었습니다. 이메일을 확인해 인증을 완료하세요.",
+    emailExists: "이미 가입된 이메일입니다.",
     passwordTooShort: "비밀번호는 최소 12자 이상이어야 합니다.",
     passwordNoWhitespace: "비밀번호에는 공백을 사용할 수 없습니다.",
     passwordMismatch: "비밀번호가 일치하지 않습니다.",

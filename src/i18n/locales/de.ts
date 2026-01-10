@@ -328,6 +328,8 @@ const de = {
     agreement: "Mit dem Fortfahren stimmst du den Nutzungsbedingungen und der Datenschutzrichtlinie zu.",
     loginFailed: "Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
     signupFailed: "Registrierung fehlgeschlagen. Bitte erneut versuchen.",
+    signupSuccess: "Konto erstellt. Bitte E-Mail zur Verifizierung prüfen.",
+    emailExists: "Diese E-Mail ist bereits registriert.",
     passwordTooShort: "Passwort muss mindestens 12 Zeichen haben.",
     passwordNoWhitespace: "Passwort darf keine Leerzeichen enthalten.",
     passwordMismatch: "Passwörter stimmen nicht überein.",
