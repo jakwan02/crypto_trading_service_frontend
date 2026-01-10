@@ -5,10 +5,15 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/appClient";
 
+type VerifyState = "idle" | "verifying" | "verified" | "already_verified" | "expired" | "invalid";
+
 export default function VerifyEmailPage() {
   const { t } = useTranslation();
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [mode, setMode] = useState<"email" | "token">("email");
+  const [verifyState, setVerifyState] = useState<VerifyState>("idle");
+  const [cooldown, setCooldown] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [email, setEmail] = useState("");
   const [token, setToken] = useState("");
@@ -21,33 +26,55 @@ export default function VerifyEmailPage() {
     const nextToken = params.get("token") || "";
     setEmail(nextEmail);
     setToken(nextToken);
-    if (nextEmail && !nextToken) {
-      setStatus(t("auth.signupSuccess"));
-    }
+    setMode(nextToken ? "token" : "email");
+    if (nextEmail && !nextToken) setStatus(t("auth.signupSuccess"));
   }, []);
 
-  const handleVerify = async () => {
-    if (submitting) return;
-    setError("");
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      setCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldown]);
+
+  useEffect(() => {
+    if (!token) return;
+    setVerifyState("verifying");
     setStatus("");
-    if (!token) {
-      setError(t("auth.verifyMissingToken"));
-      return;
-    }
+    setError("");
     setSubmitting(true);
-    try {
-      await apiRequest("/auth/email/verify", {
-        method: "POST",
-        json: { token }
-      });
-      setStatus(t("auth.verifySuccess"));
-    } catch (err) {
-      const message = err instanceof Error ? err.message : t("auth.loginFailed");
-      setError(message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    void (async () => {
+      try {
+        const res = await apiRequest<{ ok: boolean; state?: string; email?: string }>("/auth/email/verify", {
+          method: "POST",
+          json: { token }
+        });
+        if (res?.email && !email) setEmail(res.email);
+        if (res?.state === "already_verified") {
+          setVerifyState("already_verified");
+          setStatus(t("auth.verifyAlready"));
+        } else {
+          setVerifyState("verified");
+          setStatus(t("auth.verifySuccess"));
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : t("auth.loginFailed");
+        if (message === "expired_token") {
+          setVerifyState("expired");
+          setError(t("auth.verifyExpired"));
+        } else if (message === "invalid_token") {
+          setVerifyState("invalid");
+          setError(t("auth.verifyInvalid"));
+        } else {
+          setVerifyState("invalid");
+          setError(message);
+        }
+      } finally {
+        setSubmitting(false);
+      }
+    })();
+  }, [email, t, token]);
 
   const handleResend = async () => {
     if (submitting) return;
@@ -59,10 +86,11 @@ export default function VerifyEmailPage() {
     }
     setSubmitting(true);
     try {
-      await apiRequest("/auth/email/resend", {
+      const res = await apiRequest<{ ok: boolean; cooldown_seconds?: number }>("/auth/email/resend", {
         method: "POST",
         json: { email }
       });
+      if (res?.cooldown_seconds) setCooldown(res.cooldown_seconds);
       setStatus(t("auth.verifySent"));
     } catch (err) {
       const message = err instanceof Error ? err.message : t("auth.loginFailed");
@@ -71,6 +99,9 @@ export default function VerifyEmailPage() {
       setSubmitting(false);
     }
   };
+
+  const showResend = mode === "email" || verifyState === "expired" || verifyState === "invalid";
+  const emailReadonly = Boolean(email) || mode === "token";
 
   return (
     <main className="min-h-screen bg-transparent">
@@ -88,34 +119,45 @@ export default function VerifyEmailPage() {
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder={t("auth.emailPlaceholder")}
                 autoComplete="email"
-                className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
+                readOnly={emailReadonly}
+                className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none read-only:bg-gray-50 read-only:text-gray-500"
               />
             </div>
-            <button
-              type="button"
-              onClick={handleVerify}
-              disabled={submitting || !token}
-              className="w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {t("auth.verifyCta")}
-            </button>
-            <button
-              type="button"
-              onClick={handleResend}
-              disabled={submitting}
-              className="w-full rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-primary/30 hover:text-primary disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {t("auth.verifyResend")}
-            </button>
+            {showResend ? (
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={submitting || cooldown > 0 || !email}
+                className="w-full rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-primary/30 hover:text-primary disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {cooldown > 0 ? t("auth.verifyResendCooldown", { seconds: cooldown }) : t("auth.verifyResend")}
+              </button>
+            ) : null}
           </div>
 
+          {verifyState === "verifying" ? (
+            <div className="mt-6 flex items-center gap-3 text-sm text-gray-500">
+              <span className="inline-flex h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-primary" />
+              <span>{t("auth.verifyChecking")}</span>
+            </div>
+          ) : null}
           {error ? <p className="mt-4 text-xs text-rose-500">{error}</p> : null}
           {status ? <p className="mt-3 text-xs text-primary">{status}</p> : null}
 
           <div className="mt-6 text-sm text-gray-500">
-            <Link href="/login" className="font-medium text-primary hover:text-primary-dark">
-              {t("auth.loginLink")}
-            </Link>
+            {verifyState === "verified" ? (
+              <Link href="/login" className="font-medium text-primary hover:text-primary-dark">
+                {t("auth.verifyCtaLogin")}
+              </Link>
+            ) : verifyState === "already_verified" ? (
+              <Link href="/" className="font-medium text-primary hover:text-primary-dark">
+                {t("auth.verifyCtaHome")}
+              </Link>
+            ) : (
+              <Link href="/login" className="font-medium text-primary hover:text-primary-dark">
+                {t("auth.loginLink")}
+              </Link>
+            )}
           </div>
         </div>
       </div>

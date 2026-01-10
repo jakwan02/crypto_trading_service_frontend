@@ -690,3 +690,18 @@ Logs/Artifacts:
 Next:
 - After signup (email-only), verify button should be disabled; resend should work
 - Open email link with token -> verify should return 200 and show success
+2026-01-10 13:12 (local)
+Task: Add production-grade signup validation + verify-email UX states
+Scope: src/app/signup/page.tsx, src/app/verify-email/page.tsx, src/i18n/locales/ko.ts, src/i18n/locales/en.ts, src/i18n/locales/ja.ts, src/i18n/locales/de.ts
+Why: Show password errors on blur, block invalid signup submits, and split verify-email into email-only vs token modes with loading/success/failure states
+Key changes:
+- Signup validation now displays inline errors on blur and disables submit until valid
+- Verify-email auto-verifies when token exists; resend only in email mode or failure; added loading/success/CTA copy
+- Added i18n keys for password hint and verify states/cooldown
+Commands run (user):
+- (none)
+Logs/Artifacts:
+- (none)
+Next:
+- Blur password/confirm to see inline errors; submit disabled until valid
+- Open verify-email with token to see loading -> success -> login CTA

@@ -11,6 +11,10 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [confirmTouched, setConfirmTouched] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmError, setConfirmError] = useState("");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -18,23 +22,35 @@ export default function SignupPage() {
   const { t } = useTranslation();
   const router = useRouter();
 
+  const passwordHasWhitespace = /\s/.test(password);
+  const passwordTooShort = password.length < PASSWORD_MIN_LENGTH;
+  const passwordValid = !passwordTooShort && !passwordHasWhitespace;
+  const confirmMatches = passwordConfirm.length > 0 && password === passwordConfirm;
+  const isFormValid = email.length > 0 && passwordValid && confirmMatches;
+
+  const validatePassword = (value: string) => {
+    if (value.length < PASSWORD_MIN_LENGTH) return t("auth.passwordTooShort");
+    if (/\s/.test(value)) return t("auth.passwordNoWhitespace");
+    return "";
+  };
+
+  const validateConfirm = (value: string) => {
+    if (!value || value !== password) return t("auth.passwordMismatch");
+    return "";
+  };
+
   const handleSignup = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (submitting) return;
     setError("");
     setStatus("");
-    if (!password || password.length < PASSWORD_MIN_LENGTH) {
-      setError(t("auth.passwordTooShort"));
-      return;
-    }
-    if (/\s/.test(password)) {
-      setError(t("auth.passwordNoWhitespace"));
-      return;
-    }
-    if (password !== passwordConfirm) {
-      setError(t("auth.passwordMismatch"));
-      return;
-    }
+    setPasswordTouched(true);
+    setConfirmTouched(true);
+    const nextPasswordError = validatePassword(password);
+    const nextConfirmError = validateConfirm(passwordConfirm);
+    setPasswordError(nextPasswordError);
+    setConfirmError(nextConfirmError);
+    if (nextPasswordError || nextConfirmError) return;
     setSubmitting(true);
     try {
       await signup(email, password);
@@ -95,10 +111,16 @@ export default function SignupPage() {
                 minLength={PASSWORD_MIN_LENGTH}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                onBlur={() => {
+                  setPasswordTouched(true);
+                  setPasswordError(validatePassword(password));
+                }}
                 placeholder={t("auth.passwordPlaceholder")}
                 autoComplete="new-password"
-                className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
+                className={`mt-2 w-full rounded-xl border px-3 py-2 text-sm focus:outline-none ${passwordTouched && passwordError ? "border-rose-300 text-rose-600 focus:border-rose-400" : "border-gray-200 text-gray-700 focus:border-primary"}`}
               />
+              <p className="mt-1 text-[11px] text-gray-400">{t("auth.passwordPolicyHint")}</p>
+              {passwordTouched && passwordError ? <p className="mt-1 text-xs text-rose-500">{passwordError}</p> : null}
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-600">{t("auth.passwordConfirmLabel")}</label>
@@ -108,14 +130,19 @@ export default function SignupPage() {
                 minLength={PASSWORD_MIN_LENGTH}
                 value={passwordConfirm}
                 onChange={(event) => setPasswordConfirm(event.target.value)}
+                onBlur={() => {
+                  setConfirmTouched(true);
+                  setConfirmError(validateConfirm(passwordConfirm));
+                }}
                 placeholder={t("auth.passwordConfirmPlaceholder")}
                 autoComplete="new-password"
-                className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
+                className={`mt-2 w-full rounded-xl border px-3 py-2 text-sm focus:outline-none ${confirmTouched && confirmError ? "border-rose-300 text-rose-600 focus:border-rose-400" : "border-gray-200 text-gray-700 focus:border-primary"}`}
               />
+              {confirmTouched && confirmError ? <p className="mt-1 text-xs text-rose-500">{confirmError}</p> : null}
             </div>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !isFormValid}
               className="w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70"
             >
               {t("auth.signupButton")}
