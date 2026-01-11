@@ -39,6 +39,7 @@ type AuthContextValue = {
   plan: Plan | null;
   isPro: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithGoogleIdToken: (idToken: string) => Promise<void>;
   signOut: () => Promise<void>;
   login: (email: string, password: string, options?: { otpCode?: string; mfaTicket?: string }) => Promise<LoginResult>;
   signup: (email: string, password: string) => Promise<void>;
@@ -51,6 +52,7 @@ const AuthContext = createContext<AuthContextValue>({
   plan: null,
   isPro: false,
   signInWithGoogle: async () => {},
+  signInWithGoogleIdToken: async () => {},
   signOut: async () => {},
   login: async () => ({}),
   signup: async () => {},
@@ -169,14 +171,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const signInWithGoogleIdToken = useCallback(
+    async (idToken: string) => {
+      const response = await apiRequest<AuthPayload>("/auth/google", {
+        method: "POST",
+        json: { id_token: idToken }
+      });
+      applyAuthPayload(response);
+    },
+    [applyAuthPayload]
+  );
+
   const signInWithGoogle = useCallback(async () => {
     const idToken = await requestGoogleIdToken();
-    const response = await apiRequest<AuthPayload>("/auth/google", {
-      method: "POST",
-      json: { id_token: idToken }
-    });
-    applyAuthPayload(response);
-  }, [applyAuthPayload]);
+    await signInWithGoogleIdToken(idToken);
+  }, [signInWithGoogleIdToken]);
 
   const signOut = useCallback(async () => {
     try {
@@ -196,12 +205,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       plan,
       isPro: plan?.code === "pro",
       signInWithGoogle,
+      signInWithGoogleIdToken,
       signOut,
       login,
       signup,
       refresh
     }),
-    [login, plan, refresh, sessionReady, signInWithGoogle, signOut, user]
+    [login, plan, refresh, sessionReady, signInWithGoogle, signInWithGoogleIdToken, signOut, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

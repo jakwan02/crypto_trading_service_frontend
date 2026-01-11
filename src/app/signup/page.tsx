@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 
 export default function SignupPage() {
   const PASSWORD_MIN_LENGTH = 12;
@@ -18,7 +19,7 @@ export default function SignupPage() {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const { signInWithGoogle, signup } = useAuth();
+  const { signInWithGoogleIdToken, signup } = useAuth();
   const { t } = useTranslation();
   const router = useRouter();
 
@@ -67,13 +68,13 @@ export default function SignupPage() {
     }
   };
 
-  const handleGoogle = async () => {
+  const handleGoogleIdToken = async (idToken: string) => {
     if (submitting) return;
     setError("");
     setStatus(t("auth.redirecting"));
     setSubmitting(true);
     try {
-      await signInWithGoogle();
+      await signInWithGoogleIdToken(idToken);
       router.replace("/market");
     } catch (err) {
       const message = err instanceof Error ? err.message : t("auth.signupFailed");
@@ -162,14 +163,15 @@ export default function SignupPage() {
             <div className="h-px flex-1 bg-gray-200" />
           </div>
 
-          <button
-            type="button"
-            onClick={handleGoogle}
-            disabled={submitting}
-            className="mt-4 w-full rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-primary/30 hover:text-primary disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {t("auth.googleCta")}
-          </button>
+          <div className="mt-4">
+            {/* # 변경 이유: One Tap(prompt) 대신 공식 Google 버튼(renderButton)으로 기업형 로그인 UX 제공 */}
+            <GoogleSignInButton
+              onIdToken={handleGoogleIdToken}
+              disabled={submitting}
+              onError={setError}
+              showInlineError={false}
+            />
+          </div>
 
           {error ? <p className="mt-4 text-xs text-rose-500">{error}</p> : null}
           {status ? <p className="mt-3 text-xs text-primary">{status}</p> : null}

@@ -717,3 +717,16 @@ Logs/Artifacts:
 - (none)
 Next:
 - Reset password with email link should return 200 without 422
+2026-01-11 05:17 (local)
+Task: Replace One Tap Google login with official Google button
+Scope: src/components/GoogleSignInButton.tsx, src/contexts/AuthContext.tsx, src/app/login/page.tsx, src/app/signup/page.tsx
+Why: One Tap prompt UX is limited and emits FedCM migration warnings; use enterprise-standard Sign in with Google button
+Key changes:
+- Render official Google Sign-In button via google.accounts.id.renderButton and handle credential callback
+- Add signInWithGoogleIdToken flow so UI can complete login/signup with returned id_token
+Commands run (user):
+- date '+%Y-%m-%d %H:%M' -> 성공
+Logs/Artifacts:
+- (none)
+Next:
+- Open /login and /signup and confirm Google button renders and completes login
