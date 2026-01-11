@@ -1,9 +1,10 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { apiRequest, type ApiError } from "@/lib/appClient";
+import { apiRequest } from "@/lib/appClient";
 import { clearAcc, getAcc, setAcc } from "@/lib/token";
 import { requestGoogleIdToken } from "@/lib/googleOidc";
+import { parseAuthError } from "@/lib/auth/authErrors";
 
 type PlanCode = "free" | "pro";
 
@@ -18,6 +19,9 @@ type AppUser = {
   email_verified: boolean;
   created_at: string;
   name?: string | null;
+  role?: string;
+  plan?: string;
+  mfa_enabled?: boolean;
 };
 
 type AuthPayload = {
@@ -25,12 +29,10 @@ type AuthPayload = {
   user?: AppUser;
   plan?: Plan | null;
   mfa_required?: boolean;
-  mfa_ticket?: string;
 };
 
 type LoginResult = {
   mfaRequired?: boolean;
-  mfaTicket?: string;
 };
 
 type AuthContextValue = {
@@ -41,7 +43,7 @@ type AuthContextValue = {
   signInWithGoogle: () => Promise<void>;
   signInWithGoogleIdToken: (idToken: string) => Promise<void>;
   signOut: () => Promise<void>;
-  login: (email: string, password: string, options?: { otpCode?: string; mfaTicket?: string }) => Promise<LoginResult>;
+  login: (email: string, password: string, options?: { mfaCode?: string }) => Promise<LoginResult>;
   signup: (email: string, password: string) => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -70,15 +72,9 @@ function getAuthHeaders(): HeadersInit {
 }
 
 function parseMfaError(err: unknown): LoginResult | null {
-  if (!err || typeof err !== "object") return null;
-  const typed = err as ApiError;
-  const payload = typed.payload as Record<string, unknown> | undefined;
-  if (typed.status !== 401 || !payload) return null;
-  if (payload.mfa_required !== true) return null;
-  return {
-    mfaRequired: true,
-    mfaTicket: typeof payload.mfa_ticket === "string" ? payload.mfa_ticket : undefined
-  };
+  const info = parseAuthError(err);
+  if (!info || info.code !== "mfa_required") return null;
+  return { mfaRequired: true };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -99,7 +95,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setAcc(payload.access_token);
     setUser(payload.user ?? null);
-    setPlan(payload.plan ?? null);
+    if (payload.plan) {
+      setPlan(payload.plan);
+    } else if (payload.user?.plan) {
+      setPlan({ code: payload.user.plan as PlanCode });
+    } else {
+      setPlan(null);
+    }
     setSessionReady(true);
   }, []);
 
@@ -110,12 +112,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Invalid refresh response.");
       }
       setAcc(payload.access_token);
-      const me = await apiRequest<{ user: AppUser; plan: Plan | null }>("/account/me", {
+      const me = await apiRequest<AppUser>("/account/me", {
         method: "GET",
         headers: getAuthHeaders()
       });
-      setUser(me?.user ?? null);
-      setPlan(me?.plan ?? payload.plan ?? null);
+      setUser(me ?? null);
+      if (me?.plan) {
+        setPlan({ code: me.plan as PlanCode });
+      } else {
+        setPlan(payload.plan ?? null);
+      }
     } catch {
       clearSession();
     } finally {
@@ -135,20 +141,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const login = useCallback(
-    async (email: string, password: string, options?: { otpCode?: string; mfaTicket?: string }) => {
+    async (email: string, password: string, options?: { mfaCode?: string }) => {
       const payload: Record<string, string> = { email, password };
-      if (options?.otpCode) payload.otp_code = options.otpCode;
-      if (options?.mfaTicket) payload.mfa_ticket = options.mfaTicket;
+      if (options?.mfaCode) payload.mfa_code = options.mfaCode;
 
       try {
         const response = await apiRequest<AuthPayload>("/auth/login", {
           method: "POST",
           json: payload
         });
-
-        if (response?.mfa_required) {
-          return { mfaRequired: true, mfaTicket: response.mfa_ticket };
-        }
 
         applyAuthPayload(response);
         return {};

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/appClient";
+import { buildAuthMessage, parseAuthError } from "@/lib/auth/authErrors";
 
 export default function ResetPasswordPage() {
   const PASSWORD_MIN_LENGTH = 12;
@@ -51,10 +52,10 @@ export default function ResetPasswordPage() {
       });
       setStatus(t("auth.resetSuccess"));
     } catch (err) {
-      const message = err instanceof Error ? err.message : t("auth.loginFailed");
-      if (message === "password_too_short") setError(t("auth.passwordTooShort"));
-      else if (message === "password_has_whitespace") setError(t("auth.passwordNoWhitespace"));
-      else setError(message);
+      const info = parseAuthError(err);
+      if (info?.code === "password_too_short") setError(t("auth.passwordTooShort"));
+      else if (info?.code === "password_has_whitespace") setError(t("auth.passwordNoWhitespace"));
+      else setError(info ? buildAuthMessage(info, t).message : t("auth.loginFailed"));
     } finally {
       setSubmitting(false);
     }

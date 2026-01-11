@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
+import { buildAuthMessage, parseAuthError } from "@/lib/auth/authErrors";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 
 export default function SignupPage() {
@@ -58,11 +59,11 @@ export default function SignupPage() {
       setStatus(t("auth.signupSuccess"));
       router.replace(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
-      const message = err instanceof Error ? err.message : t("auth.signupFailed");
-      if (message === "password_too_short") setError(t("auth.passwordTooShort"));
-      else if (message === "password_has_whitespace") setError(t("auth.passwordNoWhitespace"));
-      else if (message === "email_exists") setError(t("auth.emailExists"));
-      else setError(message);
+      const info = parseAuthError(err);
+      if (info?.code === "password_too_short") setError(t("auth.passwordTooShort"));
+      else if (info?.code === "password_has_whitespace") setError(t("auth.passwordNoWhitespace"));
+      else if (info?.code === "email_exists") setError(t("auth.emailExists"));
+      else setError(info ? buildAuthMessage(info, t).message : t("auth.signupFailed"));
     } finally {
       setSubmitting(false);
     }

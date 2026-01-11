@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/appClient";
+import { buildAuthMessage, parseAuthError } from "@/lib/auth/authErrors";
 
 type VerifyState = "idle" | "verifying" | "verified" | "already_verified" | "expired" | "invalid";
 
@@ -59,16 +60,16 @@ export default function VerifyEmailPage() {
           setStatus(t("auth.verifySuccess"));
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : t("auth.loginFailed");
-        if (message === "expired_token") {
+        const info = parseAuthError(err);
+        if (info?.code === "expired_token") {
           setVerifyState("expired");
           setError(t("auth.verifyExpired"));
-        } else if (message === "invalid_token") {
+        } else if (info?.code === "invalid_token") {
           setVerifyState("invalid");
           setError(t("auth.verifyInvalid"));
         } else {
           setVerifyState("invalid");
-          setError(message);
+          setError(info ? buildAuthMessage(info, t).message : t("auth.loginFailed"));
         }
       } finally {
         setSubmitting(false);
@@ -93,8 +94,8 @@ export default function VerifyEmailPage() {
       if (res?.cooldown_seconds) setCooldown(res.cooldown_seconds);
       setStatus(t("auth.verifySent"));
     } catch (err) {
-      const message = err instanceof Error ? err.message : t("auth.loginFailed");
-      setError(message);
+      const info = parseAuthError(err);
+      setError(info ? buildAuthMessage(info, t).message : t("auth.loginFailed"));
     } finally {
       setSubmitting(false);
     }

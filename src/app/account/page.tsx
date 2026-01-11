@@ -75,12 +75,12 @@ export default function AccountPage() {
             <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <h2 className="text-sm font-semibold text-gray-900">{t("account.security")}</h2>
               <p className="mt-3 text-sm text-gray-600">{t("account.securityDesc")}</p>
-              <button
-                type="button"
-                className="mt-4 rounded-full border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700"
+              <Link
+                href="/account/security"
+                className="mt-4 inline-flex rounded-full border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700"
               >
                 {t("account.securityCta")}
-              </button>
+              </Link>
             </div>
           </section>
 

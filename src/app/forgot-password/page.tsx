@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/appClient";
+import { buildAuthMessage, parseAuthError } from "@/lib/auth/authErrors";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -11,6 +12,13 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { t } = useTranslation();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const nextEmail = params.get("email") || "";
+    if (nextEmail) setEmail(nextEmail);
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -25,7 +33,8 @@ export default function ForgotPasswordPage() {
       });
       setStatus(t("auth.forgotSuccess"));
     } catch (err) {
-      const message = err instanceof Error ? err.message : t("auth.loginFailed");
+      const info = parseAuthError(err);
+      const message = info ? buildAuthMessage(info, t).message : t("auth.loginFailed");
       setError(message);
     } finally {
       setSubmitting(false);

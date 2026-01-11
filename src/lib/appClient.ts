@@ -47,11 +47,13 @@ function normalizeMessage(payload: unknown, status: number): { message: string; 
     const message =
       (typeof record.message === "string" && record.message) ||
       (typeof record.detail === "string" && record.detail) ||
+      (typeof record.code === "string" && record.code) ||
       (typeof record.error === "string" && record.error) ||
       `Request failed (${status})`;
     const code =
       (typeof record.code === "string" && record.code) ||
       (typeof record.error === "string" && record.error) ||
+      (typeof record.detail === "string" && record.detail) ||
       String(status);
     return { message, code };
   }
