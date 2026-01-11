@@ -705,3 +705,15 @@ Logs/Artifacts:
 Next:
 - Blur password/confirm to see inline errors; submit disabled until valid
 - Open verify-email with token to see loading -> success -> login CTA
+2026-01-11 02:38 (local)
+Task: Fix reset-password payload to match backend contract
+Scope: src/app/reset-password/page.tsx
+Why: Backend /app/auth/password/reset expects new_password; frontend sent password and got 422
+Key changes:
+- Send { token, new_password } in reset request
+Commands run (user):
+- date '+%Y-%m-%d %H:%M' -> 성공
+Logs/Artifacts:
+- (none)
+Next:
+- Reset password with email link should return 200 without 422

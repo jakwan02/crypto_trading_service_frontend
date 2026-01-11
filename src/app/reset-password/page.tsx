@@ -44,9 +44,10 @@ export default function ResetPasswordPage() {
     }
     setSubmitting(true);
     try {
+      // # 변경 이유: 백엔드 /app/auth/password/reset 계약에 맞춰 new_password로 전송
       await apiRequest("/auth/password/reset", {
         method: "POST",
-        json: { token, password }
+        json: { token, new_password: password }
       });
       setStatus(t("auth.resetSuccess"));
     } catch (err) {
