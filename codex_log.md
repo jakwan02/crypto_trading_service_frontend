@@ -730,3 +730,32 @@ Logs/Artifacts:
 - (none)
 Next:
 - Open /login and /signup and confirm Google button renders and completes login
+2026-01-11 05:50 (local)
+Task: Improve login UX (Google button theme, placeholders, cursor/hover)
+Scope: src/components/GoogleSignInButton.tsx, src/app/login/page.tsx, src/app/globals.css
+Why: Increase perceived clickability and reduce visual noise in login form
+Key changes:
+- Use filled blue Google button theme with Continue UX
+- Remove placeholders from login inputs
+- Add global button cursor pointer + subtle hover translate
+Commands run (user):
+- date '+%Y-%m-%d %H:%M' -> 성공
+Logs/Artifacts:
+- (none)
+Next:
+- Open /login and confirm placeholders are gone and cursor/hover works on all buttons
+2026-01-11 05:40 (local)
+Task: 인증 에러 번역/잠금 UX + 2FA 보안 설정/탈퇴 UI 추가
+Scope: src/lib/appClient.ts, src/lib/auth/authErrors.ts, src/contexts/AuthContext.tsx, src/app/login/page.tsx, src/app/forgot-password/page.tsx, src/app/reset-password/page.tsx, src/app/verify-email/page.tsx, src/app/signup/page.tsx, src/app/account/page.tsx, src/app/account/security/page.tsx, src/i18n/locales/ko.ts, src/i18n/locales/en.ts, src/i18n/locales/ja.ts, src/i18n/locales/de.ts, package.json
+Why: 백엔드 에러 스키마에 맞춘 사용자 메시지/잠금 안내와 2FA/탈퇴 플로우 완결을 위해.
+Key changes:
+- authErrors 유틸로 code+meta 기반 메시지 생성 및 로그인 잠금 UI 적용
+- 2FA 설정/백업코드/해제 및 계정 탈퇴 UI 추가
+- i18n 키 확장 및 에러 표시 일원화
+Commands run (user):
+- N/A
+Logs/Artifacts:
+- N/A
+Next:
+- 프론트에서 로그인/2FA/탈퇴 플로우 점검
+- qrcode 패키지 설치 후 보안 설정 화면 렌더 확인

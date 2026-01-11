@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
+import { buildAuthMessage, parseAuthError } from "@/lib/auth/authErrors";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 
 export default function LoginPage() {
@@ -12,11 +13,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [mfaRequired, setMfaRequired] = useState(false);
-  const [mfaTicket, setMfaTicket] = useState("");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [errorDetail, setErrorDetail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [nextPath, setNextPath] = useState("/market");
+  const [lockUntil, setLockUntil] = useState("");
+  const [retryAfterSec, setRetryAfterSec] = useState<number | null>(null);
+  const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const { signInWithGoogleIdToken, login } = useAuth();
   const { t } = useTranslation();
   const router = useRouter();
@@ -29,24 +33,60 @@ export default function LoginPage() {
     if (next && next.startsWith("/")) setNextPath(next);
   }, []);
 
+  useEffect(() => {
+    if (retryAfterSec === null) return;
+    setRemainingSec(retryAfterSec);
+    const timer = window.setInterval(() => {
+      setRemainingSec((prev) => {
+        if (prev === null) return null;
+        return Math.max(0, prev - 1);
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [retryAfterSec]);
+
+  const isLocked = retryAfterSec !== null && (remainingSec ?? retryAfterSec) > 0;
+
+  const formatRemaining = (value: number | null) => {
+    if (value === null) return "";
+    const min = Math.floor(value / 60);
+    const sec = value % 60;
+    return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  };
+
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (submitting) return;
     setError("");
+    setErrorDetail("");
     setStatus("");
     setSubmitting(true);
     try {
-      const result = await login(email, password, mfaRequired ? { otpCode, mfaTicket } : undefined);
+      const result = await login(email, password, mfaRequired ? { mfaCode: otpCode } : undefined);
       if (result.mfaRequired) {
         setMfaRequired(true);
-        setMfaTicket(result.mfaTicket || "");
         setStatus(t("auth.mfaPrompt"));
         return;
       }
+      setRetryAfterSec(null);
+      setRemainingSec(null);
+      setLockUntil("");
       router.replace(nextPath);
     } catch (err) {
-      const message = err instanceof Error ? err.message : t("auth.loginFailed");
-      setError(message);
+      const info = parseAuthError(err);
+      if (info) {
+        const message = buildAuthMessage(info, t);
+        setError(message.message);
+        setErrorDetail(message.detail || "");
+        if (info.code === "account_locked") {
+          setLockUntil(message.lockUntil || "");
+          setRetryAfterSec(message.retryAfterSec ?? null);
+          setStatus(t("auth.lockedCtaHint"));
+        }
+      } else {
+        const fallback = err instanceof Error ? err.message : t("auth.loginFailed");
+        setError(fallback);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -75,6 +115,7 @@ export default function LoginPage() {
           <h1 className="text-2xl font-semibold text-gray-900">{t("auth.loginTitle")}</h1>
           <p className="mt-2 text-sm text-gray-500">{t("auth.loginDesc")}</p>
 
+          {/* # 변경 이유: 로그인 폼의 예시 텍스트(placeholder)를 제거해 입력 UX를 단순화 */}
           <form onSubmit={handleLogin} className="mt-6 space-y-4">
             <div>
               <label className="text-xs font-semibold text-gray-600">{t("auth.emailLabel")}</label>
@@ -83,7 +124,6 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder={t("auth.emailPlaceholder")}
                 autoComplete="email"
                 className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
               />
@@ -95,7 +135,6 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder={t("auth.passwordPlaceholder")}
                 autoComplete="current-password"
                 className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
               />
@@ -108,14 +147,13 @@ export default function LoginPage() {
                   inputMode="numeric"
                   value={otpCode}
                   onChange={(event) => setOtpCode(event.target.value)}
-                  placeholder={t("auth.otpPlaceholder")}
                   className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
                 />
               </div>
             ) : null}
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || isLocked}
               className="w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70"
             >
               {mfaRequired ? t("auth.otpCta") : t("auth.loginButton")}
@@ -148,6 +186,19 @@ export default function LoginPage() {
           </div>
 
           {error ? <p className="mt-4 text-xs text-rose-500">{error}</p> : null}
+          {errorDetail ? <p className="mt-2 text-xs text-rose-500">{errorDetail}</p> : null}
+          {isLocked ? (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
+              <p>{t("auth.lockedUntil", { time: lockUntil ? new Date(lockUntil).toLocaleString() : "-" })}</p>
+              <p>{t("auth.lockedRemaining", { remain: formatRemaining(remainingSec) })}</p>
+              <Link
+                href={`/forgot-password?email=${encodeURIComponent(email || "")}`}
+                className="mt-3 inline-flex rounded-full border border-amber-200 px-3 py-2 text-[11px] font-semibold text-amber-700"
+              >
+                {t("auth.lockedResetCta")}
+              </Link>
+            </div>
+          ) : null}
           {status ? <p className="mt-3 text-xs text-primary">{status}</p> : null}
 
           <p className="mt-6 text-xs text-gray-400">{t("auth.agreement")}</p>

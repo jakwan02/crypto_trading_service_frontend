@@ -129,3 +129,22 @@ td {
 .flash-blink {
   animation: flashBlink 0.3s ease;
 }
+
+/* # 변경 이유: 버튼 hover 시 커서/미세한 모션이 없어 클릭 가능성이 약하게 느껴져 UX를 개선 */
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button {
+  transition:
+    transform 120ms ease,
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    opacity 120ms ease,
+    box-shadow 120ms ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
