@@ -370,7 +370,9 @@ const en = {
     errorInvalidToken: "The token is invalid.",
     errorExpiredToken: "The token has expired.",
     errorEmailNotVerified: "Email verification is required.",
+    errorAccountInactive: "This account has been deleted. You can sign up again after the retention period.",
     verifyNowCta: "Verify email",
+    rejoinCta: "Sign up again",
     verifyAutoRedirect: "Redirecting to the sign in page shortly.",
     requestFailed: "Something went wrong. Please try again."
   },
@@ -417,7 +419,13 @@ const en = {
     deleteReason: "Reason (optional)",
     deleteReasonPlaceholder: "Tell us why you are leaving",
     deleteCta: "Delete account",
-    deleteDone: "Your account has been deleted."
+    deleteDone: "Your account has been deleted.",
+    deletedTitle: "Account deleted",
+    deletedDesc: "Your account has been deactivated and you have been signed out. Review the info below before continuing.",
+    deletedPurgeAfter: "Your data will be permanently deleted after {{days}} days.",
+    deletedRejoinHint: "Re-signup with the same email may be restricted before the purge completes.",
+    deletedCtaLogin: "Go to sign in",
+    deletedCtaSignup: "Sign up"
   },
   account: {
     title: "Account",

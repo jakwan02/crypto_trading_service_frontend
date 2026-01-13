@@ -370,7 +370,9 @@ const ko = {
     errorInvalidToken: "토큰이 유효하지 않습니다.",
     errorExpiredToken: "토큰이 만료되었습니다.",
     errorEmailNotVerified: "이메일 인증이 필요합니다.",
+    errorAccountInactive: "탈퇴 처리된 계정입니다. 일정 기간 후 다시 가입할 수 있습니다.",
     verifyNowCta: "이메일 인증하기",
+    rejoinCta: "다시 가입하기",
     verifyAutoRedirect: "잠시 후 로그인 페이지로 이동합니다.",
     requestFailed: "요청 처리 중 오류가 발생했습니다."
   },
@@ -417,7 +419,13 @@ const ko = {
     deleteReason: "탈퇴 사유(선택)",
     deleteReasonPlaceholder: "사유를 입력하세요",
     deleteCta: "계정 탈퇴",
-    deleteDone: "탈퇴가 완료되었습니다."
+    deleteDone: "탈퇴가 완료되었습니다.",
+    deletedTitle: "탈퇴 완료",
+    deletedDesc: "계정이 비활성화되었고 로그아웃 처리되었습니다. 아래 안내를 확인한 뒤 이동하세요.",
+    deletedPurgeAfter: "데이터는 {{days}}일 후 영구 삭제됩니다.",
+    deletedRejoinHint: "영구 삭제 전에는 동일 이메일로 재가입이 제한될 수 있습니다.",
+    deletedCtaLogin: "로그인 페이지로",
+    deletedCtaSignup: "회원가입"
   },
   account: {
     title: "Account",

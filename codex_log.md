@@ -817,3 +817,19 @@ Logs/Artifacts:
 Next:
 - 프론트 재빌드 후 /account/security에서 번역 노출 여부 확인
 - 여전히 노출 시 실행 번들/캐시 불일치 점검
+2026-01-13 13:25 (local)
+Task: 탈퇴 확인 페이지 추가 및 탈퇴 계정 로그인 안내 처리
+Scope: src/app/account/security/page.tsx, src/app/account/deleted/page.tsx, src/app/login/page.tsx, src/lib/auth/authErrors.ts, src/i18n/i18n.ts, src/i18n/locales/ko.ts, src/i18n/locales/en.ts, src/i18n/locales/ja.ts, src/i18n/locales/de.ts
+Why: 탈퇴 직후 자동 리다이렉트를 제거하고 사용자가 확인 후 이동하도록 하며, 탈퇴 계정 로그인 시 account_inactive 안내를 표시하기 위해.
+Key changes:
+- /account/delete 성공 시 /account/deleted 확인 페이지로 이동(자동 로그인 이동 제거)
+- /account/deleted에서 signOut 처리 후 로그인/회원가입 버튼 제공
+- account_inactive 에러 메시지 매핑 및 로그인 페이지 재가입 CTA 노출
+- i18n에 security namespace 등록 및 관련 문구 키 추가
+Commands run (user):
+- npm run lint -> 실패(SymbolChartClient.tsx Date.now 기존 lint error)
+Logs/Artifacts:
+- ESLint error: src/app/chart/[symbol]/SymbolChartClient.tsx:189 Date.now() (react-hooks/purity)
+Next:
+- 프론트에서 탈퇴 후 /account/deleted UX 확인
+- 탈퇴 계정 Google 로그인 시 account_inactive 안내/CTA 확인

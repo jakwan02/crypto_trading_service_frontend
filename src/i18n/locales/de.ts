@@ -370,7 +370,9 @@ const de = {
     errorInvalidToken: "Token ist ungültig.",
     errorExpiredToken: "Token ist abgelaufen.",
     errorEmailNotVerified: "E-Mail-Bestätigung ist erforderlich.",
+    errorAccountInactive: "Dieses Konto wurde gelöscht. Eine erneute Registrierung ist nach der Aufbewahrungsfrist möglich.",
     verifyNowCta: "E-Mail bestätigen",
+    rejoinCta: "Erneut registrieren",
     verifyAutoRedirect: "Weiterleitung zur Anmeldung in Kürze.",
     requestFailed: "Etwas ist schiefgelaufen. Bitte erneut versuchen."
   },
@@ -417,7 +419,13 @@ const de = {
     deleteReason: "Grund (optional)",
     deleteReasonPlaceholder: "Grund eingeben",
     deleteCta: "Konto löschen",
-    deleteDone: "Konto wurde gelöscht."
+    deleteDone: "Konto wurde gelöscht.",
+    deletedTitle: "Konto gelöscht",
+    deletedDesc: "Dein Konto wurde deaktiviert und du wurdest abgemeldet. Bitte lies die Hinweise, bevor du fortfährst.",
+    deletedPurgeAfter: "Deine Daten werden nach {{days}} Tagen dauerhaft gelöscht.",
+    deletedRejoinHint: "Eine erneute Registrierung mit derselben E-Mail kann vor der Löschung eingeschränkt sein.",
+    deletedCtaLogin: "Zur Anmeldung",
+    deletedCtaSignup: "Registrieren"
   },
   account: {
     title: "Konto",

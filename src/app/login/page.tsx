@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [errorDetail, setErrorDetail] = useState("");
   const [emailNotVerified, setEmailNotVerified] = useState(false);
+  const [accountInactive, setAccountInactive] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [nextPath, setNextPath] = useState("/market");
   const [lockUntil, setLockUntil] = useState("");
@@ -82,6 +83,7 @@ export default function LoginPage() {
     setError("");
     setErrorDetail("");
     setEmailNotVerified(false);
+    setAccountInactive(false);
     setStatus("");
     setSubmitting(true);
     try {
@@ -116,6 +118,8 @@ export default function LoginPage() {
         setErrorDetail(message.detail || "");
         if (info.code === "email_not_verified") {
           setEmailNotVerified(true);
+        } else if (info.code === "account_inactive") {
+          setAccountInactive(true);
         } else if (info.code === "account_locked") {
           setLockUntil(message.lockUntil || "");
           setRetryAfterSec(message.retryAfterSec ?? null);
@@ -135,6 +139,7 @@ export default function LoginPage() {
     setError("");
     setErrorDetail("");
     setEmailNotVerified(false);
+    setAccountInactive(false);
     setStatus(t("auth.redirecting"));
     setSubmitting(true);
     try {
@@ -152,6 +157,7 @@ export default function LoginPage() {
       if (info) {
         const message = buildAuthMessage(info, t);
         setError(message.message);
+        if (info.code === "account_inactive") setAccountInactive(true);
       } else {
         const message = err instanceof Error ? err.message : t("auth.loginFailed");
         setError(message);
@@ -248,6 +254,11 @@ export default function LoginPage() {
               className="mt-3 inline-flex text-xs font-semibold text-primary"
             >
               {t("auth.verifyNowCta")}
+            </Link>
+          ) : null}
+          {accountInactive ? (
+            <Link href="/signup" className="mt-3 inline-flex text-xs font-semibold text-primary">
+              {t("auth.rejoinCta")}
             </Link>
           ) : null}
           {isLocked ? (

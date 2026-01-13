@@ -33,7 +33,7 @@ function parseSecret(otpauthUrl: string): string {
 
 export default function SecurityPage() {
   const PASSWORD_MIN_LENGTH = 12;
-  const { user, refresh, signOut } = useAuth();
+  const { user, refresh } = useAuth();
   const { t } = useTranslation();
   const router = useRouter();
   const mfaEnabled = Boolean(user?.mfa_enabled);
@@ -222,8 +222,10 @@ export default function SecurityPage() {
       });
       setPurgeAfterDays(res.purge_after_days);
       setStatus(t("security.deleteDone"));
-      await signOut();
-      router.replace("/login");
+      // # 변경 이유: 탈퇴 완료 내용을 사용자가 확인한 뒤 이동하도록 전용 확인 페이지로 이동
+      const email = user?.email || "";
+      const next = `/account/deleted?days=${encodeURIComponent(String(res.purge_after_days))}&email=${encodeURIComponent(email)}`;
+      router.replace(next);
     } catch (err) {
       const info = parseAuthError(err);
       setError(info ? buildAuthMessage(info, t).message : t("auth.requestFailed"));

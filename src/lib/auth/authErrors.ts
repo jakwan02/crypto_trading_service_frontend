@@ -63,5 +63,8 @@ export function buildAuthMessage(info: AuthErrorInfo, t: (key: string, vars?: Re
   if (code === "email_not_verified") {
     return { message: t("auth.errorEmailNotVerified") };
   }
+  if (code === "account_inactive") {
+    return { message: t("auth.errorAccountInactive") };
+  }
   return { message: t("auth.requestFailed") };
 }

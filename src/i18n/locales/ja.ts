@@ -370,7 +370,9 @@ const ja = {
     errorInvalidToken: "トークンが無効です。",
     errorExpiredToken: "トークンの有効期限が切れています。",
     errorEmailNotVerified: "メール認証が必要です。",
+    errorAccountInactive: "このアカウントは退会済みです。保留期間後に再登録できます。",
     verifyNowCta: "メール認証へ",
+    rejoinCta: "再登録する",
     verifyAutoRedirect: "まもなくログイン画面へ移動します。",
     requestFailed: "リクエストに失敗しました。もう一度お試しください。"
   },
@@ -417,7 +419,13 @@ const ja = {
     deleteReason: "退会理由(任意)",
     deleteReasonPlaceholder: "理由を入力してください",
     deleteCta: "アカウント削除",
-    deleteDone: "退会が完了しました。"
+    deleteDone: "退会が完了しました。",
+    deletedTitle: "退会完了",
+    deletedDesc: "アカウントは無効化され、ログアウトしました。内容を確認してから移動してください。",
+    deletedPurgeAfter: "{{days}}日後にデータが完全に削除されます。",
+    deletedRejoinHint: "完全削除まで同じメールで再登録できない場合があります。",
+    deletedCtaLogin: "ログインへ",
+    deletedCtaSignup: "新規登録"
   },
   account: {
     title: "アカウント",
