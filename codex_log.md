@@ -862,3 +862,18 @@ Logs/Artifacts:
 - <none>
 Next:
 - 탈퇴 계정으로 /signup(이메일), Google signup에서 \"{{days}}일 후\" 메시지 확인
+2026-01-13 15:20 (local)
+Task: 인증 화면 예시 텍스트 제거 및 입력 초기값 미설정(placeholder만 사용)
+Scope: src/app/login/page.tsx, src/app/forgot-password/page.tsx, src/app/verify-email/page.tsx, src/i18n/locales/ko.ts, src/i18n/locales/en.ts, src/i18n/locales/ja.ts, src/i18n/locales/de.ts
+Why: 예시 입력값/자동 채움 없이 사용자 입력을 유도하고, 모든 placeholder를 “예시값”이 아닌 안내 문구로 통일하기 위해.
+Key changes:
+- /forgot-password, /verify-email에서 query email로 input을 자동 채움하지 않도록 제거
+- /login에서 email/password/OTP 입력란에 placeholder를 다시 적용(초기값은 항상 빈 값)
+- i18n의 email/card/amount/wallet 등 예시 placeholder를 일반 안내 문구로 교체(ko/en/ja/de)
+Commands run (user):
+- <none>
+Logs/Artifacts:
+- <none>
+Next:
+- /login,/forgot-password,/verify-email에서 query에 email이 있어도 입력이 비어있는지 확인
+- 결제/업그레이드 입력란 placeholder가 예시값 없이 안내 문구로 표시되는지 확인

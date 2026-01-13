@@ -30,7 +30,6 @@ export default function VerifyEmailPage() {
     const nextEmail = params.get("email") || "";
     const nextToken = params.get("token") || "";
     const next = resolveNextPath(window.location.search, "/market");
-    setEmail(nextEmail);
     setToken(nextToken);
     setMode(nextToken ? "token" : "email");
     setNextPath(next);
@@ -57,7 +56,6 @@ export default function VerifyEmailPage() {
           method: "POST",
           json: { token }
         });
-        if (res?.email && !email) setEmail(res.email);
         if (res?.state === "already_verified") {
           setVerifyState("already_verified");
           setStatus(t("auth.verifyAlready"));
@@ -81,7 +79,7 @@ export default function VerifyEmailPage() {
         setSubmitting(false);
       }
     })();
-  }, [email, t, token]);
+  }, [t, token]);
 
   useEffect(() => {
     if (verifyState !== "verified" && verifyState !== "already_verified") return;
@@ -117,7 +115,8 @@ export default function VerifyEmailPage() {
   };
 
   const showResend = mode === "email" || verifyState === "expired" || verifyState === "invalid";
-  const emailReadonly = Boolean(email) || mode === "token";
+  const emailReadonly =
+    mode === "token" && (verifyState === "verifying" || verifyState === "verified" || verifyState === "already_verified");
 
   return (
     <main className="min-h-screen bg-transparent">

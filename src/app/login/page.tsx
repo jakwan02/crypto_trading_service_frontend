@@ -33,10 +33,7 @@ export default function LoginPage() {
   useEffect(() => {
     /* # 변경 이유: Next prerender 시 useSearchParams 사용으로 빌드 오류가 발생해, 클라이언트에서만 next 파라미터를 파싱 */
     if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
     const next = resolveNextPath(window.location.search, "/market");
-    const nextEmail = params.get("email");
-    if (nextEmail) setEmail(nextEmail);
     setNextPath(next);
   }, []);
 
@@ -172,7 +169,7 @@ export default function LoginPage() {
           <h1 className="text-2xl font-semibold text-gray-900">{t("auth.loginTitle")}</h1>
           <p className="mt-2 text-sm text-gray-500">{t("auth.loginDesc")}</p>
 
-          {/* # 변경 이유: 로그인 폼의 예시 텍스트(placeholder)를 제거해 입력 UX를 단순화 */}
+          {/* # 변경 이유: 입력값은 초기값 없이 비워두고 placeholder로만 안내 */}
           <form onSubmit={handleLogin} className="mt-6 space-y-4">
             <div>
               <label className="text-xs font-semibold text-gray-600">{t("auth.emailLabel")}</label>
@@ -181,6 +178,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
+                placeholder={t("auth.emailPlaceholder")}
                 autoComplete="email"
                 disabled={isGoogleMfa}
                 className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
@@ -193,6 +191,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                placeholder={t("auth.passwordPlaceholder")}
                 autoComplete="current-password"
                 disabled={isGoogleMfa}
                 className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
@@ -206,6 +205,7 @@ export default function LoginPage() {
                   inputMode="numeric"
                   value={otpCode}
                   onChange={(event) => setOtpCode(event.target.value)}
+                  placeholder={t("auth.otpPlaceholder")}
                   className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
                 />
               </div>
