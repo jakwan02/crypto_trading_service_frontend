@@ -22,6 +22,7 @@ type AppUser = {
   role?: string;
   plan?: string;
   mfa_enabled?: boolean;
+  is_active?: boolean;
 };
 
 type AuthPayload = {
@@ -30,6 +31,13 @@ type AuthPayload = {
   plan?: Plan | null;
   mfa_required?: boolean;
 };
+
+type RefreshResponse = {
+  access_token?: string;
+  token_type?: string;
+};
+
+type AccountMeResponse = AppUser;
 
 type LoginResult = {
   mfaRequired?: boolean;
@@ -40,8 +48,8 @@ type AuthContextValue = {
   sessionReady: boolean;
   plan: Plan | null;
   isPro: boolean;
-  signInWithGoogle: () => Promise<void>;
-  signInWithGoogleIdToken: (idToken: string) => Promise<void>;
+  signInWithGoogle: () => Promise<LoginResult>;
+  signInWithGoogleIdToken: (idToken: string, options?: { mfaCode?: string }) => Promise<LoginResult>;
   signOut: () => Promise<void>;
   login: (email: string, password: string, options?: { mfaCode?: string }) => Promise<LoginResult>;
   signup: (email: string, password: string) => Promise<void>;
@@ -53,8 +61,8 @@ const AuthContext = createContext<AuthContextValue>({
   sessionReady: false,
   plan: null,
   isPro: false,
-  signInWithGoogle: async () => {},
-  signInWithGoogleIdToken: async () => {},
+  signInWithGoogle: async () => ({}),
+  signInWithGoogleIdToken: async () => ({}),
   signOut: async () => {},
   login: async () => ({}),
   signup: async () => {},
@@ -107,12 +115,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      const payload = await apiRequest<AuthPayload>("/auth/refresh", { method: "POST", csrf: true });
+      const payload = await apiRequest<RefreshResponse>("/auth/refresh", { method: "POST", csrf: true });
       if (!payload?.access_token) {
         throw new Error("Invalid refresh response.");
       }
       setAcc(payload.access_token);
-      const me = await apiRequest<AppUser>("/account/me", {
+      const me = await apiRequest<AccountMeResponse>("/account/me", {
         method: "GET",
         headers: getAuthHeaders()
       });
@@ -120,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (me?.plan) {
         setPlan({ code: me.plan as PlanCode });
       } else {
-        setPlan(payload.plan ?? null);
+        setPlan(null);
       }
     } catch {
       clearSession();
@@ -173,19 +181,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signInWithGoogleIdToken = useCallback(
-    async (idToken: string) => {
-      const response = await apiRequest<AuthPayload>("/auth/google", {
-        method: "POST",
-        json: { id_token: idToken }
-      });
-      applyAuthPayload(response);
+    async (idToken: string, options?: { mfaCode?: string }) => {
+      // 변경 이유: Google 로그인에서도 MFA 재요청(mfa_code) 플로우를 지원
+      const payload: Record<string, string> = { id_token: idToken };
+      if (options?.mfaCode) payload.mfa_code = options.mfaCode;
+      try {
+        const response = await apiRequest<AuthPayload>("/auth/google", {
+          method: "POST",
+          json: payload
+        });
+        applyAuthPayload(response);
+        return {};
+      } catch (err) {
+        const mfa = parseMfaError(err);
+        if (mfa) return mfa;
+        throw err;
+      }
     },
     [applyAuthPayload]
   );
 
   const signInWithGoogle = useCallback(async () => {
     const idToken = await requestGoogleIdToken();
-    await signInWithGoogleIdToken(idToken);
+    return signInWithGoogleIdToken(idToken);
   }, [signInWithGoogleIdToken]);
 
   const signOut = useCallback(async () => {

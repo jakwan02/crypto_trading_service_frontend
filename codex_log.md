@@ -774,3 +774,33 @@ Logs/Artifacts:
 Next:
 - UI 동작 수동 검증(로그인/이메일 인증/2FA/비밀번호 변경)
 - 필요 시 리다이렉트 규칙/문구 조정
+2026-01-13 11:40 (local)
+Task: Google 로그인 MFA 플로우 지원 및 관련 UI 처리 보강
+Scope: src/contexts/AuthContext.tsx, src/app/login/page.tsx, src/app/signup/page.tsx
+Why: Google 로그인에서도 mfa_required 응답을 처리해 OTP 재전송/안내 흐름을 제공하기 위해.
+Key changes:
+- Google 로그인 요청에 mfa_code 옵션을 지원하고 mfa_required 결과를 반환
+- 로그인 페이지에 Google MFA 단계 분기 및 OTP 재시도 처리 추가
+- 회원가입 페이지에서 Google MFA 요구 시 안내 메시지 처리
+Commands run (user):
+- <none>
+Logs/Artifacts:
+- <none>
+Next:
+- 로그인/회원가입에서 Google MFA 흐름 수동 검증
+- MFA 오류(잘못된 코드/만료 토큰) 메시지 확인
+2026-01-13 11:45 (local)
+Task: 인증/보안 설계 반영 마무리(리프레시 매핑, 2FA 백업 안내, 비번 변경 플레이스홀더)
+Scope: src/contexts/AuthContext.tsx, src/app/account/security/page.tsx, src/i18n/locales/ko.ts, src/i18n/locales/en.ts, src/i18n/locales/ja.ts, src/i18n/locales/de.ts
+Why: refresh 매핑을 /account/me 기준으로 고정하고 2FA 백업코드 1회 노출 안내 및 비밀번호 변경 입력 UX를 설계에 맞추기 위해.
+Key changes:
+- refresh 응답 타입 분리 및 plan 매핑을 /account/me 기준으로 정리
+- 2FA 백업코드 1회 노출 안내 문구 추가
+- 비밀번호 변경 입력 placeholder를 security 키로 통일
+Commands run (user):
+- <none>
+Logs/Artifacts:
+- <none>
+Next:
+- MFA/삭제/비번 변경 플로우 수동 검증
+- Google MFA 흐름 재점검

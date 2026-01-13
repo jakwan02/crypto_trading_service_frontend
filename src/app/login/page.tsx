@@ -14,6 +14,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaProvider, setMfaProvider] = useState<"password" | "google" | null>(null);
+  const [googleIdToken, setGoogleIdToken] = useState("");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [errorDetail, setErrorDetail] = useState("");
@@ -50,12 +52,28 @@ export default function LoginPage() {
   }, [retryAfterSec]);
 
   const isLocked = retryAfterSec !== null && (remainingSec ?? retryAfterSec) > 0;
+  const isGoogleMfa = mfaRequired && mfaProvider === "google";
 
   const formatRemaining = (value: number | null) => {
     if (value === null) return "";
     const min = Math.floor(value / 60);
     const sec = value % 60;
     return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  };
+
+  const resetMfaState = () => {
+    setMfaRequired(false);
+    setMfaProvider(null);
+    setOtpCode("");
+    setGoogleIdToken("");
+  };
+
+  const finalizeLogin = () => {
+    resetMfaState();
+    setRetryAfterSec(null);
+    setRemainingSec(null);
+    setLockUntil("");
+    router.replace(nextPath);
   };
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -67,16 +85,29 @@ export default function LoginPage() {
     setStatus("");
     setSubmitting(true);
     try {
+      if (isGoogleMfa) {
+        // # 변경 이유: Google 로그인에서도 MFA 코드 입력 후 재시도 플로우를 지원
+        if (!googleIdToken) {
+          setError(t("auth.loginFailed"));
+          return;
+        }
+        const result = await signInWithGoogleIdToken(googleIdToken, { mfaCode: otpCode });
+        if (result.mfaRequired) {
+          setStatus(t("auth.mfaPrompt"));
+          return;
+        }
+        finalizeLogin();
+        return;
+      }
       const result = await login(email, password, mfaRequired ? { mfaCode: otpCode } : undefined);
       if (result.mfaRequired) {
         setMfaRequired(true);
+        setMfaProvider("password");
+        setGoogleIdToken("");
         setStatus(t("auth.mfaPrompt"));
         return;
       }
-      setRetryAfterSec(null);
-      setRemainingSec(null);
-      setLockUntil("");
-      router.replace(nextPath);
+      finalizeLogin();
     } catch (err) {
       const info = parseAuthError(err);
       if (info) {
@@ -102,11 +133,20 @@ export default function LoginPage() {
   const handleGoogleIdToken = async (idToken: string) => {
     if (submitting) return;
     setError("");
+    setErrorDetail("");
+    setEmailNotVerified(false);
     setStatus(t("auth.redirecting"));
     setSubmitting(true);
     try {
-      await signInWithGoogleIdToken(idToken);
-      router.replace(nextPath);
+      const result = await signInWithGoogleIdToken(idToken);
+      if (result.mfaRequired) {
+        setGoogleIdToken(idToken);
+        setMfaRequired(true);
+        setMfaProvider("google");
+        setStatus(t("auth.mfaPrompt"));
+        return;
+      }
+      finalizeLogin();
     } catch (err) {
       const info = parseAuthError(err);
       if (info) {
@@ -133,22 +173,24 @@ export default function LoginPage() {
             <div>
               <label className="text-xs font-semibold text-gray-600">{t("auth.emailLabel")}</label>
               <input
-                required
+                required={!isGoogleMfa}
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 autoComplete="email"
+                disabled={isGoogleMfa}
                 className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
               />
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-600">{t("auth.passwordLabel")}</label>
               <input
-                required
+                required={!isGoogleMfa}
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete="current-password"
+                disabled={isGoogleMfa}
                 className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
               />
             </div>

@@ -75,7 +75,13 @@ export default function SignupPage() {
     setStatus(t("auth.redirecting"));
     setSubmitting(true);
     try {
-      await signInWithGoogleIdToken(idToken);
+      // # 변경 이유: Google 로그인 MFA 요구 시 사용자에게 안내하고 로그인 흐름으로 유도
+      const result = await signInWithGoogleIdToken(idToken);
+      if (result.mfaRequired) {
+        setStatus("");
+        setError(t("auth.mfaPrompt"));
+        return;
+      }
       router.replace("/market");
     } catch (err) {
       const message = err instanceof Error ? err.message : t("auth.signupFailed");

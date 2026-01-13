@@ -371,6 +371,7 @@ export default function SecurityPage() {
                       </li>
                     ))}
                   </ul>
+                  <p className="mt-3 text-[11px] text-amber-600">{t("security.backupOneTimeNotice")}</p>
                 </div>
               ) : null}
               {copyStatus ? <p className="mt-3 text-xs text-primary">{copyStatus}</p> : null}
@@ -438,7 +439,7 @@ export default function SecurityPage() {
                 type="password"
                 value={newPassword}
                 onChange={(event) => setNewPassword(event.target.value)}
-                placeholder={t("auth.passwordPlaceholder")}
+                placeholder={t("security.newPasswordPlaceholder")}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
               />
               <label className="text-xs font-semibold text-gray-600">{t("security.newPasswordConfirmLabel")}</label>
@@ -446,7 +447,7 @@ export default function SecurityPage() {
                 type="password"
                 value={newPasswordConfirm}
                 onChange={(event) => setNewPasswordConfirm(event.target.value)}
-                placeholder={t("auth.passwordConfirmPlaceholder")}
+                placeholder={t("security.newPasswordConfirmPlaceholder")}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
               />
               <button
