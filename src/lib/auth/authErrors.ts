@@ -60,6 +60,15 @@ export function buildAuthMessage(info: AuthErrorInfo, t: (key: string, vars?: Re
   if (code === "expired_token") {
     return { message: t("auth.errorExpiredToken") };
   }
+  if (code === "password_already_set") {
+    return { message: t("security.passwordAlreadySet") };
+  }
+  if (code === "password_too_short") {
+    return { message: t("auth.passwordTooShort") };
+  }
+  if (code === "password_has_whitespace") {
+    return { message: t("auth.passwordNoWhitespace") };
+  }
   if (code === "email_not_verified") {
     return { message: t("auth.errorEmailNotVerified") };
   }

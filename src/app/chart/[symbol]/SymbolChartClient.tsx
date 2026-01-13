@@ -51,7 +51,13 @@ export default function SymbolChartClient({ symbol }: Props) {
     setLivePrice(candle.close);
   }, []);
   const tfLabel = tf;
-  const [, setFlashTick] = useState(0);
+  const [flashView, setFlashView] = useState<{
+    priceDir?: number;
+    priceUntil?: number;
+    changeUntil?: number;
+    volumeUntil?: number;
+    quoteUntil?: number;
+  }>({});
   const prevRef = useRef<{
     price: number;
     change: number;
@@ -98,7 +104,8 @@ export default function SymbolChartClient({ symbol }: Props) {
   useEffect(() => {
     prevRef.current = null;
     flashRef.current = {};
-    setLivePrice(null);
+    queueMicrotask(() => setLivePrice(null));
+    queueMicrotask(() => setFlashView({}));
   }, [sym, tf]);
 
   const priceValue = Number.isFinite(livePrice ?? NaN) ? Number(livePrice) : info?.price ?? NaN;
@@ -175,27 +182,47 @@ export default function SymbolChartClient({ symbol }: Props) {
 
     prevRef.current = next;
 
-    if (changed) setFlashTick((v) => v + 1);
+    if (changed) queueMicrotask(() => setFlashView({ ...flashRef.current }));
     if (nextTimerAt > 0) {
       if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
       const delay = Math.max(0, nextTimerAt - Date.now());
       flashTimerRef.current = window.setTimeout(() => {
-        setFlashTick((v) => v + 1);
+        const now = Date.now();
+        const next = { ...flashRef.current };
+        let pruned = false;
+        if (next.priceUntil && next.priceUntil <= now) {
+          delete next.priceUntil;
+          delete next.priceDir;
+          pruned = true;
+        }
+        if (next.changeUntil && next.changeUntil <= now) {
+          delete next.changeUntil;
+          pruned = true;
+        }
+        if (next.volumeUntil && next.volumeUntil <= now) {
+          delete next.volumeUntil;
+          pruned = true;
+        }
+        if (next.quoteUntil && next.quoteUntil <= now) {
+          delete next.quoteUntil;
+          pruned = true;
+        }
+        if (pruned) flashRef.current = next;
+        setFlashView({ ...flashRef.current });
       }, delay + 20);
     }
   }, [info, priceValue]);
 
-  const flash = flashRef.current;
-  const now = Date.now();
+  const flash = flashView;
   const priceFlash =
-    flash.priceUntil && flash.priceUntil > now
+    flash.priceUntil
       ? flash.priceDir && flash.priceDir > 0
         ? "flash-price-up"
         : "flash-price-down"
       : "";
-  const changeFlash = flash.changeUntil && flash.changeUntil > now ? "flash-blink" : "";
-  const volumeFlash = flash.volumeUntil && flash.volumeUntil > now ? "flash-blink" : "";
-  const quoteFlash = flash.quoteUntil && flash.quoteUntil > now ? "flash-blink" : "";
+  const changeFlash = flash.changeUntil ? "flash-blink" : "";
+  const volumeFlash = flash.volumeUntil ? "flash-blink" : "";
+  const quoteFlash = flash.quoteUntil ? "flash-blink" : "";
 
   if (!sym) {
     return (

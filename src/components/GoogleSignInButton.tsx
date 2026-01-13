@@ -128,10 +128,12 @@ export function GoogleSignInButton({
           }
         });
 
-        const width = Math.floor(containerRef.current.getBoundingClientRect().width || 0);
-        containerRef.current.innerHTML = "";
+        const container = containerRef.current;
+        if (!container) return;
+        const width = Math.floor(container.getBoundingClientRect().width || 0);
+        container.innerHTML = "";
         // # 변경 이유: 전환율을 위해 인지성이 높은 기본 테마(blue) + Continue UX 유지
-        googleId.renderButton(containerRef.current, {
+        googleId.renderButton(container, {
           type: "standard",
           theme: "filled_blue",
           size: "large",

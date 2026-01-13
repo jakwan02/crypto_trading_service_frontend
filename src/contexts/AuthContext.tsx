@@ -22,6 +22,7 @@ type AppUser = {
   role?: string;
   plan?: string;
   mfa_enabled?: boolean;
+  has_password?: boolean;
   is_active?: boolean;
 };
 
@@ -113,6 +114,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSessionReady(true);
   }, []);
 
+  const hydrateMe = useCallback(async () => {
+    const me = await apiRequest<AccountMeResponse>("/account/me", {
+      method: "GET",
+      headers: getAuthHeaders()
+    });
+    setUser(me ?? null);
+    if (me?.plan) {
+      setPlan({ code: me.plan as PlanCode });
+    } else {
+      setPlan(null);
+    }
+  }, []);
+
   const refresh = useCallback(async () => {
     try {
       const payload = await apiRequest<RefreshResponse>("/auth/refresh", { method: "POST", csrf: true });
@@ -120,22 +134,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Invalid refresh response.");
       }
       setAcc(payload.access_token);
-      const me = await apiRequest<AccountMeResponse>("/account/me", {
-        method: "GET",
-        headers: getAuthHeaders()
-      });
-      setUser(me ?? null);
-      if (me?.plan) {
-        setPlan({ code: me.plan as PlanCode });
-      } else {
-        setPlan(null);
-      }
+      await hydrateMe();
     } catch {
       clearSession();
     } finally {
       setSessionReady(true);
     }
-  }, [clearSession]);
+  }, [clearSession, hydrateMe]);
 
   useEffect(() => {
     if (typeof document !== "undefined") {
@@ -160,6 +165,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         applyAuthPayload(response);
+        try {
+          await hydrateMe();
+        } catch {
+          // ignore
+        }
         return {};
       } catch (err) {
         const mfa = parseMfaError(err);
@@ -167,7 +177,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw err;
       }
     },
-    [applyAuthPayload]
+    [applyAuthPayload, hydrateMe]
   );
 
   const signup = useCallback(
@@ -191,6 +201,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           json: payload
         });
         applyAuthPayload(response);
+        try {
+          await hydrateMe();
+        } catch {
+          // ignore
+        }
         return {};
       } catch (err) {
         const mfa = parseMfaError(err);
@@ -198,7 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw err;
       }
     },
-    [applyAuthPayload]
+    [applyAuthPayload, hydrateMe]
   );
 
   const signInWithGoogle = useCallback(async () => {
@@ -230,7 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signup,
       refresh
     }),
-    [login, plan, refresh, sessionReady, signInWithGoogle, signInWithGoogleIdToken, signOut, user]
+    [login, plan, refresh, sessionReady, signInWithGoogle, signInWithGoogleIdToken, signOut, signup, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

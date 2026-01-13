@@ -37,6 +37,7 @@ export default function SecurityPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const mfaEnabled = Boolean(user?.mfa_enabled);
+  const hasPassword = Boolean(user?.has_password);
 
   const [setupUrl, setSetupUrl] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
@@ -142,6 +143,10 @@ export default function SecurityPage() {
   };
 
   const handleDisable = async () => {
+    if (!hasPassword) {
+      router.push(`/account/password-set?next=${encodeURIComponent("/account/security#mfa")}`);
+      return;
+    }
     if (submitting || !disablePassword || !mfaActionCode) return;
     setError("");
     setStatus("");
@@ -177,6 +182,10 @@ export default function SecurityPage() {
   };
 
   const handlePasswordChange = async () => {
+    if (!hasPassword) {
+      router.push(`/account/password-set?next=${encodeURIComponent("/account/security#password")}`);
+      return;
+    }
     if (submitting || !currentPassword || !newPassword || !newPasswordConfirm) return;
     const validation = validatePassword(newPassword);
     if (validation) {
@@ -209,6 +218,10 @@ export default function SecurityPage() {
   };
 
   const handleDelete = async () => {
+    if (!hasPassword) {
+      router.push(`/account/password-set?next=${encodeURIComponent("/account/security#delete")}`);
+      return;
+    }
     if (submitting || !deletePassword) return;
     if (mfaEnabled && !deleteMfaCode) return;
     setError("");
@@ -243,8 +256,22 @@ export default function SecurityPage() {
             <p className="mt-1 text-sm text-gray-500">{t("security.desc")}</p>
           </header>
 
+          {!hasPassword ? (
+            <div className="mb-4 rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+              <h2 className="text-sm font-semibold text-amber-900">{t("security.passwordMissingTitle")}</h2>
+              <p className="mt-2 text-sm text-amber-800">{t("security.passwordMissingDesc")}</p>
+              <button
+                type="button"
+                onClick={() => router.push(`/account/password-set?next=${encodeURIComponent("/account/security")}`)}
+                className="mt-4 inline-flex rounded-full bg-amber-600 px-4 py-2 text-xs font-semibold text-white"
+              >
+                {t("security.passwordMissingCta")}
+              </button>
+            </div>
+          ) : null}
+
           <section className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div id="mfa" className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
               <h2 className="text-sm font-semibold text-gray-900">{t("security.mfaTitle")}</h2>
               <p className="mt-2 text-sm text-gray-600">
                 {mfaEnabled ? t("security.mfaStatusOn") : t("security.mfaStatusOff")}
@@ -310,48 +337,68 @@ export default function SecurityPage() {
                     </div>
                   ) : null}
                 </div>
-              ) : (
-                <div className="mt-4 space-y-3">
-	                  <label className="text-xs font-semibold text-gray-600">{t("security.mfaCodeLabel")}</label>
-	                  <input
+	              ) : (
+	                <div className="mt-4 space-y-3">
+		                  <label className="text-xs font-semibold text-gray-600">{t("security.mfaCodeLabel")}</label>
+		                  <input
 	                    name="security-mfa-action-code"
 	                    autoComplete="off"
 	                    inputMode="numeric"
 	                    value={mfaActionCode}
 	                    onChange={(event) => setMfaActionCode(event.target.value)}
-	                    placeholder={t("security.mfaCodePlaceholder")}
-	                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-	                  />
-	                  <label className="text-xs font-semibold text-gray-600">{t("security.passwordLabel")}</label>
-	                  <input
-	                    type="password"
-	                    name="security-mfa-disable-password"
-	                    autoComplete="new-password"
-	                    value={disablePassword}
-	                    onChange={(event) => setDisablePassword(event.target.value)}
-	                    placeholder={t("security.passwordPlaceholder")}
-	                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-	                  />
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={handleRegenerate}
+		                    placeholder={t("security.mfaCodePlaceholder")}
+		                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+		                  />
+                      {hasPassword ? (
+		                    <>
+		                      <label className="text-xs font-semibold text-gray-600">{t("security.passwordLabel")}</label>
+		                      <input
+		                        type="password"
+		                        name="security-mfa-disable-password"
+		                        autoComplete="new-password"
+		                        value={disablePassword}
+		                        onChange={(event) => setDisablePassword(event.target.value)}
+		                        placeholder={t("security.passwordPlaceholder")}
+		                        className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+		                      />
+		                    </>
+                      ) : (
+                        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+                          <p className="font-semibold">{t("security.passwordMissingTitle")}</p>
+                          <p className="mt-1 text-[11px] text-amber-800">{t("security.passwordMissingDesc")}</p>
+                        </div>
+                      )}
+	                  <div className="flex flex-wrap gap-2">
+	                    <button
+	                      type="button"
+	                      onClick={handleRegenerate}
                       disabled={submitting || !mfaActionCode}
                       className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700"
                     >
-                      {t("security.backupRegenerate")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDisable}
-                      disabled={submitting || !mfaActionCode || !disablePassword}
-                      className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600"
-                    >
-                      {t("security.mfaDisable")}
-                    </button>
-                  </div>
-                </div>
-              )}
+	                      {t("security.backupRegenerate")}
+	                    </button>
+                      {hasPassword ? (
+	                      <button
+	                        type="button"
+	                        onClick={handleDisable}
+	                        disabled={submitting || !mfaActionCode || !disablePassword}
+	                        className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600"
+	                      >
+	                        {t("security.mfaDisable")}
+	                      </button>
+                      ) : (
+	                      <button
+	                        type="button"
+	                        onClick={() => router.push(`/account/password-set?next=${encodeURIComponent("/account/security#mfa")}`)}
+	                        disabled={submitting}
+	                        className="rounded-full bg-amber-600 px-4 py-2 text-xs font-semibold text-white"
+	                      >
+	                        {t("security.passwordMissingCta")}
+	                      </button>
+                      )}
+	                  </div>
+	                </div>
+	              )}
 
               {backupCodes.length ? (
                 <div className="mt-5 rounded-2xl border border-gray-200 bg-gray-50 p-4">
@@ -387,103 +434,131 @@ export default function SecurityPage() {
               {copyStatus ? <p className="mt-3 text-xs text-primary">{copyStatus}</p> : null}
             </div>
 
-            <div className="rounded-3xl border border-rose-200 bg-white p-6 shadow-sm">
+            <div id="delete" className="rounded-3xl border border-rose-200 bg-white p-6 shadow-sm">
               <h2 className="text-sm font-semibold text-rose-600">{t("security.deleteTitle")}</h2>
               <p className="mt-2 text-sm text-gray-600">{t("security.deleteDesc")}</p>
               {purgeAfterDays !== null ? (
                 <p className="mt-2 text-xs text-rose-500">{t("security.deletePurge", { days: purgeAfterDays })}</p>
               ) : null}
-              <div className="mt-4 space-y-3">
-                <label className="text-xs font-semibold text-gray-600">{t("security.passwordLabel")}</label>
-	                <input
-	                  type="password"
-	                  name="security-delete-password"
-	                  autoComplete="new-password"
-	                  value={deletePassword}
-	                  onChange={(event) => setDeletePassword(event.target.value)}
-	                  placeholder={t("security.passwordPlaceholder")}
-	                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-	                />
-                {mfaEnabled ? (
-                  <>
-	                    <label className="text-xs font-semibold text-gray-600">{t("security.mfaCodeLabel")}</label>
-	                    <input
-	                      name="security-delete-mfa-code"
-	                      autoComplete="off"
-	                      inputMode="numeric"
-	                      value={deleteMfaCode}
-	                      onChange={(event) => setDeleteMfaCode(event.target.value)}
-	                      placeholder={t("security.mfaCodePlaceholder")}
-	                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-	                    />
-                  </>
-                ) : null}
-                <label className="text-xs font-semibold text-gray-600">{t("security.deleteReason")}</label>
-	                <input
-	                  name="security-delete-reason"
-	                  autoComplete="off"
-	                  value={deleteReason}
-	                  onChange={(event) => setDeleteReason(event.target.value)}
-	                  placeholder={t("security.deleteReasonPlaceholder")}
-	                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-	                />
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  disabled={submitting || !deletePassword || (mfaEnabled && !deleteMfaCode)}
-                  className="rounded-full bg-rose-500 px-4 py-2 text-xs font-semibold text-white"
-                >
-                  {t("security.deleteCta")}
-                </button>
-              </div>
+              {hasPassword ? (
+                <div className="mt-4 space-y-3">
+                  <label className="text-xs font-semibold text-gray-600">{t("security.passwordLabel")}</label>
+		                  <input
+		                    type="password"
+		                    name="security-delete-password"
+		                    autoComplete="new-password"
+		                    value={deletePassword}
+		                    onChange={(event) => setDeletePassword(event.target.value)}
+		                    placeholder={t("security.passwordPlaceholder")}
+		                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+		                  />
+                  {mfaEnabled ? (
+                    <>
+		                      <label className="text-xs font-semibold text-gray-600">{t("security.mfaCodeLabel")}</label>
+		                      <input
+		                        name="security-delete-mfa-code"
+		                        autoComplete="off"
+		                        inputMode="numeric"
+		                        value={deleteMfaCode}
+		                        onChange={(event) => setDeleteMfaCode(event.target.value)}
+		                        placeholder={t("security.mfaCodePlaceholder")}
+		                        className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+		                      />
+                    </>
+                  ) : null}
+                  <label className="text-xs font-semibold text-gray-600">{t("security.deleteReason")}</label>
+		                  <input
+		                    name="security-delete-reason"
+		                    autoComplete="off"
+		                    value={deleteReason}
+		                    onChange={(event) => setDeleteReason(event.target.value)}
+		                    placeholder={t("security.deleteReasonPlaceholder")}
+		                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+		                  />
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={submitting || !deletePassword || (mfaEnabled && !deleteMfaCode)}
+                    className="rounded-full bg-rose-500 px-4 py-2 text-xs font-semibold text-white"
+                  >
+                    {t("security.deleteCta")}
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  <p className="font-semibold">{t("security.passwordMissingTitle")}</p>
+                  <p className="mt-1 text-sm text-amber-800">{t("security.passwordMissingDesc")}</p>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/account/password-set?next=${encodeURIComponent("/account/security#delete")}`)}
+                    className="mt-3 inline-flex rounded-full bg-amber-600 px-4 py-2 text-xs font-semibold text-white"
+                  >
+                    {t("security.passwordMissingCta")}
+                  </button>
+                </div>
+              )}
             </div>
           </section>
 
-          <section className="mt-4 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+          <section id="password" className="mt-4 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="text-sm font-semibold text-gray-900">{t("security.passwordChangeTitle")}</h2>
             <p className="mt-2 text-sm text-gray-600">{t("security.passwordChangeDesc")}</p>
-            <div className="mt-4 space-y-3">
-              <label className="text-xs font-semibold text-gray-600">{t("security.currentPasswordLabel")}</label>
-	              <input
-	                type="password"
-	                name="security-current-password"
-	                autoComplete="new-password"
-	                value={currentPassword}
-	                onChange={(event) => setCurrentPassword(event.target.value)}
-	                placeholder={t("security.passwordPlaceholder")}
-	                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-	              />
-	              <label className="text-xs font-semibold text-gray-600">{t("security.newPasswordLabel")}</label>
-	              <input
-	                type="password"
-	                name="security-new-password"
-	                autoComplete="new-password"
-	                value={newPassword}
-	                onChange={(event) => setNewPassword(event.target.value)}
-	                placeholder={t("security.newPasswordPlaceholder")}
-	                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-	              />
-	              <label className="text-xs font-semibold text-gray-600">{t("security.newPasswordConfirmLabel")}</label>
-	              <input
-	                type="password"
-	                name="security-new-password-confirm"
-	                autoComplete="new-password"
-	                value={newPasswordConfirm}
-	                onChange={(event) => setNewPasswordConfirm(event.target.value)}
-	                placeholder={t("security.newPasswordConfirmPlaceholder")}
-	                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-	              />
-              <button
-                type="button"
-                onClick={handlePasswordChange}
-                disabled={submitting || !currentPassword || !newPassword || !newPasswordConfirm}
-                className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {t("security.passwordChangeCta")}
-              </button>
-              {passwordError ? <p className="text-xs text-rose-500">{passwordError}</p> : null}
-              {passwordStatus ? <p className="text-xs text-primary">{passwordStatus}</p> : null}
-            </div>
+            {hasPassword ? (
+              <div className="mt-4 space-y-3">
+                <label className="text-xs font-semibold text-gray-600">{t("security.currentPasswordLabel")}</label>
+		                <input
+		                  type="password"
+		                  name="security-current-password"
+		                  autoComplete="new-password"
+		                  value={currentPassword}
+		                  onChange={(event) => setCurrentPassword(event.target.value)}
+		                  placeholder={t("security.passwordPlaceholder")}
+		                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+		                />
+		                <label className="text-xs font-semibold text-gray-600">{t("security.newPasswordLabel")}</label>
+		                <input
+		                  type="password"
+		                  name="security-new-password"
+		                  autoComplete="new-password"
+		                  value={newPassword}
+		                  onChange={(event) => setNewPassword(event.target.value)}
+		                  placeholder={t("security.newPasswordPlaceholder")}
+		                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+		                />
+		                <label className="text-xs font-semibold text-gray-600">{t("security.newPasswordConfirmLabel")}</label>
+		                <input
+		                  type="password"
+		                  name="security-new-password-confirm"
+		                  autoComplete="new-password"
+		                  value={newPasswordConfirm}
+		                  onChange={(event) => setNewPasswordConfirm(event.target.value)}
+		                  placeholder={t("security.newPasswordConfirmPlaceholder")}
+		                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+		                />
+                <button
+                  type="button"
+                  onClick={handlePasswordChange}
+                  disabled={submitting || !currentPassword || !newPassword || !newPasswordConfirm}
+                  className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {t("security.passwordChangeCta")}
+                </button>
+                {passwordError ? <p className="text-xs text-rose-500">{passwordError}</p> : null}
+                {passwordStatus ? <p className="text-xs text-primary">{passwordStatus}</p> : null}
+              </div>
+            ) : (
+              <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                <p className="font-semibold text-gray-900">{t("security.passwordMissingTitle")}</p>
+                <p className="mt-1 text-sm text-gray-600">{t("security.passwordMissingDesc")}</p>
+                <button
+                  type="button"
+                  onClick={() => router.push(`/account/password-set?next=${encodeURIComponent("/account/security#password")}`)}
+                  className="mt-3 inline-flex rounded-full bg-primary px-4 py-2 text-xs font-semibold text-ink"
+                >
+                  {t("security.passwordMissingCta")}
+                </button>
+              </div>
+            )}
           </section>
 
           {error ? <p className="mt-4 text-xs text-rose-500">{error}</p> : null}

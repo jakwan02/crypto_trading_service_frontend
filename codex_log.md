@@ -903,3 +903,20 @@ Logs/Artifacts:
 - <none>
 Next:
 - /account/security 진입 시 입력칸에 값이 자동으로 채워지는지(예: admin) 확인
+2026-01-13 16:29 (local)
+Task: Google 가입 계정 비밀번호 set 플로우 프론트 반영
+Scope: src/app/account/password-set/page.tsx, src/app/account/security/page.tsx, src/contexts/AuthContext.tsx, src/lib/auth/authErrors.ts, src/i18n/locales/ko.ts, src/i18n/locales/en.ts, src/types/qrcode.d.ts, src/components/GoogleSignInButton.tsx, src/app/chart/[symbol]/SymbolChartClient.tsx
+Why: pw_hash=null Google 계정이 탈퇴/2FA disable 등 비밀번호 기반 기능을 사용할 수 있도록, has_password 분기 + Google 재인증 기반 비밀번호 설정 화면을 추가하기 위해
+Key changes:
+- /account/password-set 페이지 추가(google_id_token 재인증 + new_password 설정 + 2FA 시 mfa_code 입력)
+- /account/security에서 has_password=false일 때 비밀번호 설정 CTA로 유도하고, 탈퇴/2FA disable/비밀번호 변경을 set 플로우로 연결
+- 로그인 직후 /account/me를 hydrate해 mfa_enabled/has_password 상태를 즉시 반영
+- 빌드 실패(Typescript) 방지를 위한 qrcode 타입 선언 및 GoogleSignInButton null 안전 처리
+Commands run (user):
+- npm run lint -> 성공(경고만)
+- npm run build -> 성공
+Logs/Artifacts:
+- N/A
+Next:
+- 운영: Google 계정(비밀번호 없음)으로 /account/security → 비밀번호 설정 → 탈퇴/2FA disable 진행 E2E 확인
+- 운영: 2FA 켠 계정에서 /account/password-set의 mfa_code(TOTP/백업코드) 검증 확인
