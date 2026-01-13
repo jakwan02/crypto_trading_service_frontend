@@ -64,6 +64,10 @@ export function buildAuthMessage(info: AuthErrorInfo, t: (key: string, vars?: Re
     return { message: t("auth.errorEmailNotVerified") };
   }
   if (code === "account_inactive") {
+    const days = typeof meta.remaining_days === "number" ? meta.remaining_days : undefined;
+    if (days !== undefined) {
+      return { message: t("auth.errorAccountInactiveWithDays", { days }) };
+    }
     return { message: t("auth.errorAccountInactive") };
   }
   return { message: t("auth.requestFailed") };

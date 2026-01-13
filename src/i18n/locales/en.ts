@@ -371,6 +371,7 @@ const en = {
     errorExpiredToken: "The token has expired.",
     errorEmailNotVerified: "Email verification is required.",
     errorAccountInactive: "This account has been deleted. You can sign up again after the retention period.",
+    errorAccountInactiveWithDays: "You can sign up again in {{days}} days.",
     verifyNowCta: "Verify email",
     rejoinCta: "Sign up again",
     verifyAutoRedirect: "Redirecting to the sign in page shortly.",

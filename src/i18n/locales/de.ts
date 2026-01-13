@@ -371,6 +371,7 @@ const de = {
     errorExpiredToken: "Token ist abgelaufen.",
     errorEmailNotVerified: "E-Mail-Bestätigung ist erforderlich.",
     errorAccountInactive: "Dieses Konto wurde gelöscht. Eine erneute Registrierung ist nach der Aufbewahrungsfrist möglich.",
+    errorAccountInactiveWithDays: "Eine erneute Registrierung ist in {{days}} Tagen möglich.",
     verifyNowCta: "E-Mail bestätigen",
     rejoinCta: "Erneut registrieren",
     verifyAutoRedirect: "Weiterleitung zur Anmeldung in Kürze.",

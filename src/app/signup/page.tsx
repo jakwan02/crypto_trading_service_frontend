@@ -84,8 +84,7 @@ export default function SignupPage() {
       }
       router.replace("/market");
     } catch (err) {
-      const message = err instanceof Error ? err.message : t("auth.signupFailed");
-      setError(message);
+      setError(t("auth.requestFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -175,7 +174,7 @@ export default function SignupPage() {
             <GoogleSignInButton
               onIdToken={handleGoogleIdToken}
               disabled={submitting}
-              onError={setError}
+              onError={() => setError(t("auth.requestFailed"))}
               showInlineError={false}
             />
           </div>

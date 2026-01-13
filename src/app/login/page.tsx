@@ -126,8 +126,7 @@ export default function LoginPage() {
           setStatus(t("auth.lockedCtaHint"));
         }
       } else {
-        const fallback = err instanceof Error ? err.message : t("auth.loginFailed");
-        setError(fallback);
+        setError(t("auth.requestFailed"));
       }
     } finally {
       setSubmitting(false);
@@ -159,8 +158,7 @@ export default function LoginPage() {
         setError(message.message);
         if (info.code === "account_inactive") setAccountInactive(true);
       } else {
-        const message = err instanceof Error ? err.message : t("auth.loginFailed");
-        setError(message);
+        setError(t("auth.requestFailed"));
       }
     } finally {
       setSubmitting(false);
@@ -241,7 +239,7 @@ export default function LoginPage() {
             <GoogleSignInButton
               onIdToken={handleGoogleIdToken}
               disabled={submitting}
-              onError={setError}
+              onError={() => setError(t("auth.requestFailed"))}
               showInlineError={false}
             />
           </div>

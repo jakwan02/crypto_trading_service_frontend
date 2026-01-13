@@ -371,6 +371,7 @@ const ko = {
     errorExpiredToken: "토큰이 만료되었습니다.",
     errorEmailNotVerified: "이메일 인증이 필요합니다.",
     errorAccountInactive: "탈퇴 처리된 계정입니다. 일정 기간 후 다시 가입할 수 있습니다.",
+    errorAccountInactiveWithDays: "{{days}}일 후 다시 가입할 수 있습니다.",
     verifyNowCta: "이메일 인증하기",
     rejoinCta: "다시 가입하기",
     verifyAutoRedirect: "잠시 후 로그인 페이지로 이동합니다.",

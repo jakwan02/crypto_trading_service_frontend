@@ -371,6 +371,7 @@ const ja = {
     errorExpiredToken: "トークンの有効期限が切れています。",
     errorEmailNotVerified: "メール認証が必要です。",
     errorAccountInactive: "このアカウントは退会済みです。保留期間後に再登録できます。",
+    errorAccountInactiveWithDays: "{{days}}日後に再登録できます。",
     verifyNowCta: "メール認証へ",
     rejoinCta: "再登録する",
     verifyAutoRedirect: "まもなくログイン画面へ移動します。",

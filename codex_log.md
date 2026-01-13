@@ -833,3 +833,18 @@ Logs/Artifacts:
 Next:
 - 프론트에서 탈퇴 후 /account/deleted UX 확인
 - 탈퇴 계정 Google 로그인 시 account_inactive 안내/CTA 확인
+2026-01-13 14:28 (local)
+Task: 탈퇴 계정 로그인 UX 개선(account_inactive meta+다국어 메시지)
+Scope: src/lib/auth/authErrors.ts, src/app/login/page.tsx, src/app/signup/page.tsx, src/i18n/locales/ko.ts, src/i18n/locales/en.ts, src/i18n/locales/ja.ts, src/i18n/locales/de.ts, ../backend/app/app_api/auth.py, ../backend/docs/CONTRACTS.md
+Why: 탈퇴 계정 로그인 시 서버 코드 문자열 노출 없이 재가입 가능까지 남은 기간을 사용자 친화적으로 안내하기 위해.
+Key changes:
+- 백엔드 account_inactive에 meta.remaining_days 등 추가(탈퇴 유예 기반)
+- 프론트 account_inactive를 i18n으로 매핑하고 days가 있으면 "{{days}}일 후" 메시지 표시
+- 인증 UI에서 err.message 직접 노출을 제거하고 일반 메시지로 통일
+Commands run (user):
+- <none>
+Logs/Artifacts:
+- <none>
+Next:
+- 탈퇴 계정으로 /auth/login,/auth/google 시 account_inactive meta 전달 확인
+- 로그인 화면에서 재가입 CTA/문구 확인
