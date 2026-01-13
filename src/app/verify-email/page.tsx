@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/appClient";
 import { buildAuthMessage, parseAuthError } from "@/lib/auth/authErrors";
+import { resolveNextPath } from "@/lib/auth/redirect";
 
 type VerifyState = "idle" | "verifying" | "verified" | "already_verified" | "expired" | "invalid";
 
 export default function VerifyEmailPage() {
   const { t } = useTranslation();
+  const router = useRouter();
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [mode, setMode] = useState<"email" | "token">("email");
@@ -18,6 +21,7 @@ export default function VerifyEmailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [email, setEmail] = useState("");
   const [token, setToken] = useState("");
+  const [nextPath, setNextPath] = useState("/market");
 
   useEffect(() => {
     /* # 변경 이유: Next prerender 시 useSearchParams 사용으로 빌드 오류가 발생해, 클라이언트에서만 query 파라미터를 파싱 */
@@ -25,9 +29,11 @@ export default function VerifyEmailPage() {
     const params = new URLSearchParams(window.location.search);
     const nextEmail = params.get("email") || "";
     const nextToken = params.get("token") || "";
+    const next = resolveNextPath(window.location.search, "/market");
     setEmail(nextEmail);
     setToken(nextToken);
     setMode(nextToken ? "token" : "email");
+    setNextPath(next);
     if (nextEmail && !nextToken) setStatus(t("auth.signupSuccess"));
   }, []);
 
@@ -76,6 +82,15 @@ export default function VerifyEmailPage() {
       }
     })();
   }, [email, t, token]);
+
+  useEffect(() => {
+    if (verifyState !== "verified" && verifyState !== "already_verified") return;
+    const timer = window.setTimeout(() => {
+      const target = `/login?email=${encodeURIComponent(email)}&next=${encodeURIComponent(nextPath)}`;
+      router.replace(target);
+    }, 2500);
+    return () => window.clearTimeout(timer);
+  }, [email, nextPath, router, verifyState]);
 
   const handleResend = async () => {
     if (submitting) return;
@@ -144,6 +159,9 @@ export default function VerifyEmailPage() {
           ) : null}
           {error ? <p className="mt-4 text-xs text-rose-500">{error}</p> : null}
           {status ? <p className="mt-3 text-xs text-primary">{status}</p> : null}
+          {verifyState === "verified" || verifyState === "already_verified" ? (
+            <p className="mt-2 text-xs text-gray-400">{t("auth.verifyAutoRedirect")}</p>
+          ) : null}
 
           <div className="mt-6 text-sm text-gray-500">
             {verifyState === "verified" ? (

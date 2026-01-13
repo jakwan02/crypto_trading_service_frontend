@@ -60,5 +60,8 @@ export function buildAuthMessage(info: AuthErrorInfo, t: (key: string, vars?: Re
   if (code === "expired_token") {
     return { message: t("auth.errorExpiredToken") };
   }
+  if (code === "email_not_verified") {
+    return { message: t("auth.errorEmailNotVerified") };
+  }
   return { message: t("auth.requestFailed") };
 }

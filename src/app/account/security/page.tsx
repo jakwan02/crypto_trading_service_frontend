@@ -32,6 +32,7 @@ function parseSecret(otpauthUrl: string): string {
 }
 
 export default function SecurityPage() {
+  const PASSWORD_MIN_LENGTH = 12;
   const { user, refresh, signOut } = useAuth();
   const { t } = useTranslation();
   const router = useRouter();
@@ -46,12 +47,35 @@ export default function SecurityPage() {
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteMfaCode, setDeleteMfaCode] = useState("");
   const [deleteReason, setDeleteReason] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
+  const [passwordStatus, setPasswordStatus] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [copyStatus, setCopyStatus] = useState("");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [purgeAfterDays, setPurgeAfterDays] = useState<number | null>(null);
 
   const secret = useMemo(() => (setupUrl ? parseSecret(setupUrl) : ""), [setupUrl]);
+
+  const validatePassword = (value: string) => {
+    if (value.length < PASSWORD_MIN_LENGTH) return t("auth.passwordTooShort");
+    if (/\s/.test(value)) return t("auth.passwordNoWhitespace");
+    return "";
+  };
+
+  const copyText = async (value: string) => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopyStatus(t("security.copied"));
+      window.setTimeout(() => setCopyStatus(""), 1500);
+    } catch {
+      setCopyStatus("");
+    }
+  };
 
   const handleSetup = async () => {
     if (submitting) return;
@@ -152,6 +176,38 @@ export default function SecurityPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handlePasswordChange = async () => {
+    if (submitting || !currentPassword || !newPassword || !newPasswordConfirm) return;
+    const validation = validatePassword(newPassword);
+    if (validation) {
+      setPasswordError(validation);
+      return;
+    }
+    if (newPassword !== newPasswordConfirm) {
+      setPasswordError(t("auth.passwordMismatch"));
+      return;
+    }
+    setPasswordError("");
+    setPasswordStatus("");
+    setSubmitting(true);
+    try {
+      await apiRequest("/auth/password/change", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        json: { cur_password: currentPassword, new_password: newPassword }
+      });
+      setCurrentPassword("");
+      setNewPassword("");
+      setNewPasswordConfirm("");
+      setPasswordStatus(t("security.passwordChangeDone"));
+    } catch (err) {
+      const info = parseAuthError(err);
+      setPasswordError(info ? buildAuthMessage(info, t).message : t("auth.requestFailed"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (submitting || !deletePassword) return;
     if (mfaEnabled && !deleteMfaCode) return;
@@ -191,6 +247,15 @@ export default function SecurityPage() {
               <p className="mt-2 text-sm text-gray-600">
                 {mfaEnabled ? t("security.mfaStatusOn") : t("security.mfaStatusOff")}
               </p>
+              <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 text-xs text-gray-600">
+                <p className="text-xs font-semibold text-gray-700">{t("security.mfaHelpTitle")}</p>
+                <ol className="mt-2 space-y-1 text-xs text-gray-600">
+                  <li>{t("security.mfaHelpStep1")}</li>
+                  <li>{t("security.mfaHelpStep2")}</li>
+                  <li>{t("security.mfaHelpStep3")}</li>
+                </ol>
+                <p className="mt-2 text-[11px] text-amber-600">{t("security.mfaHelpBackupWarning")}</p>
+              </div>
 
               {!mfaEnabled ? (
                 <div className="mt-4 space-y-4">
@@ -208,7 +273,16 @@ export default function SecurityPage() {
                         <img src={qrDataUrl} alt="2FA QR" className="h-40 w-40 rounded-2xl border border-gray-200" />
                       ) : null}
                       <div className="rounded-2xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
-                        <p className="font-semibold text-gray-900">{t("security.mfaManualKey")}</p>
+                        <div className="flex items-center justify-between">
+                          <p className="font-semibold text-gray-900">{t("security.mfaManualKey")}</p>
+                          <button
+                            type="button"
+                            onClick={() => copyText(secret)}
+                            className="text-[11px] font-semibold text-primary"
+                          >
+                            {t("security.copy")}
+                          </button>
+                        </div>
                         <p className="mt-1 break-all">{secret || "-"}</p>
                       </div>
                       <div>
@@ -273,13 +347,22 @@ export default function SecurityPage() {
                 <div className="mt-5 rounded-2xl border border-gray-200 bg-gray-50 p-4">
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-semibold text-gray-700">{t("security.backupTitle")}</p>
-                    <button
-                      type="button"
-                      onClick={handleDownloadCodes}
-                      className="text-[11px] font-semibold text-primary"
-                    >
-                      {t("security.backupDownload")}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => copyText(backupCodes.join("\n"))}
+                        className="text-[11px] font-semibold text-primary"
+                      >
+                        {t("security.copy")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDownloadCodes}
+                        className="text-[11px] font-semibold text-primary"
+                      >
+                        {t("security.backupDownload")}
+                      </button>
+                    </div>
                   </div>
                   <ul className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-700">
                     {backupCodes.map((code) => (
@@ -290,6 +373,7 @@ export default function SecurityPage() {
                   </ul>
                 </div>
               ) : null}
+              {copyStatus ? <p className="mt-3 text-xs text-primary">{copyStatus}</p> : null}
             </div>
 
             <div className="rounded-3xl border border-rose-200 bg-white p-6 shadow-sm">
@@ -334,6 +418,47 @@ export default function SecurityPage() {
                   {t("security.deleteCta")}
                 </button>
               </div>
+            </div>
+          </section>
+
+          <section className="mt-4 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 className="text-sm font-semibold text-gray-900">{t("security.passwordChangeTitle")}</h2>
+            <p className="mt-2 text-sm text-gray-600">{t("security.passwordChangeDesc")}</p>
+            <div className="mt-4 space-y-3">
+              <label className="text-xs font-semibold text-gray-600">{t("security.currentPasswordLabel")}</label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                placeholder={t("security.passwordPlaceholder")}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+              />
+              <label className="text-xs font-semibold text-gray-600">{t("security.newPasswordLabel")}</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                placeholder={t("auth.passwordPlaceholder")}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+              />
+              <label className="text-xs font-semibold text-gray-600">{t("security.newPasswordConfirmLabel")}</label>
+              <input
+                type="password"
+                value={newPasswordConfirm}
+                onChange={(event) => setNewPasswordConfirm(event.target.value)}
+                placeholder={t("auth.passwordConfirmPlaceholder")}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+              />
+              <button
+                type="button"
+                onClick={handlePasswordChange}
+                disabled={submitting || !currentPassword || !newPassword || !newPasswordConfirm}
+                className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {t("security.passwordChangeCta")}
+              </button>
+              {passwordError ? <p className="text-xs text-rose-500">{passwordError}</p> : null}
+              {passwordStatus ? <p className="text-xs text-primary">{passwordStatus}</p> : null}
             </div>
           </section>
 

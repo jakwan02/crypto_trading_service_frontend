@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { buildAuthMessage, parseAuthError } from "@/lib/auth/authErrors";
+import { resolveNextPath } from "@/lib/auth/redirect";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 
 export default function LoginPage() {
@@ -16,6 +17,7 @@ export default function LoginPage() {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [errorDetail, setErrorDetail] = useState("");
+  const [emailNotVerified, setEmailNotVerified] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [nextPath, setNextPath] = useState("/market");
   const [lockUntil, setLockUntil] = useState("");
@@ -29,8 +31,10 @@ export default function LoginPage() {
     /* # 변경 이유: Next prerender 시 useSearchParams 사용으로 빌드 오류가 발생해, 클라이언트에서만 next 파라미터를 파싱 */
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    const next = params.get("next");
-    if (next && next.startsWith("/")) setNextPath(next);
+    const next = resolveNextPath(window.location.search, "/market");
+    const nextEmail = params.get("email");
+    if (nextEmail) setEmail(nextEmail);
+    setNextPath(next);
   }, []);
 
   useEffect(() => {
@@ -59,6 +63,7 @@ export default function LoginPage() {
     if (submitting) return;
     setError("");
     setErrorDetail("");
+    setEmailNotVerified(false);
     setStatus("");
     setSubmitting(true);
     try {
@@ -78,7 +83,9 @@ export default function LoginPage() {
         const message = buildAuthMessage(info, t);
         setError(message.message);
         setErrorDetail(message.detail || "");
-        if (info.code === "account_locked") {
+        if (info.code === "email_not_verified") {
+          setEmailNotVerified(true);
+        } else if (info.code === "account_locked") {
           setLockUntil(message.lockUntil || "");
           setRetryAfterSec(message.retryAfterSec ?? null);
           setStatus(t("auth.lockedCtaHint"));
@@ -101,8 +108,14 @@ export default function LoginPage() {
       await signInWithGoogleIdToken(idToken);
       router.replace(nextPath);
     } catch (err) {
-      const message = err instanceof Error ? err.message : t("auth.loginFailed");
-      setError(message);
+      const info = parseAuthError(err);
+      if (info) {
+        const message = buildAuthMessage(info, t);
+        setError(message.message);
+      } else {
+        const message = err instanceof Error ? err.message : t("auth.loginFailed");
+        setError(message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -187,6 +200,14 @@ export default function LoginPage() {
 
           {error ? <p className="mt-4 text-xs text-rose-500">{error}</p> : null}
           {errorDetail ? <p className="mt-2 text-xs text-rose-500">{errorDetail}</p> : null}
+          {emailNotVerified ? (
+            <Link
+              href={`/verify-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(nextPath)}`}
+              className="mt-3 inline-flex text-xs font-semibold text-primary"
+            >
+              {t("auth.verifyNowCta")}
+            </Link>
+          ) : null}
           {isLocked ? (
             <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
               <p>{t("auth.lockedUntil", { time: lockUntil ? new Date(lockUntil).toLocaleString() : "-" })}</p>

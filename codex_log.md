@@ -759,3 +759,18 @@ Logs/Artifacts:
 Next:
 - 프론트에서 로그인/2FA/탈퇴 플로우 점검
 - qrcode 패키지 설치 후 보안 설정 화면 렌더 확인
+2026-01-13 09:28 (local)
+Task: 인증 리다이렉트/이메일 인증/2FA UX/비밀번호 변경 UI 개선
+Scope: src/lib/auth/redirect.ts, src/app/login/page.tsx, src/app/verify-email/page.tsx, src/app/account/security/page.tsx, src/lib/auth/authErrors.ts, src/i18n/locales/ko.ts, src/i18n/locales/en.ts, src/i18n/locales/ja.ts, src/i18n/locales/de.ts
+Why: 인증 플로우 리다이렉트 규칙과 email_not_verified 처리, 이메일 인증 UX, 2FA 도움말, 비밀번호 변경 UI를 설계대로 반영.
+Key changes:
+- next 파라미터 정규화 유틸 추가 및 로그인/이메일 인증 화면에 적용
+- 이메일 인증 자동 리다이렉트, email_not_verified CTA, 비밀번호 변경/2FA 도움말 UI 추가
+- 다국어 문구 키 확장(ko/en/ja/de)
+Commands run (user):
+- <none>
+Logs/Artifacts:
+- <none>
+Next:
+- UI 동작 수동 검증(로그인/이메일 인증/2FA/비밀번호 변경)
+- 필요 시 리다이렉트 규칙/문구 조정
