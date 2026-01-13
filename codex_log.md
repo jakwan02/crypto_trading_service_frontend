@@ -877,3 +877,29 @@ Logs/Artifacts:
 Next:
 - /login,/forgot-password,/verify-email에서 query에 email이 있어도 입력이 비어있는지 확인
 - 결제/업그레이드 입력란 placeholder가 예시값 없이 안내 문구로 표시되는지 확인
+2026-01-13 15:24 (local)
+Task: /account/security 입력란 예시 placeholder 제거(인증코드/비밀번호)
+Scope: src/i18n/locales/ko.ts, src/i18n/locales/en.ts, src/i18n/locales/ja.ts, src/i18n/locales/de.ts
+Why: /account/security에서 인증 코드/비밀번호 입력란에 남아있던 예시성 placeholder(숫자/규칙 표기)를 제거하고 안내 문구로 통일하기 위해.
+Key changes:
+- security.mfaCodePlaceholder/security.newPasswordPlaceholder를 예시 없이 “입력하세요” 형태로 변경
+- auth.passwordPlaceholder/auth.otpPlaceholder도 동일 정책으로 예시 없는 placeholder로 통일
+Commands run (user):
+- <none>
+Logs/Artifacts:
+- <none>
+Next:
+- /account/security에서 인증 코드/비밀번호 placeholder가 예시값 없이 노출되는지 확인
+2026-01-13 15:38 (local)
+Task: /account/security 입력란 초기값(자동채움) 최소화
+Scope: src/app/account/security/page.tsx
+Why: 브라우저/비밀번호 매니저가 기본값을 채워 넣는 상황을 줄이고, 모든 input이 빈 값(\"\"\")으로 시작하도록 유도하기 위해.
+Key changes:
+- 인증 코드 입력란에 name/autoComplete/inputMode 추가
+- 비밀번호 입력란에 name/autoComplete=\"new-password\"를 지정해 자동 채움 가능성 완화
+Commands run (user):
+- <none>
+Logs/Artifacts:
+- <none>
+Next:
+- /account/security 진입 시 입력칸에 값이 자동으로 채워지는지(예: admin) 확인

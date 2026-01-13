@@ -287,14 +287,17 @@ export default function SecurityPage() {
                         </div>
                         <p className="mt-1 break-all">{secret || "-"}</p>
                       </div>
-                      <div>
-                        <label className="text-xs font-semibold text-gray-600">{t("security.mfaCodeLabel")}</label>
-                        <input
-                          value={setupCode}
-                          onChange={(event) => setSetupCode(event.target.value)}
-                          placeholder={t("security.mfaCodePlaceholder")}
-                          className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-                        />
+	                      <div>
+	                        <label className="text-xs font-semibold text-gray-600">{t("security.mfaCodeLabel")}</label>
+	                        <input
+	                          name="security-mfa-setup-code"
+	                          autoComplete="off"
+	                          inputMode="numeric"
+	                          value={setupCode}
+	                          onChange={(event) => setSetupCode(event.target.value)}
+	                          placeholder={t("security.mfaCodePlaceholder")}
+	                          className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+	                        />
                         <button
                           type="button"
                           onClick={handleConfirm}
@@ -309,21 +312,26 @@ export default function SecurityPage() {
                 </div>
               ) : (
                 <div className="mt-4 space-y-3">
-                  <label className="text-xs font-semibold text-gray-600">{t("security.mfaCodeLabel")}</label>
-                  <input
-                    value={mfaActionCode}
-                    onChange={(event) => setMfaActionCode(event.target.value)}
-                    placeholder={t("security.mfaCodePlaceholder")}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-                  />
-                  <label className="text-xs font-semibold text-gray-600">{t("security.passwordLabel")}</label>
-                  <input
-                    type="password"
-                    value={disablePassword}
-                    onChange={(event) => setDisablePassword(event.target.value)}
-                    placeholder={t("security.passwordPlaceholder")}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-                  />
+	                  <label className="text-xs font-semibold text-gray-600">{t("security.mfaCodeLabel")}</label>
+	                  <input
+	                    name="security-mfa-action-code"
+	                    autoComplete="off"
+	                    inputMode="numeric"
+	                    value={mfaActionCode}
+	                    onChange={(event) => setMfaActionCode(event.target.value)}
+	                    placeholder={t("security.mfaCodePlaceholder")}
+	                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+	                  />
+	                  <label className="text-xs font-semibold text-gray-600">{t("security.passwordLabel")}</label>
+	                  <input
+	                    type="password"
+	                    name="security-mfa-disable-password"
+	                    autoComplete="new-password"
+	                    value={disablePassword}
+	                    onChange={(event) => setDisablePassword(event.target.value)}
+	                    placeholder={t("security.passwordPlaceholder")}
+	                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+	                  />
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
@@ -387,31 +395,38 @@ export default function SecurityPage() {
               ) : null}
               <div className="mt-4 space-y-3">
                 <label className="text-xs font-semibold text-gray-600">{t("security.passwordLabel")}</label>
-                <input
-                  type="password"
-                  value={deletePassword}
-                  onChange={(event) => setDeletePassword(event.target.value)}
-                  placeholder={t("security.passwordPlaceholder")}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-                />
+	                <input
+	                  type="password"
+	                  name="security-delete-password"
+	                  autoComplete="new-password"
+	                  value={deletePassword}
+	                  onChange={(event) => setDeletePassword(event.target.value)}
+	                  placeholder={t("security.passwordPlaceholder")}
+	                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+	                />
                 {mfaEnabled ? (
                   <>
-                    <label className="text-xs font-semibold text-gray-600">{t("security.mfaCodeLabel")}</label>
-                    <input
-                      value={deleteMfaCode}
-                      onChange={(event) => setDeleteMfaCode(event.target.value)}
-                      placeholder={t("security.mfaCodePlaceholder")}
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-                    />
+	                    <label className="text-xs font-semibold text-gray-600">{t("security.mfaCodeLabel")}</label>
+	                    <input
+	                      name="security-delete-mfa-code"
+	                      autoComplete="off"
+	                      inputMode="numeric"
+	                      value={deleteMfaCode}
+	                      onChange={(event) => setDeleteMfaCode(event.target.value)}
+	                      placeholder={t("security.mfaCodePlaceholder")}
+	                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+	                    />
                   </>
                 ) : null}
                 <label className="text-xs font-semibold text-gray-600">{t("security.deleteReason")}</label>
-                <input
-                  value={deleteReason}
-                  onChange={(event) => setDeleteReason(event.target.value)}
-                  placeholder={t("security.deleteReasonPlaceholder")}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-                />
+	                <input
+	                  name="security-delete-reason"
+	                  autoComplete="off"
+	                  value={deleteReason}
+	                  onChange={(event) => setDeleteReason(event.target.value)}
+	                  placeholder={t("security.deleteReasonPlaceholder")}
+	                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+	                />
                 <button
                   type="button"
                   onClick={handleDelete}
@@ -429,29 +444,35 @@ export default function SecurityPage() {
             <p className="mt-2 text-sm text-gray-600">{t("security.passwordChangeDesc")}</p>
             <div className="mt-4 space-y-3">
               <label className="text-xs font-semibold text-gray-600">{t("security.currentPasswordLabel")}</label>
-              <input
-                type="password"
-                value={currentPassword}
-                onChange={(event) => setCurrentPassword(event.target.value)}
-                placeholder={t("security.passwordPlaceholder")}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-              />
-              <label className="text-xs font-semibold text-gray-600">{t("security.newPasswordLabel")}</label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(event) => setNewPassword(event.target.value)}
-                placeholder={t("security.newPasswordPlaceholder")}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-              />
-              <label className="text-xs font-semibold text-gray-600">{t("security.newPasswordConfirmLabel")}</label>
-              <input
-                type="password"
-                value={newPasswordConfirm}
-                onChange={(event) => setNewPasswordConfirm(event.target.value)}
-                placeholder={t("security.newPasswordConfirmPlaceholder")}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-              />
+	              <input
+	                type="password"
+	                name="security-current-password"
+	                autoComplete="new-password"
+	                value={currentPassword}
+	                onChange={(event) => setCurrentPassword(event.target.value)}
+	                placeholder={t("security.passwordPlaceholder")}
+	                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+	              />
+	              <label className="text-xs font-semibold text-gray-600">{t("security.newPasswordLabel")}</label>
+	              <input
+	                type="password"
+	                name="security-new-password"
+	                autoComplete="new-password"
+	                value={newPassword}
+	                onChange={(event) => setNewPassword(event.target.value)}
+	                placeholder={t("security.newPasswordPlaceholder")}
+	                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+	              />
+	              <label className="text-xs font-semibold text-gray-600">{t("security.newPasswordConfirmLabel")}</label>
+	              <input
+	                type="password"
+	                name="security-new-password-confirm"
+	                autoComplete="new-password"
+	                value={newPasswordConfirm}
+	                onChange={(event) => setNewPasswordConfirm(event.target.value)}
+	                placeholder={t("security.newPasswordConfirmPlaceholder")}
+	                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+	              />
               <button
                 type="button"
                 onClick={handlePasswordChange}
