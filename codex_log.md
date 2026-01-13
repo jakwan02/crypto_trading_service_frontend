@@ -804,3 +804,16 @@ Logs/Artifacts:
 Next:
 - MFA/삭제/비번 변경 플로우 수동 검증
 - Google MFA 흐름 재점검
+2026-01-13 12:03 (local)
+Task: security 네임스페이스 등록으로 보안 페이지 번역키 노출 수정
+Scope: src/i18n/i18n.ts
+Why: i18n ns 목록에 security가 없어 t("security.*")가 키 문자열 그대로 렌더링되는 문제를 해결.
+Key changes:
+- i18n init ns 배열에 "security" 추가
+Commands run (user):
+- <none>
+Logs/Artifacts:
+- <none>
+Next:
+- 프론트 재빌드 후 /account/security에서 번역 노출 여부 확인
+- 여전히 노출 시 실행 번들/캐시 불일치 점검

@@ -55,6 +55,7 @@ if (!i18n.isInitialized) {
         "news",
         "alertsPage",
         "auth",
+        "security",
         "account",
         "upgrade",
         "payment",
