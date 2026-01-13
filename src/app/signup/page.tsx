@@ -84,7 +84,8 @@ export default function SignupPage() {
       }
       router.replace("/market");
     } catch (err) {
-      setError(t("auth.requestFailed"));
+      const info = parseAuthError(err);
+      setError(info ? buildAuthMessage(info, t).message : t("auth.requestFailed"));
     } finally {
       setSubmitting(false);
     }

@@ -848,3 +848,17 @@ Logs/Artifacts:
 Next:
 - 탈퇴 계정으로 /auth/login,/auth/google 시 account_inactive meta 전달 확인
 - 로그인 화면에서 재가입 CTA/문구 확인
+2026-01-13 14:49 (local)
+Task: 탈퇴 계정 재가입 시 account_inactive 안내(남은 일수) 제공
+Scope: ../backend/app/app_api/auth.py, ../backend/docs/CONTRACTS.md, src/app/signup/page.tsx
+Why: 탈퇴 계정이 회원가입을 시도할 때도 account_inactive meta.remaining_days로 재가입 가능 시점을 안내하고, 프론트에서 서버 문자열 대신 i18n 메시지를 표시하기 위해.
+Key changes:
+- /app/auth/register에서 비활성(탈퇴) 계정은 403 account_inactive(+meta)로 응답
+- signup의 Google 로그인 오류도 parseAuthError/buildAuthMessage로 사용자 친화 메시지 표시
+- CONTRACTS.md에 register의 account_inactive 에러 문서화
+Commands run (user):
+- <none>
+Logs/Artifacts:
+- <none>
+Next:
+- 탈퇴 계정으로 /signup(이메일), Google signup에서 \"{{days}}일 후\" 메시지 확인
