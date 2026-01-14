@@ -46,6 +46,23 @@ export function AppProviders({ children }: Props) {
   const themeValue = useMemo(() => ({ theme, setTheme, toggleTheme }), [theme, toggleTheme]);
 
   useEffect(() => {
+    // 변경 이유: 서버/설정 페이지에서 적용된 theme를 새로고침 후에도 유지하고 Tailwind dark 클래스를 동기화
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem("theme");
+    if (stored === "light" || stored === "dark") {
+      setTheme(stored);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("theme", theme);
+    }
+  }, [theme]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const stored = window.localStorage.getItem("i18nextLng") || "";
     const base = stored.split("-")[0];

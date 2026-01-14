@@ -48,9 +48,9 @@ export default function AccountPage() {
                   <dd>{joinDate}</dd>
                 </div>
               </dl>
-              <button type="button" className="mt-4 text-xs font-semibold text-primary">
+              <Link href="/account/settings" className="mt-4 inline-flex text-xs font-semibold text-primary">
                 {t("account.editProfile")}
-              </button>
+              </Link>
             </div>
 
             <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">

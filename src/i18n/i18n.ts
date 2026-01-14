@@ -57,6 +57,7 @@ if (!i18n.isInitialized) {
         "auth",
         "security",
         "account",
+        "accountSettings",
         "upgrade",
         "payment",
         "education",

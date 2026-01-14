@@ -920,3 +920,18 @@ Logs/Artifacts:
 Next:
 - 운영: Google 계정(비밀번호 없음)으로 /account/security → 비밀번호 설정 → 탈퇴/2FA disable 진행 E2E 확인
 - 운영: 2FA 켠 계정에서 /account/password-set의 mfa_code(TOTP/백업코드) 검증 확인
+2026-01-14 09:15 (local)
+Task: Day4 /account/settings UI + 설정 프리페치/적용 추가
+Scope: src/app/providers.tsx, src/contexts/AuthContext.tsx, src/app/account/settings/page.tsx, src/app/account/page.tsx, src/i18n/i18n.ts, src/i18n/locales/ko.ts, src/i18n/locales/en.ts, src/i18n/locales/ja.ts, src/i18n/locales/de.ts
+Why: 백엔드 /app/account/settings를 기반으로 사용자 환경설정/알림 동의를 조회·저장하고 언어/테마/tz를 런타임에 즉시 반영하기 위해.
+Key changes:
+- /account/settings 페이지 추가(기본값/알림/야간 금지/주간 다이제스트/마케팅 동의)
+- 로그인/세션 복구 후 settings를 프리페치하고 i18n/theme/tz를 즉시 적용
+- i18n namespace(accountSettings) 및 번역 추가, /account에서 설정 페이지로 이동 링크 연결
+Commands run (user):
+- <none>
+Logs/Artifacts:
+- <none>
+Next:
+- /account/settings에서 저장/마케팅 토글 즉시 반영 E2E 확인
+- Docker/운영: tzdata 반영 후 tz 검증(Asia/Seoul) 동작 확인
