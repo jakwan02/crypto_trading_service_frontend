@@ -935,3 +935,18 @@ Logs/Artifacts:
 Next:
 - /account/settings에서 저장/마케팅 토글 즉시 반영 E2E 확인
 - Docker/운영: tzdata 반영 후 tz 검증(Asia/Seoul) 동작 확인
+2026-01-15 08:33 (local)
+Task: settings 기반 market/chart 기본값 반영 + 마케팅 토글 draft 초기화 버그 수정
+Scope: src/store/useSymbolStore.ts, src/contexts/AuthContext.tsx, src/app/account/settings/page.tsx, src/components/SymbolTable.tsx, src/app/market/page.tsx, src/app/chart/[symbol]/SymbolChartClient.tsx, src/lib/appClient.ts
+Why: 서버 settings가 market 페이지/차트 초기값에 반영되지 않던 문제와, 마케팅 토글 시 미저장 설정이 초기화되는 UX 버그를 해결하기 위해.
+Key changes:
+- settings prefs를 zustand store로 하이드레이트하여 market 기본값/정렬/TF/통화를 전역 단일 소스로 적용
+- /account/settings는 server state(React Query)와 draft state를 분리해 마케팅 토글(부분 PUT) 시 draft 유지
+- 401 invalid_token에 대해 refresh 후 1회 재시도(appClient)로 settings 로딩 안정화
+Commands run (user):
+- npm run build -> 성공
+Logs/Artifacts:
+- next build: /account/settings 라우트 생성 확인
+Next:
+- /account/settings에서 기본 마켓/정렬/TF 저장 후 /market, /chart/[symbol] 반영 확인
+- 마케팅 토글 중 미저장 변경이 유지되는지 확인

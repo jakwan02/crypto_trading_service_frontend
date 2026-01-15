@@ -15,7 +15,7 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useMarketSymbols, type MarketRow } from "@/hooks/useMarketSymbols";
 import { formatCompactNumber } from "@/lib/format";
-import { useSymbolsStore, type SortKey } from "@/store/useSymbolStore";
+import { useSymbolsStore, type SortKey, type MetricWindow } from "@/store/useSymbolStore";
 
 const columnHelper = createColumnHelper<MarketRow>();
 
@@ -31,7 +31,6 @@ function LoadingBar() {
   return <span className="inline-block h-3 w-10 animate-pulse rounded bg-gray-200" />;
 }
 
-type MetricWindow = "1m" | "5m" | "15m" | "1h" | "4h" | "1d" | "1w" | "1M" | "1Y";
 const SORTABLE: Set<string> = new Set(["symbol", "price", "volume", "quoteVolume", "change24h", "time"]);
 const WIN_OPTS: MetricWindow[] = ["1m", "5m", "15m", "1h", "4h", "1d", "1w", "1M", "1Y"];
 const PRICE_FLASH_MS = 800;
@@ -90,11 +89,15 @@ export default function SymbolTable({
   const locale = i18n.language;
   const market = useSymbolsStore((s) => s.market);
   const setMarket = useSymbolsStore((s) => s.setMarket);
+  const win = useSymbolsStore((s) => s.metricWindow);
+  const setWin = useSymbolsStore((s) => s.setMetricWindow);
+  const sortKey = useSymbolsStore((s) => s.sortKey);
+  const sortOrder = useSymbolsStore((s) => s.sortOrder);
+  const setSortKey = useSymbolsStore((s) => s.setSortKey);
+  const setSortOrder = useSymbolsStore((s) => s.setSortOrder);
+  const toggleSortOrder = useSymbolsStore((s) => s.toggleSortOrder);
 
-  const [win, setWin] = useState<MetricWindow>("1d");
   const [localQuery, setLocalQuery] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("quoteVolume");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const { order, rowMap, cursorNext, isLoading, isError, isLoadingMore, hasMore, loadMore, setVisibleSymbols } =
     useMarketSymbols(win, { sortKey, sortOrder, query: searchTerm ?? localQuery });
   const [, setFlashTick] = useState(0);
@@ -456,7 +459,7 @@ export default function SymbolTable({
   const handleSort = (id: string) => {
     if (!SORTABLE.has(id)) return;
     const k = id as SortKey;
-    if (k === sortKey) setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    if (k === sortKey) toggleSortOrder();
     else {
       // 변경 이유: 다른 컬럼 클릭 시 항상 desc부터 시작
       setSortKey(k);

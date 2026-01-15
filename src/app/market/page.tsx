@@ -12,6 +12,7 @@ type FilterMode = "all" | "gainers" | "losers";
 export default function MarketPage() {
   const market = useSymbolsStore((s) => s.market);
   const setMarket = useSymbolsStore((s) => s.setMarket);
+  const ccy = useSymbolsStore((s) => s.ccyDefault);
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const { t } = useTranslation();
 
@@ -27,7 +28,9 @@ export default function MarketPage() {
         <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">{t("market.title")}</h1>
-            <p className="mt-1 text-sm text-gray-500">{t("market.desc")}</p>
+            <p className="mt-1 text-sm text-gray-500">
+              {t("market.desc")} · {t("accountSettings.currency")}: {ccy}
+            </p>
           </div>
           <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 p-1">
             <button

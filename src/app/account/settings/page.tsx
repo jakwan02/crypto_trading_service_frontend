@@ -8,6 +8,7 @@ import { apiRequest } from "@/lib/appClient";
 import { getAcc } from "@/lib/token";
 import { ThemeContext, type ThemeMode } from "@/app/providers";
 import i18n, { ensureLocaleResources } from "@/i18n/i18n";
+import { useSymbolsStore } from "@/store/useSymbolStore";
 
 type Prefs = {
   market_default: "spot" | "um";
@@ -102,15 +103,16 @@ export default function AccountSettingsPage() {
     staleTime: 60_000
   });
 
-  const [prefs, setPrefs] = useState<Prefs | null>(null);
-  const [notify, setNotify] = useState<Notify | null>(null);
+  const [draftPrefs, setDraftPrefs] = useState<Prefs | null>(null);
+  const [draftNotify, setDraftNotify] = useState<Notify | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
   useEffect(() => {
     if (!data) return;
-    setPrefs(data.prefs);
-    setNotify(data.notify);
-  }, [data?.prefs?.updated_at, data?.notify?.updated_at]);
+    // 변경 이유: server state(React Query)와 draft state(편집 중)를 분리해 마케팅 토글/부분 저장이 draft를 초기화하지 않도록 함
+    setDraftPrefs((prev) => prev ?? data.prefs);
+    setDraftNotify((prev) => prev ?? data.notify);
+  }, [data]);
 
   const applyPrefsRuntime = useCallback(
     async (next: Prefs) => {
@@ -127,67 +129,108 @@ export default function AccountSettingsPage() {
       if (typeof window !== "undefined") {
         window.localStorage.setItem("tz", String(next.tz || ""));
       }
+      useSymbolsStore.getState().applyAccountPrefs(next);
     },
     [setTheme]
   );
 
-  const putMutation = useMutation({
+  const saveMutation = useMutation({
     mutationFn: updateSettings,
     onSuccess: async (next) => {
       queryClient.setQueryData(["accountSettings"], next);
-      setPrefs(next.prefs);
-      setNotify(next.notify);
+      setDraftPrefs(next.prefs);
+      setDraftNotify(next.notify);
       setSavedAt(Date.now());
       await applyPrefsRuntime(next.prefs);
     }
   });
 
+  const marketingMutation = useMutation({
+    mutationFn: updateSettings,
+    onSuccess: (next, variables) => {
+      // 변경 이유: 마케팅 토글은 즉시 저장되지만, 다른 draft(미저장 변경)는 유지해야 함
+      queryClient.setQueryData<AccountSettings | undefined>(["accountSettings"], (prev) => {
+        if (!prev) return next;
+        return {
+          ...prev,
+          notify: {
+            ...prev.notify,
+            mkt_email: next.notify.mkt_email,
+            mkt_sms: next.notify.mkt_sms,
+            mkt_push: next.notify.mkt_push,
+            updated_at: next.notify.updated_at
+          }
+        };
+      });
+      setDraftNotify((prev) => {
+        if (!prev) return next.notify;
+        return {
+          ...prev,
+          mkt_email: next.notify.mkt_email,
+          mkt_sms: next.notify.mkt_sms,
+          mkt_push: next.notify.mkt_push,
+          updated_at: next.notify.updated_at
+        };
+      });
+      setSavedAt(Date.now());
+      void variables;
+    }
+  });
+
   const isDirty = useMemo(() => {
-    if (!data || !prefs || !notify) return false;
+    if (!data || !draftPrefs || !draftNotify) return false;
     const p0 = { ...data.prefs, updated_at: "" };
-    const p1 = { ...prefs, updated_at: "" };
+    const p1 = { ...draftPrefs, updated_at: "" };
     const n0 = { ...data.notify, updated_at: "" };
-    const n1 = { ...notify, updated_at: "" };
+    const n1 = { ...draftNotify, updated_at: "" };
     return JSON.stringify(p0) !== JSON.stringify(p1) || JSON.stringify(n0) !== JSON.stringify(n1);
-  }, [data, prefs, notify]);
+  }, [data, draftPrefs, draftNotify]);
 
   const onSave = useCallback(() => {
-    if (!prefs || !notify) return;
+    if (!draftPrefs || !draftNotify) return;
     const payload: Record<string, unknown> = {
       prefs: {
-        market_default: prefs.market_default,
-        sort_default: prefs.sort_default,
-        tf_default: prefs.tf_default,
-        ccy_default: prefs.ccy_default,
-        lang: prefs.lang,
-        theme: prefs.theme,
-        tz: prefs.tz
+        market_default: draftPrefs.market_default,
+        sort_default: draftPrefs.sort_default,
+        tf_default: draftPrefs.tf_default,
+        ccy_default: draftPrefs.ccy_default,
+        lang: draftPrefs.lang,
+        theme: draftPrefs.theme,
+        tz: draftPrefs.tz
       },
       notify: {
-        alert_email: notify.alert_email,
-        alert_sms: notify.alert_sms,
-        alert_push: notify.alert_push,
-        quiet_enabled: notify.quiet_enabled,
-        quiet_start: notify.quiet_start,
-        quiet_end: notify.quiet_end,
-        weekly_digest_enabled: notify.weekly_digest_enabled,
-        weekly_digest_dow: notify.weekly_digest_dow,
-        weekly_digest_hour: notify.weekly_digest_hour
+        alert_email: draftNotify.alert_email,
+        alert_sms: draftNotify.alert_sms,
+        alert_push: draftNotify.alert_push,
+        quiet_enabled: draftNotify.quiet_enabled,
+        quiet_start: draftNotify.quiet_start,
+        quiet_end: draftNotify.quiet_end,
+        weekly_digest_enabled: draftNotify.weekly_digest_enabled,
+        weekly_digest_dow: draftNotify.weekly_digest_dow,
+        weekly_digest_hour: draftNotify.weekly_digest_hour
       }
     };
-    putMutation.mutate(payload);
-  }, [prefs, notify, putMutation]);
+    saveMutation.mutate(payload);
+  }, [draftPrefs, draftNotify, saveMutation]);
 
   const onToggleMarketing = useCallback(
     (key: "mkt_email" | "mkt_sms" | "mkt_push", value: boolean) => {
-      if (!notify) return;
-      setNotify({ ...notify, [key]: value });
-      putMutation.mutate({ notify: { [key]: value } });
+      if (!draftNotify) return;
+      const prev = Boolean(draftNotify[key]);
+      setDraftNotify({ ...draftNotify, [key]: value });
+      marketingMutation.mutate(
+        { notify: { [key]: value } },
+        {
+          onError: () => {
+            setDraftNotify((cur) => (cur ? { ...cur, [key]: prev } : cur));
+          }
+        }
+      );
     },
-    [notify, putMutation]
+    [draftNotify, marketingMutation]
   );
 
-  const saving = putMutation.isPending;
+  const saving = saveMutation.isPending;
   const saveOk = savedAt && Date.now() - savedAt < 2000;
 
   return (
@@ -208,7 +251,7 @@ export default function AccountSettingsPage() {
               <p className="text-sm text-red-600">{t("accountSettings.loadFailed")}</p>
               <p className="mt-2 text-xs text-gray-500">{String((error as Error)?.message || "")}</p>
             </div>
-          ) : !prefs || !notify ? (
+          ) : !draftPrefs || !draftNotify ? (
             <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
               <p className="text-sm text-gray-500">{t("accountSettings.empty")}</p>
             </div>
@@ -221,8 +264,13 @@ export default function AccountSettingsPage() {
                     <span className="text-xs font-medium text-gray-700">{t("accountSettings.marketDefault")}</span>
                     <select
                       className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"
-                      value={prefs.market_default}
-                      onChange={(e) => setPrefs({ ...prefs, market_default: e.target.value as Prefs["market_default"] })}
+                      value={draftPrefs.market_default}
+                      onChange={(e) =>
+                        setDraftPrefs({
+                          ...draftPrefs,
+                          market_default: e.target.value as Prefs["market_default"]
+                        })
+                      }
                     >
                       <option value="spot">spot</option>
                       <option value="um">um</option>
@@ -233,8 +281,13 @@ export default function AccountSettingsPage() {
                     <span className="text-xs font-medium text-gray-700">{t("accountSettings.sortDefault")}</span>
                     <select
                       className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"
-                      value={prefs.sort_default}
-                      onChange={(e) => setPrefs({ ...prefs, sort_default: e.target.value as Prefs["sort_default"] })}
+                      value={draftPrefs.sort_default}
+                      onChange={(e) =>
+                        setDraftPrefs({
+                          ...draftPrefs,
+                          sort_default: e.target.value as Prefs["sort_default"]
+                        })
+                      }
                     >
                       <option value="qv">qv</option>
                       <option value="volume">volume</option>
@@ -249,8 +302,13 @@ export default function AccountSettingsPage() {
                     <span className="text-xs font-medium text-gray-700">{t("accountSettings.tfDefault")}</span>
                     <select
                       className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"
-                      value={prefs.tf_default}
-                      onChange={(e) => setPrefs({ ...prefs, tf_default: e.target.value as Prefs["tf_default"] })}
+                      value={draftPrefs.tf_default}
+                      onChange={(e) =>
+                        setDraftPrefs({
+                          ...draftPrefs,
+                          tf_default: e.target.value as Prefs["tf_default"]
+                        })
+                      }
                     >
                       {["1m", "5m", "15m", "1h", "4h", "1d", "1w"].map((x) => (
                         <option key={x} value={x}>
@@ -269,8 +327,13 @@ export default function AccountSettingsPage() {
                     <span className="text-xs font-medium text-gray-700">{t("accountSettings.currency")}</span>
                     <select
                       className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"
-                      value={prefs.ccy_default}
-                      onChange={(e) => setPrefs({ ...prefs, ccy_default: e.target.value as Prefs["ccy_default"] })}
+                      value={draftPrefs.ccy_default}
+                      onChange={(e) =>
+                        setDraftPrefs({
+                          ...draftPrefs,
+                          ccy_default: e.target.value as Prefs["ccy_default"]
+                        })
+                      }
                     >
                       {["KRW", "USD", "JPY", "EUR"].map((x) => (
                         <option key={x} value={x}>
@@ -284,8 +347,13 @@ export default function AccountSettingsPage() {
                     <span className="text-xs font-medium text-gray-700">{t("accountSettings.language")}</span>
                     <select
                       className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"
-                      value={prefs.lang}
-                      onChange={(e) => setPrefs({ ...prefs, lang: e.target.value as Prefs["lang"] })}
+                      value={draftPrefs.lang}
+                      onChange={(e) =>
+                        setDraftPrefs({
+                          ...draftPrefs,
+                          lang: e.target.value as Prefs["lang"]
+                        })
+                      }
                     >
                       <option value="ko">ko</option>
                       <option value="en">en</option>
@@ -298,8 +366,13 @@ export default function AccountSettingsPage() {
                     <span className="text-xs font-medium text-gray-700">{t("accountSettings.theme")}</span>
                     <select
                       className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"
-                      value={prefs.theme}
-                      onChange={(e) => setPrefs({ ...prefs, theme: e.target.value as Prefs["theme"] })}
+                      value={draftPrefs.theme}
+                      onChange={(e) =>
+                        setDraftPrefs({
+                          ...draftPrefs,
+                          theme: e.target.value as Prefs["theme"]
+                        })
+                      }
                     >
                       <option value="light">{t("accountSettings.themeLight")}</option>
                       <option value="dark">{t("accountSettings.themeDark")}</option>
@@ -311,14 +384,14 @@ export default function AccountSettingsPage() {
                     <div className="mt-2 flex gap-2">
                       <input
                         className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"
-                        value={prefs.tz}
-                        onChange={(e) => setPrefs({ ...prefs, tz: e.target.value })}
+                        value={draftPrefs.tz}
+                        onChange={(e) => setDraftPrefs({ ...draftPrefs, tz: e.target.value })}
                         placeholder="Asia/Seoul"
                       />
                       <button
                         type="button"
                         className="shrink-0 rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700"
-                        onClick={() => setPrefs({ ...prefs, tz: detectTimezone() || prefs.tz })}
+                        onClick={() => setDraftPrefs({ ...draftPrefs, tz: detectTimezone() || draftPrefs.tz })}
                       >
                         {t("accountSettings.detectTz")}
                       </button>
@@ -335,8 +408,8 @@ export default function AccountSettingsPage() {
                     <span className="text-sm text-gray-700">{t("accountSettings.alertEmail")}</span>
                     <input
                       type="checkbox"
-                      checked={notify.alert_email}
-                      onChange={(e) => setNotify({ ...notify, alert_email: e.target.checked })}
+                      checked={draftNotify.alert_email}
+                      onChange={(e) => setDraftNotify({ ...draftNotify, alert_email: e.target.checked })}
                     />
                   </label>
 
@@ -344,14 +417,14 @@ export default function AccountSettingsPage() {
                     <span className="text-sm text-gray-700">{t("accountSettings.alertPush")}</span>
                     <input
                       type="checkbox"
-                      checked={notify.alert_push}
-                      onChange={(e) => setNotify({ ...notify, alert_push: e.target.checked })}
+                      checked={draftNotify.alert_push}
+                      onChange={(e) => setDraftNotify({ ...draftNotify, alert_push: e.target.checked })}
                     />
                   </label>
 
                   <label className="flex items-center justify-between rounded-2xl border border-gray-200 px-4 py-3 opacity-60">
                     <span className="text-sm text-gray-700">{t("accountSettings.alertSms")}</span>
-                    <input type="checkbox" checked={notify.alert_sms} disabled />
+                    <input type="checkbox" checked={draftNotify.alert_sms} disabled />
                   </label>
                   <p className="text-xs text-gray-500 md:col-span-3">{t("accountSettings.smsDisabled")}</p>
                 </div>
@@ -361,8 +434,8 @@ export default function AccountSettingsPage() {
                     <span className="text-sm text-gray-700">{t("accountSettings.quietEnabled")}</span>
                     <input
                       type="checkbox"
-                      checked={notify.quiet_enabled}
-                      onChange={(e) => setNotify({ ...notify, quiet_enabled: e.target.checked })}
+                      checked={draftNotify.quiet_enabled}
+                      onChange={(e) => setDraftNotify({ ...draftNotify, quiet_enabled: e.target.checked })}
                     />
                   </label>
 
@@ -371,8 +444,8 @@ export default function AccountSettingsPage() {
                     <input
                       type="time"
                       className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"
-                      value={toTimeInput(notify.quiet_start)}
-                      onChange={(e) => setNotify({ ...notify, quiet_start: fromTimeInput(e.target.value) })}
+                      value={toTimeInput(draftNotify.quiet_start)}
+                      onChange={(e) => setDraftNotify({ ...draftNotify, quiet_start: fromTimeInput(e.target.value) })}
                     />
                   </label>
 
@@ -381,8 +454,8 @@ export default function AccountSettingsPage() {
                     <input
                       type="time"
                       className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"
-                      value={toTimeInput(notify.quiet_end)}
-                      onChange={(e) => setNotify({ ...notify, quiet_end: fromTimeInput(e.target.value) })}
+                      value={toTimeInput(draftNotify.quiet_end)}
+                      onChange={(e) => setDraftNotify({ ...draftNotify, quiet_end: fromTimeInput(e.target.value) })}
                     />
                   </label>
                 </div>
@@ -392,8 +465,10 @@ export default function AccountSettingsPage() {
                     <span className="text-sm text-gray-700">{t("accountSettings.weeklyDigest")}</span>
                     <input
                       type="checkbox"
-                      checked={notify.weekly_digest_enabled}
-                      onChange={(e) => setNotify({ ...notify, weekly_digest_enabled: e.target.checked })}
+                      checked={draftNotify.weekly_digest_enabled}
+                      onChange={(e) =>
+                        setDraftNotify({ ...draftNotify, weekly_digest_enabled: e.target.checked })
+                      }
                     />
                   </label>
 
@@ -401,8 +476,8 @@ export default function AccountSettingsPage() {
                     <span className="text-xs font-medium text-gray-700">{t("accountSettings.weeklyDigestDow")}</span>
                     <select
                       className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"
-                      value={String(notify.weekly_digest_dow)}
-                      onChange={(e) => setNotify({ ...notify, weekly_digest_dow: Number(e.target.value) })}
+                      value={String(draftNotify.weekly_digest_dow)}
+                      onChange={(e) => setDraftNotify({ ...draftNotify, weekly_digest_dow: Number(e.target.value) })}
                     >
                       {[0, 1, 2, 3, 4, 5, 6].map((x) => (
                         <option key={x} value={String(x)}>
@@ -416,8 +491,8 @@ export default function AccountSettingsPage() {
                     <span className="text-xs font-medium text-gray-700">{t("accountSettings.weeklyDigestHour")}</span>
                     <select
                       className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"
-                      value={String(notify.weekly_digest_hour)}
-                      onChange={(e) => setNotify({ ...notify, weekly_digest_hour: Number(e.target.value) })}
+                      value={String(draftNotify.weekly_digest_hour)}
+                      onChange={(e) => setDraftNotify({ ...draftNotify, weekly_digest_hour: Number(e.target.value) })}
                     >
                       {Array.from({ length: 24 }).map((_, idx) => (
                         <option key={idx} value={String(idx)}>
@@ -438,21 +513,21 @@ export default function AccountSettingsPage() {
                     <span className="text-sm text-gray-700">{t("accountSettings.mktEmail")}</span>
                     <input
                       type="checkbox"
-                      checked={notify.mkt_email}
+                      checked={draftNotify.mkt_email}
                       onChange={(e) => onToggleMarketing("mkt_email", e.target.checked)}
                     />
                   </label>
 
                   <label className="flex items-center justify-between rounded-2xl border border-gray-200 px-4 py-3 opacity-60">
                     <span className="text-sm text-gray-700">{t("accountSettings.mktSms")}</span>
-                    <input type="checkbox" checked={notify.mkt_sms} disabled />
+                    <input type="checkbox" checked={draftNotify.mkt_sms} disabled />
                   </label>
 
                   <label className="flex items-center justify-between rounded-2xl border border-gray-200 px-4 py-3">
                     <span className="text-sm text-gray-700">{t("accountSettings.mktPush")}</span>
                     <input
                       type="checkbox"
-                      checked={notify.mkt_push}
+                      checked={draftNotify.mkt_push}
                       onChange={(e) => onToggleMarketing("mkt_push", e.target.checked)}
                     />
                   </label>
@@ -480,4 +555,3 @@ export default function AccountSettingsPage() {
     </RequireAuth>
   );
 }
-

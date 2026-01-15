@@ -4,6 +4,8 @@ export type ApiError = Error & {
   payload?: unknown;
 };
 
+import { getAcc, setAcc } from "@/lib/token";
+
 const DEFAULT_API_BASE_URL = "http://localhost:8001";
 
 function stripTrailingSlash(value: string): string {
@@ -81,6 +83,41 @@ function getCookieValue(name: string): string {
   return "";
 }
 
+function isInvalidTokenPayload(payload: unknown): boolean {
+  if (!payload) return false;
+  if (typeof payload === "string") return payload === "invalid_token";
+  if (typeof payload !== "object") return false;
+  const record = payload as Record<string, unknown>;
+  if (record.detail === "invalid_token") return true;
+  if (record.code === "invalid_token") return true;
+  if (record.error === "invalid_token") return true;
+  return false;
+}
+
+async function tryRefreshAccessToken(): Promise<string | null> {
+  const csrf = getCookieValue("csrf");
+  if (!csrf) return null;
+
+  const headers = new Headers();
+  withApiToken(headers);
+  headers.set("X-CSRF-Token", csrf);
+  try {
+    const res = await fetch(buildUrl("/auth/refresh"), {
+      method: "POST",
+      headers,
+      credentials: "include"
+    });
+    if (!res.ok) return null;
+    const payload = (await safeJson(res)) as Record<string, unknown> | null;
+    const token = payload && typeof payload.access_token === "string" ? payload.access_token : "";
+    if (!token) return null;
+    setAcc(token);
+    return token;
+  } catch {
+    return null;
+  }
+}
+
 export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   withApiToken(headers);
@@ -95,7 +132,8 @@ export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Pr
     body = JSON.stringify(init.json);
   }
 
-  const res = await fetch(buildUrl(path), {
+  const url = buildUrl(path);
+  const res = await fetch(url, {
     ...init,
     body,
     headers,
@@ -104,7 +142,35 @@ export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Pr
 
   if (res.status === 204) return null as T;
 
-  const payload = await safeJson(res);
+  let payload = await safeJson(res);
+
+  // 변경 이유: access token 만료/무효(401 invalid_token) 시 refresh로 1회 복구 후 재시도
+  const canRetry =
+    res.status === 401 &&
+    isInvalidTokenPayload(payload) &&
+    !String(path || "").startsWith("/auth/") &&
+    String(headers.get("Authorization") || "").toLowerCase().startsWith("bearer ");
+  if (canRetry) {
+    const newToken = await tryRefreshAccessToken();
+    if (newToken) {
+      headers.set("Authorization", `Bearer ${newToken || getAcc()}`);
+      const res2 = await fetch(url, {
+        ...init,
+        body,
+        headers,
+        credentials: "include"
+      });
+      if (res2.status === 204) return null as T;
+      payload = await safeJson(res2);
+      if (res2.ok) return (payload ?? null) as T;
+      const { message, code } = normalizeMessage(payload, res2.status);
+      const error = new Error(message) as ApiError;
+      error.code = code;
+      error.status = res2.status;
+      error.payload = payload ?? undefined;
+      throw error;
+    }
+  }
 
   if (!res.ok) {
     const { message, code } = normalizeMessage(payload, res.status);

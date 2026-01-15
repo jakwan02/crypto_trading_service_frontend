@@ -22,7 +22,8 @@ type Props = {
 };
 
 export default function SymbolChartClient({ symbol }: Props) {
-  const [tf, setTf] = useState<string>("1d");
+  const defaultTf = useSymbolsStore((s) => s.chartTf);
+  const [tf, setTf] = useState<string>(defaultTf);
   const searchParams = useSearchParams();
   const setMarket = useSymbolsStore((s) => s.setMarket);
   const sym = (symbol || "").toUpperCase();

@@ -7,6 +7,7 @@ import { clearAcc, getAcc, setAcc } from "@/lib/token";
 import { requestGoogleIdToken } from "@/lib/googleOidc";
 import { parseAuthError } from "@/lib/auth/authErrors";
 import i18n, { ensureLocaleResources } from "@/i18n/i18n";
+import { useSymbolsStore } from "@/store/useSymbolStore";
 
 type PlanCode = "free" | "pro";
 
@@ -44,6 +45,10 @@ type AccountMeResponse = AppUser;
 
 type AccountSettingsResponse = {
   prefs?: {
+    market_default?: string;
+    sort_default?: string;
+    tf_default?: string;
+    ccy_default?: string;
     lang?: string;
     theme?: string;
     tz?: string;
@@ -117,6 +122,13 @@ async function applySettingsToRuntime(settings: AccountSettingsResponse | null) 
   if (typeof window !== "undefined") {
     const tz = String(settings.prefs.tz || "").trim();
     if (tz) window.localStorage.setItem("tz", tz);
+  }
+
+  // 변경 이유: market/정렬/TF/통화 등 앱 전역 기본값을 store에 반영
+  try {
+    useSymbolsStore.getState().applyAccountPrefs(settings.prefs);
+  } catch {
+    // ignore
   }
 }
 
