@@ -93,12 +93,33 @@ function mapTheme(value: string): Theme | null {
   return null;
 }
 
+const LS_METRICS_WINDOW_KEY = "market.metrics_window";
+
+// 변경 이유: F5 새로고침 시 metricWindow가 2번 바뀌며(기본값→URL/LS) 캐시→스켈레톤→서버 플리커가 발생하므로, 첫 렌더 전에 window를 선결정한다.
+function getInitialMetricWindow(): MetricWindow {
+  const fallback: MetricWindow = "1d";
+  if (typeof window === "undefined") return fallback;
+  try {
+    const fromUrl = mapMetricWindow(new URLSearchParams(window.location.search).get("window") || "");
+    if (fromUrl) return fromUrl;
+  } catch {
+    // ignore
+  }
+  try {
+    const fromLs = mapMetricWindow(window.localStorage.getItem(LS_METRICS_WINDOW_KEY) || "");
+    if (fromLs) return fromLs;
+  } catch {
+    // ignore
+  }
+  return fallback;
+}
+
 export const useSymbolsStore = create<SymbolsStoreState>((set) => ({
   market: "spot",
   // 기본: qv(거래대금) 내림차순
   sortKey: "quoteVolume",
   sortOrder: "desc",
-  metricWindow: "1d",
+  metricWindow: getInitialMetricWindow(),
   chartTf: "1d",
   ccyDefault: "KRW",
   lang: "ko",

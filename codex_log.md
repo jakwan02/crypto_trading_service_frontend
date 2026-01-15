@@ -1020,3 +1020,17 @@ Logs/Artifacts:
 - <none>
 Next:
 - /market에서 F5 시 값 flash가 스왑 구간에 나오지 않는지 확인
+
+2026-01-15 19:14 (local)
+Task: market F5 시 캐시→스켈레톤 플리커 제거(초기 window 선결정)
+Scope: src/store/useSymbolStore.ts, src/components/SymbolTable.tsx
+Why: 첫 렌더 후 URL/localStorage window를 적용하면서 queryKey가 2번 바뀌어 캐시 표시 후 스켈레톤으로 재전환되는 문제를 제거하기 위해.
+Key changes:
+- store 초기 metricWindow를 URL(window)→localStorage→기본값 순으로 선결정
+- URL에 window가 없으면 현재 window를 1회 router.replace로 동기화
+Commands run (user):
+- npm run build -> 성공
+Logs/Artifacts:
+- <none>
+Next:
+- /market?window=1Y에서 F5 시 스켈레톤 재전환이 사라졌는지 확인

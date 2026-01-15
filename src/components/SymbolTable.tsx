@@ -166,12 +166,8 @@ export default function SymbolTable({
     const fromLs =
       typeof window !== "undefined" ? normWin(window.localStorage.getItem(LS_METRICS_WINDOW_KEY) || "") : null;
     const desired = fromUrl || fromLs;
-    if (desired && desired !== win) {
-      setWin(desired);
-      if (!fromUrl) {
-        syncUrlWindow(desired);
-      }
-    }
+    if (!fromUrl && desired) syncUrlWindow(desired);
+    if (desired && desired !== win) setWin(desired);
   }, [normWin, searchParams, setWin, syncUrlWindow, win]);
 
   const handleWinChange = useCallback(
