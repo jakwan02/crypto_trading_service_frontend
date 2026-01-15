@@ -23,9 +23,20 @@ type Props = {
 
 export default function SymbolChartClient({ symbol }: Props) {
   const defaultTf = useSymbolsStore((s) => s.chartTf);
-  const [tf, setTf] = useState<string>(defaultTf);
   const searchParams = useSearchParams();
   const setMarket = useSymbolsStore((s) => s.setMarket);
+  const touchedRef = useRef(false);
+  const tfParam = useMemo(() => {
+    const raw = String(searchParams.get("tf") || "").trim();
+    if (!raw) return "";
+    const v = raw.toLowerCase();
+    return TIMEFRAMES.includes(v) ? v : "";
+  }, [searchParams]);
+  const [tf, setTf] = useState<string>(tfParam || defaultTf || "1d");
+  const setTfTouched = useCallback((next: string) => {
+    touchedRef.current = true;
+    setTf(next);
+  }, []);
   const sym = (symbol || "").toUpperCase();
   const marketParam = useMemo(() => {
     const m = String(searchParams.get("market") || "").trim().toLowerCase();
@@ -108,6 +119,22 @@ export default function SymbolChartClient({ symbol }: Props) {
     queueMicrotask(() => setLivePrice(null));
     queueMicrotask(() => setFlashView({}));
   }, [sym, tf]);
+
+  useEffect(() => {
+    // 변경 이유: market overview에서 tf 쿼리를 전달하면 해당 TF가 초기값을 우선한다.
+    if (!tfParam) return;
+    touchedRef.current = false;
+    setTf(tfParam);
+  }, [tfParam, sym]);
+
+  useEffect(() => {
+    // 변경 이유: settings hydrate로 defaultTf가 늦게 반영될 때, 사용자가 아직 TF를 직접 바꾸지 않았다면 기본값으로 맞춘다.
+    if (tfParam) return;
+    if (touchedRef.current) return;
+    if (!defaultTf) return;
+    if (tf === defaultTf) return;
+    setTf(defaultTf);
+  }, [defaultTf, tf, tfParam]);
 
   const priceValue = Number.isFinite(livePrice ?? NaN) ? Number(livePrice) : info?.price ?? NaN;
 
@@ -313,7 +340,7 @@ export default function SymbolChartClient({ symbol }: Props) {
                   <button
                     key={item}
                     type="button"
-                    onClick={() => setTf(item)}
+                    onClick={() => setTfTouched(item)}
                     className={`rounded-full px-3 py-1 text-xs font-medium sm:text-sm ${
                       tf === item
                         ? "bg-primary text-ink"

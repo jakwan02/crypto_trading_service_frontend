@@ -950,3 +950,17 @@ Logs/Artifacts:
 Next:
 - /account/settings에서 기본 마켓/정렬/TF 저장 후 /market, /chart/[symbol] 반영 확인
 - 마케팅 토글 중 미저장 변경이 유지되는지 확인
+2026-01-15 08:46 (local)
+Task: market overview→chart 진입 시 metrics window TF 우선 적용
+Scope: src/components/SymbolTable.tsx, src/app/chart/[symbol]/SymbolChartClient.tsx
+Why: 차트 초기 TF가 진입 컨텍스트에 따라 달라야 함(일반 진입=환경설정 기본 TF, market overview 진입=metrics window 기반).
+Key changes:
+- market(SymbolTable)에서 차트 링크에 tf 쿼리 파라미터를 추가하고(1M/1Y는 1d/1w로 매핑)
+- chart 페이지는 tf 쿼리 파라미터가 있으면 이를 최우선으로 초기 TF에 사용, 없으면 settings 기본 TF 사용
+Commands run (user):
+- npm run build -> 성공
+Logs/Artifacts:
+- next build 성공(라우트 생성 확인)
+Next:
+- market에서 window 변경 후 심볼 클릭→차트 초기 TF가 window와 일치하는지 확인
+- 다른 페이지(/chart, /news 등)에서 차트 진입 시 기본 TF가 settings.tf_default인지 확인

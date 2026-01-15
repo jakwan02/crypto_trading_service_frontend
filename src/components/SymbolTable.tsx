@@ -467,6 +467,13 @@ export default function SymbolTable({
     }
   };
 
+  function toChartTfFromWindow(w: MetricWindow): string {
+    // 변경 이유: market overview의 metrics window로 차트 진입 시 지원 TF(1m~1w)로 매핑
+    if (w === "1M") return "1d";
+    if (w === "1Y") return "1w";
+    return String(w);
+  }
+
   const renderSortIcon = (id: string) => {
     if (!SORTABLE.has(id)) return null;
     if (id !== sortKey) return null;
@@ -647,7 +654,10 @@ export default function SymbolTable({
                     if (nextMarket === "spot" || nextMarket === "um") {
                       setMarket(nextMarket as "spot" | "um");
                     }
-                    router.push(`/chart/${row.original.symbol}?market=${encodeURIComponent(row.original.market)}`);
+                    const tf = toChartTfFromWindow(win);
+                    router.push(
+                      `/chart/${row.original.symbol}?market=${encodeURIComponent(row.original.market)}&tf=${encodeURIComponent(tf)}`
+                    );
                   }}
                 >
                   {row.getVisibleCells().map((cell) => (
