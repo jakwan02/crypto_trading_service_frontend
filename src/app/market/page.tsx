@@ -1,7 +1,7 @@
 "use client";
 // 변경 이유: metrics 미도착 시 null 처리로 필터 오류 방지
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SymbolTable from "@/components/SymbolTable";
 import { useSymbolsStore } from "@/store/useSymbolStore";
@@ -79,7 +79,9 @@ export default function MarketPage() {
           </div>
         </div>
 
-        <SymbolTable filterFn={filterFn} />
+        <Suspense fallback={null}>
+          <SymbolTable filterFn={filterFn} />
+        </Suspense>
       </div>
     </main>
   );

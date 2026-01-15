@@ -126,8 +126,6 @@ export const useSymbolsStore = create<SymbolsStoreState>((set) => ({
       if (sk) next.sortKey = sk;
       const tf = mapChartTf(String(prefs.tf_default ?? ""));
       if (tf) next.chartTf = tf;
-      const win = mapMetricWindow(String(prefs.tf_default ?? ""));
-      if (win) next.metricWindow = win;
       const ccy = mapCurrency(String(prefs.ccy_default ?? ""));
       if (ccy) next.ccyDefault = ccy;
       const lang = mapLang(String(prefs.lang ?? ""));

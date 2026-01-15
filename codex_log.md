@@ -977,3 +977,18 @@ Logs/Artifacts:
 - <none>
 Next:
 - 프론트 재기동 후 /market에서 window=4h/1d/1M/1Y 전환 시 값 표시 확인
+
+2026-01-15 14:31 (local)
+Task: market window 새로고침 유지 + 차트 캐시 플리커 제거
+Scope: src/store/useSymbolStore.ts, src/components/SymbolTable.tsx, src/app/market/page.tsx, src/hooks/useChart.ts
+Why: settings hydrate가 market metrics window를 덮어쓰는 문제와, 차트 캐시 표시 중 WS 델타가 잠깐 붙었다 사라지는 플리커를 제거하기 위해.
+Key changes:
+- market metrics window는 URL(window)+localStorage로만 복원하고 settings.tf_default로 덮어쓰지 않음
+- 차트는 첫 서버 번들 적용 전까지 WS 델타를 버퍼링해 “임시 티커” 노출 제거
+Commands run (user):
+- npm run build -> 성공
+Logs/Artifacts:
+- <none>
+Next:
+- /market?window=1Y 새로고침 시 window 유지 확인
+- /chart 캐시 표시 중 오른쪽 임시 캔들 플리커가 사라졌는지 확인

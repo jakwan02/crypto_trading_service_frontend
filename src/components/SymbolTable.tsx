@@ -11,7 +11,7 @@ import {
 } from "@tanstack/react-table";
 import { observeElementOffset, useVirtualizer } from "@tanstack/react-virtual";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useMarketSymbols, type MarketRow } from "@/hooks/useMarketSymbols";
 import { formatCompactNumber } from "@/lib/format";
@@ -41,6 +41,8 @@ const SKELETON_ROWS = 12;
 // 변경 이유: 헤더/바디에 동일한 grid 템플릿을 적용해 컬럼 정렬을 고정
 const GRID_TEMPLATE =
   "minmax(140px, 18%) minmax(120px, 15%) minmax(150px, 17%) minmax(180px, 20%) minmax(120px, 12%) minmax(120px, 18%)";
+
+const LS_METRICS_WINDOW_KEY = "market.metrics_window";
 
 // 변경 이유: 스크롤 중 flushSync 경고를 피하기 위해 isScrolling=false로 고정
 const observeOffsetNoSync: typeof observeElementOffset = (instance, cb) =>
@@ -85,6 +87,8 @@ export default function SymbolTable({
   filterFn
 }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const market = useSymbolsStore((s) => s.market);
@@ -136,6 +140,51 @@ export default function SymbolTable({
   const prevOrderLenRef = useRef(0);
   const prevMarketRef = useRef<string | null>(null);
   const pendingScrollRef = useRef<number | null>(null);
+
+  const normWin = useCallback((raw: string): MetricWindow | null => {
+    const v = String(raw || "").trim();
+    return (WIN_OPTS as readonly string[]).includes(v) ? (v as MetricWindow) : null;
+  }, []);
+
+  const syncUrlWindow = useCallback(
+    (nextWin: MetricWindow) => {
+      try {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("window", nextWin);
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      } catch {
+        // ignore
+      }
+    },
+    [pathname, router, searchParams]
+  );
+
+  useEffect(() => {
+    // 변경 이유: 새로고침/공유 링크에서 metrics window를 유지(설정 hydrate로 덮어쓰기 방지)
+    const fromUrl = normWin(String(searchParams.get("window") || ""));
+    const fromLs =
+      typeof window !== "undefined" ? normWin(window.localStorage.getItem(LS_METRICS_WINDOW_KEY) || "") : null;
+    const desired = fromUrl || fromLs;
+    if (desired && desired !== win) {
+      setWin(desired);
+      if (!fromUrl) {
+        syncUrlWindow(desired);
+      }
+    }
+  }, [normWin, searchParams, setWin, syncUrlWindow, win]);
+
+  const handleWinChange = useCallback(
+    (next: MetricWindow) => {
+      setWin(next);
+      try {
+        window.localStorage.setItem(LS_METRICS_WINDOW_KEY, next);
+      } catch {
+        // ignore
+      }
+      syncUrlWindow(next);
+    },
+    [setWin, syncUrlWindow]
+  );
 
   useEffect(() => {
     return () => {
@@ -567,7 +616,7 @@ export default function SymbolTable({
               <select
                 className="rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700"
                 value={win}
-                onChange={(e) => setWin(e.target.value as MetricWindow)}
+                onChange={(e) => handleWinChange(e.target.value as MetricWindow)}
               >
                 {WIN_OPTS.map((w) => (
                   <option key={w} value={w}>

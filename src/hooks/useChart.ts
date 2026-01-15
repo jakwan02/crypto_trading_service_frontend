@@ -313,26 +313,37 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
   );
 
   const applySnapshot = useCallback(
-    (next: Candle[], savedAt?: number, tempByTf?: Record<string, Candle | null>) => {
-    const { market: m, symbol: s, tf: t } = paramsRef.current;
-    const pending = pendingDeltaRef.current;
-    const merged = pending ? upsert(next, pending, 1200) : next;
-    const cacheKey = `${m}:${s}`;
-    const prev = getMemoryBundle(cacheKey);
-    const nextSavedAt = savedAt ?? prev?.savedAt ?? Date.now();
-    const nextDataByTf = { ...(prev?.dataByTf || {}), [t]: merged };
-    const nextTempByTf = tempByTf ?? prev?.tempByTf;
+    (
+      next: Candle[],
+      savedAt: number | undefined,
+      tempByTf: Record<string, Candle | null> | undefined,
+      source: "cache" | "server"
+    ) => {
+      const { market: m, symbol: s, tf: t } = paramsRef.current;
+      const cacheKey = `${m}:${s}`;
+      const prev = getMemoryBundle(cacheKey);
+      const nextSavedAt = savedAt ?? prev?.savedAt ?? Date.now();
+      const nextTempByTf = tempByTf ?? prev?.tempByTf;
 
-    pendingDeltaRef.current = null;
-    restReadyRef.current = true;
-    lastCandleTimeRef.current = merged.length ? merged[merged.length - 1].time : 0;
-    if (nextSavedAt > lastBundleAtRef.current) {
-      lastBundleAtRef.current = nextSavedAt;
-    }
-    setError(null);
-    setData(merged);
-    setMemoryBundle(cacheKey, nextDataByTf, nextTempByTf, nextSavedAt);
-  }, []);
+      // 변경 이유: 캐시 미리보기 동안 WS 델타를 즉시 붙이지 않아 "잠깐 생겼다 사라지는" 마지막 캔들(현재 티커) 플리커를 제거
+      const pending = source === "server" ? pendingDeltaRef.current : null;
+      const merged = pending ? upsert(next, pending, 1200) : next;
+
+      if (source === "server") {
+        pendingDeltaRef.current = null;
+        restReadyRef.current = true;
+      }
+
+      lastCandleTimeRef.current = merged.length ? merged[merged.length - 1].time : 0;
+      if (nextSavedAt > lastBundleAtRef.current) {
+        lastBundleAtRef.current = nextSavedAt;
+      }
+      setError(null);
+      setData(merged);
+      setMemoryBundle(cacheKey, { ...(prev?.dataByTf || {}), [t]: merged }, nextTempByTf, nextSavedAt);
+    },
+    []
+  );
 
   // 변경 이유: 번들 응답을 TF별 Candle[]로 변환해 캐시와 UI에 재사용
   // 변경 이유: 번들에서 tempByTf까지 캐시로 반영
@@ -386,7 +397,7 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         const currentTf = paramsRef.current.tf;
         const current = dataByTf[currentTf];
         if (current && current.length) {
-          applySnapshot(current, savedAt, tempByTf);
+          applySnapshot(current, savedAt, tempByTf, "server");
         }
       } catch {
         if (reason === "init" && dataRef.current.length === 0) {
@@ -579,7 +590,7 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         setMemoryBundle(msg.key, dataByTf, tempByTf, cached.savedAt);
         const current = dataByTf[paramsRef.current.tf];
         if (current && current.length > 0) {
-          applySnapshot(current, cached.savedAt, tempByTf);
+          applySnapshot(current, cached.savedAt, tempByTf, "server");
         }
       })();
     });
@@ -616,7 +627,7 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
 
     const mem = getMemoryBundle(cacheKey);
     if (mem && mem.dataByTf[tfNorm] && mem.dataByTf[tfNorm].length > 0) {
-      applySnapshot(mem.dataByTf[tfNorm], mem.savedAt, mem.tempByTf);
+      applySnapshot(mem.dataByTf[tfNorm], mem.savedAt, mem.tempByTf, "cache");
     } else {
       setData([]);
       void (async () => {
@@ -629,7 +640,7 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         setMemoryBundle(cacheKey, dataByTf, tempByTf, cached.savedAt);
         const current = dataByTf[paramsRef.current.tf];
         if (current && current.length > 0) {
-          applySnapshot(current, cached.savedAt, tempByTf);
+          applySnapshot(current, cached.savedAt, tempByTf, "cache");
         }
       })();
     }
