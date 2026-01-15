@@ -992,3 +992,17 @@ Logs/Artifacts:
 Next:
 - /market?window=1Y 새로고침 시 window 유지 확인
 - /chart 캐시 표시 중 오른쪽 임시 캔들 플리커가 사라졌는지 확인
+
+2026-01-15 18:47 (local)
+Task: market 캐시 표시 중 로딩 애니메이션 제거(SWR)
+Scope: src/hooks/useMarketSymbols.ts, src/components/SymbolTable.tsx
+Why: 새로고침 시 캐시 데이터가 보이는 상태에서 pulse 로딩 애니메이션이 끼는 UX를 제거하고, 최신 데이터는 무중단 스왑으로 갱신하기 위해.
+Key changes:
+- useMarketSymbols에 isLoading(초기 0건) / isSyncing(백그라운드 동기화) 분리
+- SymbolTable은 스켈레톤 행에서만 LoadingBar를 렌더(캐시 표시 중에는 애니메이션 0)
+Commands run (user):
+- npm run build -> 성공
+Logs/Artifacts:
+- <none>
+Next:
+- /market 새로고침 시 pulse 없이 캐시→최신 무중단 스왑 확인

@@ -238,7 +238,10 @@ export function useMarketSymbols(
   const [order, setOrder] = useState<string[]>([]);
   const [rowMap, setRowMap] = useState<Record<string, MarketRow>>({});
   const [cursorNext, setCursorNext] = useState<number | null>(null);
+  // 변경 이유: 캐시가 있으면 즉시 렌더하고, 로딩 애니메이션은 "초기 데이터 0(캐시도 없음)"일 때만 노출한다.
   const [isLoading, setIsLoading] = useState(true);
+  // 변경 이유: 백그라운드 최신 동기화는 isSyncing으로만 표현(=UI pulse 애니메이션과 분리)
+  const [isSyncing, setIsSyncing] = useState(false);
   const [isError, setIsError] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
@@ -613,8 +616,8 @@ export function useMarketSymbols(
   );
 
   const loadBootstrap = useCallback(async () => {
-    if (orderRef.current.length === 0) setIsLoading(true);
     setIsError(false);
+    setIsSyncing(true);
     const expectedKey = `${market}:${metricWindow}:${scope}:${sortKey}:${sortOrder}:${query}:${BOOTSTRAP_LIMIT}`;
     try {
       const payload = await fetchMarketPayload(
@@ -628,8 +631,6 @@ export function useMarketSymbols(
         BOOTSTRAP_LIMIT
       );
       if (lastQueryKeyRef.current !== expectedKey) return;
-      rowMapRef.current = {};
-      orderRef.current = [];
       const merged = mergePayload(payload, false);
       const savedAt = Number(payload.server_time_ms || 0) || Date.now();
       const entry: MarketCacheEntry = {
@@ -646,7 +647,8 @@ export function useMarketSymbols(
     } catch {
       setIsError(true);
     } finally {
-      setIsLoading(false);
+      setIsLoading(orderRef.current.length === 0);
+      setIsSyncing(false);
     }
   }, [market, mergePayload, metricWindow, persistCache, prefetchPages, query, scope, sortKey, sortOrder]);
 
@@ -724,6 +726,7 @@ export function useMarketSymbols(
     setCursorNext(null);
     setIsError(false);
     setIsLoading(true);
+    setIsSyncing(false);
 
     let cancelled = false;
     const mem = getMemoryMarketCache(queryKey);
@@ -799,6 +802,7 @@ export function useMarketSymbols(
     // 변경 이유: 증분 로딩 재시도 판단용 cursor 노출
     cursorNext,
     isLoading,
+    isSyncing,
     isError,
     isLoadingMore,
     hasMore: cursorNext !== null,

@@ -350,6 +350,7 @@ export default function SymbolTable({
     [market]
   );
   const tableData = isInitialLoading ? skeletonRows : displayData;
+  const isSkeleton = useCallback((row: MarketRow) => String(row.symbol || "").startsWith("__loading__"), []);
 
   const columns = useMemo(() => {
     const wl = winLabel(win);
@@ -360,7 +361,7 @@ export default function SymbolTable({
         header: () => t("table.symbol"),
         cell: (info) => {
           const value = String(info.getValue() ?? "");
-          if (isLoading && value.startsWith("__loading__")) return <LoadingBar />;
+          if (value.startsWith("__loading__")) return <LoadingBar />;
           return <span className="font-medium text-gray-900">{value}</span>;
         }
       }),
@@ -369,9 +370,10 @@ export default function SymbolTable({
         id: "price",
         header: () => t("table.price"),
         cell: (info) => {
+          if (isSkeleton(info.row.original)) return <LoadingBar />;
           const value = info.getValue() as number | null;
           if (value === null || value === undefined) {
-            return isLoading ? <LoadingBar /> : <span className="text-xs text-gray-400">-</span>;
+            return <span className="text-xs text-gray-400">-</span>;
           }
           const sym = info.row.original.symbol;
           const flash = flashRef.current[sym];
@@ -388,9 +390,10 @@ export default function SymbolTable({
         id: "volume",
         header: () => `${wl} ${t("table.volume")}`,
         cell: (info) => {
+          if (isSkeleton(info.row.original)) return <LoadingBar />;
           const value = info.getValue() as number | null;
           if (value === null || value === undefined) {
-            return isLoading ? <LoadingBar /> : <span className="text-xs text-gray-400">-</span>;
+            return <span className="text-xs text-gray-400">-</span>;
           }
           const sym = info.row.original.symbol;
           const flash = flashRef.current[sym];
@@ -406,9 +409,10 @@ export default function SymbolTable({
         id: "quoteVolume",
         header: () => `${wl} ${t("table.turnover")}`,
         cell: (info) => {
+          if (isSkeleton(info.row.original)) return <LoadingBar />;
           const value = info.getValue() as number | null;
           if (value === null || value === undefined) {
-            return isLoading ? <LoadingBar /> : <span className="text-xs text-gray-400">-</span>;
+            return <span className="text-xs text-gray-400">-</span>;
           }
           const sym = info.row.original.symbol;
           const flash = flashRef.current[sym];
@@ -426,9 +430,10 @@ export default function SymbolTable({
         id: "change24h",
         header: () => t("table.change", { tf: wl }),
         cell: (info) => {
+          if (isSkeleton(info.row.original)) return <LoadingBar />;
           const value = info.getValue() as number | null;
           if (value === null || value === undefined) {
-            return isLoading ? <LoadingBar /> : <span className="text-xs text-gray-400">-</span>;
+            return <span className="text-xs text-gray-400">-</span>;
           }
           const isUp = value >= 0;
           const sym = info.row.original.symbol;
@@ -448,13 +453,13 @@ export default function SymbolTable({
         header: () => t("table.onboardDate"),
         cell: (info) => {
           const value = info.getValue() as number | null;
-          if (isLoading && (!value || value <= 0)) return <LoadingBar />;
+          if (isSkeleton(info.row.original)) return <LoadingBar />;
           if (!value || value <= 0) return <span className="text-xs text-gray-400">-</span>;
           return <span className="text-xs text-gray-500">{new Date(value).toLocaleDateString(locale)}</span>;
         }
       })
     ];
-  }, [isLoading, win, t, locale]);
+  }, [isSkeleton, win, t, locale]);
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
