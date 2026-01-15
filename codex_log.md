@@ -964,3 +964,16 @@ Logs/Artifacts:
 Next:
 - market에서 window 변경 후 심볼 클릭→차트 초기 TF가 window와 일치하는지 확인
 - 다른 페이지(/chart, /news 등)에서 차트 진입 시 기본 TF가 settings.tf_default인지 확인
+
+2026-01-15 11:11 (local)
+Task: Market Overview metrics null 파싱 허용
+Scope: src/lib/schemas.ts
+Why: metrics 응답에서 prev_close/change/pct_change가 null일 수 있는데, 배열 전체 Zod 파싱 실패로 4h/1d/1M/1Y 값이 비어 보이는 문제를 해결.
+Key changes:
+- MetricItemSchema의 주요 숫자 필드에 null 허용 추가로 metrics/tickers/ws items 전체 드랍 방지
+Commands run (user):
+- <none>
+Logs/Artifacts:
+- <none>
+Next:
+- 프론트 재기동 후 /market에서 window=4h/1d/1M/1Y 전환 시 값 표시 확인
