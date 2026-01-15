@@ -33,8 +33,9 @@ function LoadingBar() {
 
 const SORTABLE: Set<string> = new Set(["symbol", "price", "volume", "quoteVolume", "change24h", "time"]);
 const WIN_OPTS: MetricWindow[] = ["1m", "5m", "15m", "1h", "4h", "1d", "1w", "1M", "1Y"];
-const PRICE_FLASH_MS = 800;
-const BLINK_MS = 300;
+// 변경 이유: SWR/WS 갱신 시 체감 플리커를 줄이기 위해 flash 지속 시간을 짧게 고정
+const PRICE_FLASH_MS = 300;
+const BLINK_MS = 180;
 const VIRTUAL_OVERSCAN = 20;
 const ROW_ESTIMATE = 40;
 const SKELETON_ROWS = 12;
@@ -102,7 +103,7 @@ export default function SymbolTable({
   const toggleSortOrder = useSymbolsStore((s) => s.toggleSortOrder);
 
   const [localQuery, setLocalQuery] = useState("");
-  const { order, rowMap, cursorNext, isLoading, isError, isLoadingMore, hasMore, loadMore, setVisibleSymbols } =
+  const { order, rowMap, cursorNext, isLoading, isSyncing, isError, isLoadingMore, hasMore, loadMore, setVisibleSymbols } =
     useMarketSymbols(win, { sortKey, sortOrder, query: searchTerm ?? localQuery });
   const [, setFlashTick] = useState(0);
 
@@ -197,6 +198,14 @@ export default function SymbolTable({
   }, [rowMap]);
 
   useEffect(() => {
+    // 변경 이유: 캐시→서버 무중단 스왑 중에는 flash가 "로딩"처럼 보이므로 기존 flash 상태를 즉시 제거
+    if (!isSyncing) return;
+    flashRef.current = {};
+    if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
+    setFlashTick((v) => v + 1);
+  }, [isSyncing]);
+
+  useEffect(() => {
     // 변경 이유: SPA 이동 후 order 리셋 시 loadMore 트리거 고정 해제
     if (order.length < prevOrderLenRef.current) {
       loadTriggerRef.current = "";
@@ -227,7 +236,7 @@ export default function SymbolTable({
       const changeDisplay =
         row.change24h === null || !Number.isFinite(row.change24h) ? "-" : `${row.change24h.toFixed(2)}%`;
 
-      if (prevRow) {
+      if (prevRow && !isSyncing) {
         const nextFlash = { ...flash[sym] };
         if (
           priceDisplay !== "-" &&
@@ -286,16 +295,16 @@ export default function SymbolTable({
 
     prevRef.current = nextPrev;
 
-    if (changed) setFlashTick((v) => v + 1);
+    if (!isSyncing && changed) setFlashTick((v) => v + 1);
 
-    if (nextTimerAt > 0) {
+    if (!isSyncing && nextTimerAt > 0) {
       if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
       const delay = Math.max(0, nextTimerAt - Date.now());
       flashTimerRef.current = window.setTimeout(() => {
         setFlashTick((v) => v + 1);
       }, delay + 20);
     }
-  }, [order, rowMap]);
+  }, [isSyncing, order, rowMap]);
 
   const query = typeof searchTerm === "string" ? searchTerm : localQuery;
   const handleQueryChange = (value: string) => {

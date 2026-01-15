@@ -1006,3 +1006,17 @@ Logs/Artifacts:
 - <none>
 Next:
 - /market 새로고침 시 pulse 없이 캐시→최신 무중단 스왑 확인
+
+2026-01-15 18:57 (local)
+Task: market 무중단 스왑 중 flash 비활성 + flash 시간 단축
+Scope: src/components/SymbolTable.tsx
+Why: 캐시→서버 스왑에서 값 flash가 로딩처럼 보이는 현상을 제거하고 체감 플리커를 줄이기 위해.
+Key changes:
+- isSyncing 동안 flash 계산/표시를 차단하고 기존 flash 상태를 즉시 제거
+- flash 시간(PRICE_FLASH_MS/BLINK_MS)을 300ms/180ms로 고정
+Commands run (user):
+- npm run build -> 성공
+Logs/Artifacts:
+- <none>
+Next:
+- /market에서 F5 시 값 flash가 스왑 구간에 나오지 않는지 확인
