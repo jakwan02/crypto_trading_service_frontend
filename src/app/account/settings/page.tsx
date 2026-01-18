@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useContext } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useContext } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import RequireAuth from "@/components/auth/RequireAuth";
@@ -106,12 +106,30 @@ export default function AccountSettingsPage() {
   const [draftPrefs, setDraftPrefs] = useState<Prefs | null>(null);
   const [draftNotify, setDraftNotify] = useState<Notify | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const savedTimerRef = useRef<number | null>(null);
+
+  const markSaved = useCallback(() => {
+    if (savedTimerRef.current) window.clearTimeout(savedTimerRef.current);
+    setSavedAt(Date.now());
+    savedTimerRef.current = window.setTimeout(() => {
+      setSavedAt(null);
+      savedTimerRef.current = null;
+    }, 2000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (savedTimerRef.current) window.clearTimeout(savedTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!data) return;
     // 변경 이유: server state(React Query)와 draft state(편집 중)를 분리해 마케팅 토글/부분 저장이 draft를 초기화하지 않도록 함
-    setDraftPrefs((prev) => prev ?? data.prefs);
-    setDraftNotify((prev) => prev ?? data.notify);
+    queueMicrotask(() => {
+      setDraftPrefs((prev) => prev ?? data.prefs);
+      setDraftNotify((prev) => prev ?? data.notify);
+    });
   }, [data]);
 
   const applyPrefsRuntime = useCallback(
@@ -140,7 +158,7 @@ export default function AccountSettingsPage() {
       queryClient.setQueryData(["accountSettings"], next);
       setDraftPrefs(next.prefs);
       setDraftNotify(next.notify);
-      setSavedAt(Date.now());
+      markSaved();
       await applyPrefsRuntime(next.prefs);
     }
   });
@@ -172,7 +190,7 @@ export default function AccountSettingsPage() {
           updated_at: next.notify.updated_at
         };
       });
-      setSavedAt(Date.now());
+      markSaved();
       void variables;
     }
   });
@@ -231,7 +249,7 @@ export default function AccountSettingsPage() {
   );
 
   const saving = saveMutation.isPending;
-  const saveOk = savedAt && Date.now() - savedAt < 2000;
+  const saveOk = Boolean(savedAt);
 
   return (
     <RequireAuth>

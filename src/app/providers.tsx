@@ -50,7 +50,7 @@ export function AppProviders({ children }: Props) {
     if (typeof window === "undefined") return;
     const stored = window.localStorage.getItem("theme");
     if (stored === "light" || stored === "dark") {
-      setTheme(stored);
+      queueMicrotask(() => setTheme(stored));
     }
   }, []);
 

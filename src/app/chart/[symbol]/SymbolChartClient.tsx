@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { Bell, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import ChartContainer from "@/components/ChartContainer";
+import FavoriteStar from "@/components/watchlists/FavoriteStar";
 import { useSymbols, type MetricWindow } from "@/hooks/useSymbols";
 import type { Candle } from "@/hooks/useChart";
 import { useAuth } from "@/contexts/AuthContext";
@@ -124,7 +125,7 @@ export default function SymbolChartClient({ symbol }: Props) {
     // 변경 이유: market overview에서 tf 쿼리를 전달하면 해당 TF가 초기값을 우선한다.
     if (!tfParam) return;
     touchedRef.current = false;
-    setTf(tfParam);
+    queueMicrotask(() => setTf(tfParam));
   }, [tfParam, sym]);
 
   useEffect(() => {
@@ -133,10 +134,11 @@ export default function SymbolChartClient({ symbol }: Props) {
     if (touchedRef.current) return;
     if (!defaultTf) return;
     if (tf === defaultTf) return;
-    setTf(defaultTf);
+    queueMicrotask(() => setTf(defaultTf));
   }, [defaultTf, tf, tfParam]);
 
   const priceValue = Number.isFinite(livePrice ?? NaN) ? Number(livePrice) : info?.price ?? NaN;
+  const favMarket = marketParam || info?.market || "spot";
 
   useEffect(() => {
     if (!info) return;
@@ -268,6 +270,7 @@ export default function SymbolChartClient({ symbol }: Props) {
         <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex items-center gap-3">
+              <FavoriteStar market={favMarket} symbol={sym} />
               <h1 className="text-2xl font-semibold text-gray-900">{sym}</h1>
               <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">
                 {t("common.live")}

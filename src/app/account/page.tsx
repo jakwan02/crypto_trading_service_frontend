@@ -90,7 +90,7 @@ export default function AccountPage() {
               <p className="mt-2 text-sm text-gray-600">{t("account.paymentDesc")}</p>
               <p className="mt-1 text-xs text-gray-500">{t("account.paymentNext")}</p>
               <Link
-                href="/payment"
+                href="/billing"
                 className="mt-4 inline-flex rounded-full border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
               >
                 {t("account.paymentEdit")}

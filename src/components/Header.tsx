@@ -132,11 +132,25 @@ export default function Header() {
                     {t("common.account")}
                   </Link>
                   <Link
-                    href="/payment"
+                    href="/billing"
                     onClick={() => setAccountOpen(false)}
                     className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
                   >
-                    {t("common.payment")}
+                    {t("common.billing")}
+                  </Link>
+                  <Link
+                    href="/usage"
+                    onClick={() => setAccountOpen(false)}
+                    className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                  >
+                    {t("common.usage")}
+                  </Link>
+                  <Link
+                    href="/watchlists"
+                    onClick={() => setAccountOpen(false)}
+                    className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                  >
+                    {t("common.watchlists")}
                   </Link>
                   <Link
                     href="/alerts"
@@ -237,11 +251,25 @@ export default function Header() {
                     {t("common.account")}
                   </Link>
                   <Link
-                    href="/payment"
+                    href="/billing"
                     onClick={() => setMobileOpen(false)}
                     className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
                   >
-                    {t("common.payment")}
+                    {t("common.billing")}
+                  </Link>
+                  <Link
+                    href="/usage"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                  >
+                    {t("common.usage")}
+                  </Link>
+                  <Link
+                    href="/watchlists"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                  >
+                    {t("common.watchlists")}
                   </Link>
                   <button
                     type="button"

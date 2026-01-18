@@ -9,10 +9,12 @@ const NAV_LINKS = [
   { href: "/", labelKey: "nav.home" },
   { href: "/market", labelKey: "nav.market" },
   { href: "/chart", labelKey: "nav.charts" },
+  { href: "/watchlists", labelKey: "nav.watchlists" },
+  { href: "/usage", labelKey: "nav.usage" },
+  { href: "/billing", labelKey: "nav.billing" },
   { href: "/indicators", labelKey: "nav.ai", pro: true },
   { href: "/news", labelKey: "nav.news" },
-  { href: "/alerts", labelKey: "nav.alerts" },
-  { href: "/payment", labelKey: "nav.payment" }
+  { href: "/alerts", labelKey: "nav.alerts" }
 ];
 
 type Props = {

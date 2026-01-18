@@ -36,7 +36,10 @@ const en = {
       }
     },
     payment: "Payment",
-    paymentDesc: "Add funds quickly when your balance is low."
+    paymentDesc: "Add funds quickly when your balance is low.",
+    billing: "Billing",
+    usage: "Usage",
+    watchlists: "Watchlists"
   },
   nav: {
     home: "Home",
@@ -45,7 +48,10 @@ const en = {
     ai: "AI Insights",
     news: "News",
     alerts: "Alerts",
-    payment: "Payment"
+    payment: "Payment",
+    billing: "Billing",
+    usage: "Usage",
+    watchlists: "Watchlists"
   },
   home: {
     hero: {
@@ -549,7 +555,141 @@ const en = {
     cardExpiry: "Expiry",
     cardExpiryPlaceholder: "Enter expiry date",
     cvc: "CVC",
-    cvcPlaceholder: "Enter CVC"
+    cvcPlaceholder: "Enter CVC",
+    kind: "Product",
+    kindSub: "Subscription (sub)",
+    kindPass30: "30-day pass (pass30)",
+    currency: "Currency",
+    currencyNote: "Display currency and billing currency may differ.",
+    currencySubNote: "Subscription (sub) supports USD only by provider policy.",
+    provider: "Provider",
+    coupon: "Coupon",
+    couponPlaceholder: "Coupon code (optional)"
+  },
+  errors: {
+    retry: "Retry",
+    unauthorized: {
+      title: "Login required",
+      desc: "Please sign in to continue."
+    },
+    conflict: {
+      title: "Already active",
+      desc: "You already have an active entitlement. Go to Billing to cancel/expire, then try again."
+    },
+    rateLimit: {
+      title: "Usage limit exceeded",
+      desc: "You reached the daily or per-minute limit. Try again later or upgrade."
+    },
+    watchlistsLimit: {
+      title: "Watchlists limit exceeded",
+      desc: "Your current plan limit has been reached."
+    },
+    generic: {
+      title: "Request failed",
+      desc: "Please try again later."
+    }
+  },
+  billing: {
+    title: "Billing",
+    desc: "Manage plan, subscription, and invoices.",
+    goBilling: "Go to Billing",
+    actions: {
+      title: "Actions",
+      desc: "Cancel/reactivate subscription, repurchase, and request refunds.",
+      cancel: "Cancel",
+      reactivate: "Reactivate",
+      repurchase: "Repurchase"
+    },
+    sub: {
+      none: "No active subscription."
+    },
+    invoices: {
+      title: "Invoices",
+      desc: "Invoice list and download",
+      recent: "Recent invoices",
+      all: "View all"
+    },
+    refund: {
+      cta: "Request refund",
+      formTitle: "Refund request",
+      selectPlaceholder: "Select an invoice",
+      reasonPlaceholder: "Reason (optional)",
+      submit: "Submit request",
+      submitted: "Submitted",
+      noInvoices: "No refundable invoices.",
+      pickInvoice: "Select an invoice."
+    },
+    return: {
+      title: "Payment status",
+      desc: "Confirm payment and refresh access.",
+      checking: "Checking payment status…",
+      noOrder: "No order info; checking Billing state instead.",
+      canceledTitle: "Payment canceled",
+      canceledDesc: "You can retry from Upgrade.",
+      backUpgrade: "Go to Upgrade",
+      successTitle: "Upgrade complete",
+      successDesc: "You can check the status in Billing.",
+      pendingTitle: "Processing",
+      pendingDesc: "Webhook may be delayed. Check Billing for the latest status.",
+      failedTitle: "Payment failed",
+      failedDesc: "You can retry from Upgrade.",
+      retryUpgrade: "Retry"
+    }
+  },
+  usage: {
+    title: "Usage",
+    desc: "Check usage and limits.",
+    goUsage: "Go to Usage",
+    plan: "Plan",
+    planHint: "Limits are based on Billing/Plans",
+    callsToday: "API calls today",
+    callsTodayHint: "Based on calls_per_day",
+    rpm: "RPM",
+    rpmHint: "Per-minute usage",
+    rpmHintNoUsed: "Current RPM usage may not be provided by the server.",
+    entitlements: "Entitlements"
+  },
+  watchlists: {
+    title: "Watchlists",
+    desc: "Manage symbols in lists.",
+    listTitle: "Lists",
+    createTitle: "New watchlist",
+    createNamePlaceholder: "Name",
+    createTagsPlaceholder: "Tags (comma separated)",
+    createCta: "Create",
+    pickOne: "Pick a watchlist.",
+    itemsTitle: "Items",
+    addSymbol: "Add",
+    updateCta: "Update",
+    deleteCta: "Delete",
+    editName: "Name",
+    editTags: "Tags",
+    detailTitle: "Watchlist",
+    detailDesc: "Detail/share/manage items",
+    back: "Back to list",
+    invalidId: "Invalid id.",
+    share: {
+      cta: "Create share link",
+      title: "Share link",
+      copy: "Copy",
+      copied: "Copied"
+    },
+    shared: {
+      title: "Shared Watchlist",
+      desc: "Public shared watchlist.",
+      invalidToken: "Invalid token.",
+      empty: "No items.",
+      chart: "Chart",
+      viewChart: "View chart"
+    }
+  },
+  devBilling: {
+    title: "Dev Billing",
+    desc: "Verify mock billing flow in development.",
+    kind: "Product",
+    currency: "Currency",
+    start: "Start mock checkout",
+    subUsdOnly: "sub supports USD only."
   },
   payment: {
     amountLabel: "Top-up amount",

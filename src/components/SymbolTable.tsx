@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import { useMarketSymbols, type MarketRow } from "@/hooks/useMarketSymbols";
 import { formatCompactNumber } from "@/lib/format";
 import { useSymbolsStore, type SortKey, type MetricWindow } from "@/store/useSymbolStore";
+import FavoriteStar from "@/components/watchlists/FavoriteStar";
 
 const columnHelper = createColumnHelper<MarketRow>();
 
@@ -367,7 +368,12 @@ export default function SymbolTable({
         cell: (info) => {
           const value = String(info.getValue() ?? "");
           if (value.startsWith("__loading__")) return <LoadingBar />;
-          return <span className="font-medium text-gray-900">{value}</span>;
+          return (
+            <div className="flex items-center gap-2">
+              <FavoriteStar market={info.row.original.market} symbol={value} />
+              <span className="font-medium text-gray-900">{value}</span>
+            </div>
+          );
         }
       }),
 

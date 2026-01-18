@@ -36,7 +36,10 @@ const ko = {
       }
     },
     payment: "Payment",
-    paymentDesc: "잔액이 부족할 때 빠르게 충전하고 거래를 이어가세요."
+    paymentDesc: "잔액이 부족할 때 빠르게 충전하고 거래를 이어가세요.",
+    billing: "Billing",
+    usage: "Usage",
+    watchlists: "Watchlists"
   },
   nav: {
     home: "Home",
@@ -45,7 +48,10 @@ const ko = {
     ai: "AI Insights",
     news: "News",
     alerts: "Alerts",
-    payment: "Payment"
+    payment: "Payment",
+    billing: "Billing",
+    usage: "Usage",
+    watchlists: "Watchlists"
   },
   home: {
     hero: {
@@ -549,7 +555,141 @@ const ko = {
     cardExpiry: "만료일",
     cardExpiryPlaceholder: "만료일을 입력하세요",
     cvc: "CVC",
-    cvcPlaceholder: "보안 코드를 입력하세요"
+    cvcPlaceholder: "보안 코드를 입력하세요",
+    kind: "상품",
+    kindSub: "구독(sub)",
+    kindPass30: "30일권(pass30)",
+    currency: "통화",
+    currencyNote: "표시 통화와 청구 통화는 다를 수 있습니다.",
+    currencySubNote: "구독(sub)은 결제사 정책으로 USD만 지원합니다.",
+    provider: "결제 수단",
+    coupon: "쿠폰",
+    couponPlaceholder: "쿠폰 코드(선택)"
+  },
+  errors: {
+    retry: "재시도",
+    unauthorized: {
+      title: "로그인이 필요합니다",
+      desc: "계속하려면 로그인해주세요."
+    },
+    conflict: {
+      title: "이미 이용 중입니다",
+      desc: "현재 이용 중인 상품이 있어 새 결제를 진행할 수 없습니다. Billing에서 해지/만료 후 다시 시도하세요."
+    },
+    rateLimit: {
+      title: "사용량이 초과되었습니다",
+      desc: "오늘 한도 또는 분당 한도를 초과했습니다. 잠시 후 다시 시도하거나 업그레이드하세요."
+    },
+    watchlistsLimit: {
+      title: "워치리스트 한도 초과",
+      desc: "현재 플랜 한도를 초과했습니다."
+    },
+    generic: {
+      title: "요청에 실패했습니다",
+      desc: "잠시 후 다시 시도해주세요."
+    }
+  },
+  billing: {
+    title: "Billing",
+    desc: "플랜, 구독, 인보이스를 관리합니다.",
+    goBilling: "Billing으로 이동",
+    actions: {
+      title: "관리",
+      desc: "구독 해지/재활성, 재구매, 환불 요청을 수행합니다.",
+      cancel: "해지",
+      reactivate: "재활성",
+      repurchase: "재구매"
+    },
+    sub: {
+      none: "현재 활성 구독이 없습니다."
+    },
+    invoices: {
+      title: "Invoices",
+      desc: "인보이스 목록 및 다운로드",
+      recent: "최근 인보이스",
+      all: "전체 보기"
+    },
+    refund: {
+      cta: "환불 요청",
+      formTitle: "환불 요청",
+      selectPlaceholder: "인보이스를 선택하세요",
+      reasonPlaceholder: "사유(선택)",
+      submit: "요청 제출",
+      submitted: "접수 완료",
+      noInvoices: "환불 가능한 인보이스가 없습니다.",
+      pickInvoice: "인보이스를 선택하세요."
+    },
+    return: {
+      title: "결제 확인",
+      desc: "결제 상태를 확인하고 권한을 갱신합니다.",
+      checking: "결제 상태 확인 중...",
+      noOrder: "order 정보가 없어 Billing 상태로 확인합니다.",
+      canceledTitle: "결제가 취소되었습니다",
+      canceledDesc: "원하시면 다시 결제를 진행하세요.",
+      backUpgrade: "Upgrade로",
+      successTitle: "업그레이드가 완료되었습니다",
+      successDesc: "Billing에서 상태를 확인할 수 있습니다.",
+      pendingTitle: "처리 중입니다",
+      pendingDesc: "웹훅 지연이 있을 수 있습니다. Billing에서 상태를 확인하세요.",
+      failedTitle: "결제가 실패했습니다",
+      failedDesc: "Upgrade에서 다시 시도할 수 있습니다.",
+      retryUpgrade: "다시 시도"
+    }
+  },
+  usage: {
+    title: "Usage",
+    desc: "사용량과 한도를 확인합니다.",
+    goUsage: "Usage로 이동",
+    plan: "플랜",
+    planHint: "플랜별 한도는 Billing/Plans 기준",
+    callsToday: "오늘 API 호출",
+    callsTodayHint: "calls_per_day 기준",
+    rpm: "RPM",
+    rpmHint: "분당 사용량",
+    rpmHintNoUsed: "현재 사용량은 서버에서 제공되지 않을 수 있습니다.",
+    entitlements: "엔티틀먼트"
+  },
+  watchlists: {
+    title: "Watchlists",
+    desc: "관심 심볼을 리스트로 관리합니다.",
+    listTitle: "목록",
+    createTitle: "새 워치리스트",
+    createNamePlaceholder: "이름",
+    createTagsPlaceholder: "태그(쉼표로 구분)",
+    createCta: "생성",
+    pickOne: "워치리스트를 선택하세요.",
+    itemsTitle: "아이템",
+    addSymbol: "추가",
+    updateCta: "수정",
+    deleteCta: "삭제",
+    editName: "이름",
+    editTags: "태그",
+    detailTitle: "Watchlist",
+    detailDesc: "상세/공유/아이템 관리",
+    back: "목록으로",
+    invalidId: "잘못된 ID 입니다.",
+    share: {
+      cta: "공유 링크 생성",
+      title: "공유 링크",
+      copy: "복사",
+      copied: "복사됨"
+    },
+    shared: {
+      title: "Shared Watchlist",
+      desc: "공유된 워치리스트입니다.",
+      invalidToken: "유효하지 않은 토큰입니다.",
+      empty: "아이템이 없습니다.",
+      chart: "차트",
+      viewChart: "차트 보기"
+    }
+  },
+  devBilling: {
+    title: "Dev Billing",
+    desc: "개발용 mock 결제 플로우를 검증합니다.",
+    kind: "상품",
+    currency: "통화",
+    start: "Mock 결제 시작",
+    subUsdOnly: "sub는 USD만 허용됩니다."
   },
   payment: {
     amountLabel: "충전 금액",

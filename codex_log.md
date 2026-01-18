@@ -1076,3 +1076,20 @@ Logs/Artifacts:
 - <none>
 Next:
 - 보안 페이지에서 Google 재인증 후 탈퇴/2FA 비활성화 동작 확인
+
+2026-01-18 11:37 (local)
+Task: 2주차 프론트(Billing/Usage/Watchlists) 구현 및 lint/build 통과
+Scope: README.md, .env.example, src/app/billing/**, src/app/usage/**, src/app/watchlists/**, src/app/upgrade/page.tsx, src/app/payment/page.tsx, src/app/account/page.tsx, src/app/account/settings/page.tsx, src/app/chart/[symbol]/SymbolChartClient.tsx, src/app/providers.tsx, src/app/dev/**, src/app/api/dev/billing/checkout/route.ts, src/components/billing/**, src/components/common/ApiErrorView.tsx, src/components/watchlists/**, src/components/Header.tsx, src/components/Navigation.tsx, src/components/SymbolTable.tsx, src/lib/apiErr.ts, src/lib/billingClient.ts, src/lib/publicClient.ts, src/lib/watchlistsClient.ts, src/types/billing.ts, src/types/usage.ts, src/types/watchlists.ts, src/i18n/locales/ko.ts, src/i18n/locales/en.ts, codex_log.md
+Why: 2주차 백엔드(결제/청구/사용량/워치리스트) 계약을 프론트에 연결하고, React hooks lint 규칙을 만족해 빌드 가능한 상태로 만들기 위해.
+Key changes:
+- /upgrade→checkout redirect→/billing/return 폴링→/billing 반영 플로우 구현 + 409/429 표준 UX 적용
+- /billing(invoices 포함), /usage, /watchlists(공유/즐겨찾기 포함) 페이지 및 클라이언트/타입 추가
+- dev 전용 결제(/dev/billing + /api/dev/billing/checkout) env gate + server token 프록시, lint/build 에러 수정
+Commands run (user):
+- npm run lint -> 성공(경고 13)
+- npm run build -> 성공
+Logs/Artifacts:
+- next build OK
+Next:
+- /upgrade 결제→/billing/return→/billing 상태 반영(Plan/Usage) 확인
+- /watchlists CRUD/공유 페이지 및 Market/Chart 즐겨찾기 토글 확인

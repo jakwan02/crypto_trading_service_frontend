@@ -33,6 +33,12 @@ npm run dev
 - `NEXT_PUBLIC_API_TOKEN`
 - `NEXT_PUBLIC_WS_TOKEN`
 
+선택 (개발용 Mock 결제 테스트):
+
+- `NEXT_PUBLIC_ENABLE_DEV_BILLING` (`1`이면 `/dev/billing`, `/api/dev/billing/checkout` 활성화; production에서는 404)
+- `DEV_BILLING_TOKEN` (server-only: 백엔드로 `X-Dev-Token` 주입)
+- `API_PROXY_TARGET` (선택: 백엔드 base URL, 예: `http://localhost:8001`)
+
 선택 (모니터링 - Sentry):
 
 - `NEXT_PUBLIC_SENTRY_DSN`
