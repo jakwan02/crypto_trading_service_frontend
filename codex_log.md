@@ -1093,3 +1093,17 @@ Logs/Artifacts:
 Next:
 - /upgrade 결제→/billing/return→/billing 상태 반영(Plan/Usage) 확인
 - /watchlists CRUD/공유 페이지 및 Market/Chart 즐겨찾기 토글 확인
+
+2026-01-18 17:31 (local)
+Task: 즐겨찾기(별) 클릭 버블링 차단
+Scope: src/components/watchlists/FavoriteStar.tsx, codex_log.md
+Why: SymbolTable 행(tr) onClick(차트 이동)과 충돌해 별 클릭이 차트 이동을 유발할 수 있기 때문.
+Key changes:
+- FavoriteStar 버튼 클릭에서 stopPropagation()+preventDefault() 적용, onMouseDown에서도 stopPropagation 적용
+Commands run (user):
+- npm run lint -> not run
+- npm run build -> not run
+Logs/Artifacts:
+- <none>
+Next:
+- /market 테이블에서 별 클릭 시 차트로 이동하지 않는지 확인

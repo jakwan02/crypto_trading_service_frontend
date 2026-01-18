@@ -72,7 +72,12 @@ export default function FavoriteStar({ market, symbol, className = "" }: Props) 
     <button
       type="button"
       aria-label={isFav ? "Unfavorite" : "Favorite"}
-      onClick={toggle}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        toggle();
+      }}
       className={`inline-flex h-8 w-8 items-center justify-center rounded-full border ${
         isFav ? "border-primary/40 bg-primary/10 text-primary" : "border-gray-200 bg-white text-gray-500"
       } transition hover:border-primary/30 hover:text-primary ${className}`}
@@ -81,4 +86,3 @@ export default function FavoriteStar({ market, symbol, className = "" }: Props) 
     </button>
   );
 }
-
