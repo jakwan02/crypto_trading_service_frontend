@@ -93,7 +93,6 @@ function mapTheme(value: string): Theme | null {
   return null;
 }
 
-const LS_METRICS_WINDOW_KEY = "market.metrics_window";
 const LS_ACCOUNT_PREFS_KEY = "account.prefs";
 
 function readAccountPrefsFromLs(): AccountPrefsInput {
@@ -118,86 +117,18 @@ function writeAccountPrefsToLs(prefs: AccountPrefsInput): void {
   }
 }
 
-// 변경 이유: F5 새로고침 시 metricWindow가 2번 바뀌며(기본값→URL/LS) 캐시→스켈레톤→서버 플리커가 발생하므로, 첫 렌더 전에 window를 선결정한다.
-function getInitialMetricWindow(): MetricWindow {
-  const fallback: MetricWindow = "1d";
-  if (typeof window === "undefined") return fallback;
-  try {
-    const fromUrl = mapMetricWindow(new URLSearchParams(window.location.search).get("window") || "");
-    if (fromUrl) return fromUrl;
-  } catch {
-    // ignore
-  }
-  try {
-    const fromLs = mapMetricWindow(window.localStorage.getItem(LS_METRICS_WINDOW_KEY) || "");
-    if (fromLs) return fromLs;
-  } catch {
-    // ignore
-  }
-  return fallback;
-}
-
-// 변경 이유: 계정 prefs hydrate 후 market/sort 등의 store 값이 뒤늦게 바뀌며 market 캐시→로딩 플리커가 생기므로, LS에 저장된 prefs로 초기값을 선결정한다.
-function getInitialMarket(): Market {
-  const fallback: Market = "spot";
-  const prefs = readAccountPrefsFromLs();
-  const m = mapMarketDefault(String(prefs.market_default ?? ""));
-  return m ?? fallback;
-}
-
-function getInitialSortKey(): SortKey {
-  const fallback: SortKey = "quoteVolume";
-  const prefs = readAccountPrefsFromLs();
-  const sk = mapSortDefault(String(prefs.sort_default ?? ""));
-  return sk ?? fallback;
-}
-
-function getInitialChartTf(): ChartTf {
-  const fallback: ChartTf = "1d";
-  const prefs = readAccountPrefsFromLs();
-  const tf = mapChartTf(String(prefs.tf_default ?? ""));
-  return tf ?? fallback;
-}
-
-function getInitialCurrency(): Currency {
-  const fallback: Currency = "KRW";
-  const prefs = readAccountPrefsFromLs();
-  const ccy = mapCurrency(String(prefs.ccy_default ?? ""));
-  return ccy ?? fallback;
-}
-
-function getInitialLang(): Lang {
-  const fallback: Lang = "ko";
-  const prefs = readAccountPrefsFromLs();
-  const lang = mapLang(String(prefs.lang ?? ""));
-  return lang ?? fallback;
-}
-
-function getInitialTheme(): Theme {
-  const fallback: Theme = "light";
-  const prefs = readAccountPrefsFromLs();
-  const theme = mapTheme(String(prefs.theme ?? ""));
-  return theme ?? fallback;
-}
-
-function getInitialTz(): string {
-  const fallback = "UTC";
-  const prefs = readAccountPrefsFromLs();
-  const tz = String(prefs.tz ?? "").trim();
-  return tz || fallback;
-}
-
 export const useSymbolsStore = create<SymbolsStoreState>((set) => ({
-  market: getInitialMarket(),
+  // 변경 이유: SSR/CSR 초기 렌더가 localStorage에 의해 달라지면 hydration mismatch가 발생하므로, 초기값은 항상 고정값을 사용한다.
+  market: "spot",
   // 기본: qv(거래대금) 내림차순
-  sortKey: getInitialSortKey(),
+  sortKey: "quoteVolume",
   sortOrder: "desc",
-  metricWindow: getInitialMetricWindow(),
-  chartTf: getInitialChartTf(),
-  ccyDefault: getInitialCurrency(),
-  lang: getInitialLang(),
-  theme: getInitialTheme(),
-  tz: getInitialTz(),
+  metricWindow: "1d",
+  chartTf: "1d",
+  ccyDefault: "KRW",
+  lang: "ko",
+  theme: "light",
+  tz: "UTC",
   setMarket: (market) => set({ market }),
   setSortKey: (sortKey) => set({ sortKey }),
   setSortOrder: (sortOrder) => set({ sortOrder }),

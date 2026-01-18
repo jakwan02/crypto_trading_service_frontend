@@ -1049,3 +1049,17 @@ Logs/Artifacts:
 Next:
 - F5 새로고침 시 Header가 로그인 버튼으로 깜빡이지 않는지 확인
 - /market에서 캐시가 보이는 상태로 로딩 스켈레톤이 다시 뜨지 않는지 확인
+
+2026-01-18 03:00 (local)
+Task: hydration mismatch(Spot/UM 토글) 제거
+Scope: src/store/useSymbolStore.ts, codex_log.md
+Why: zustand store 초기값을 localStorage 기반으로 결정하면 SSR/CSR 첫 렌더가 달라져 버튼 className이 불일치(hydration mismatch)하기 때문.
+Key changes:
+- store 초기값을 고정값으로 되돌려 SSR/CSR 초기 렌더를 일치시킴
+- account prefs는 applyAccountPrefs 시 localStorage에만 저장/merge(초기 렌더에 영향 없음)
+Commands run (user):
+- npm run build -> 성공
+Logs/Artifacts:
+- intercept-console-error.ts: hydration mismatch(Spot/UM className swap) (user report)
+Next:
+- / (홈)에서 F5 시 hydration mismatch 콘솔 에러가 사라졌는지 확인
