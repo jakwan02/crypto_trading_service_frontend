@@ -94,6 +94,29 @@ function mapTheme(value: string): Theme | null {
 }
 
 const LS_METRICS_WINDOW_KEY = "market.metrics_window";
+const LS_ACCOUNT_PREFS_KEY = "account.prefs";
+
+function readAccountPrefsFromLs(): AccountPrefsInput {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(LS_ACCOUNT_PREFS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed as AccountPrefsInput;
+  } catch {
+    return {};
+  }
+}
+
+function writeAccountPrefsToLs(prefs: AccountPrefsInput): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(LS_ACCOUNT_PREFS_KEY, JSON.stringify(prefs));
+  } catch {
+    // ignore
+  }
+}
 
 // 변경 이유: F5 새로고침 시 metricWindow가 2번 바뀌며(기본값→URL/LS) 캐시→스켈레톤→서버 플리커가 발생하므로, 첫 렌더 전에 window를 선결정한다.
 function getInitialMetricWindow(): MetricWindow {
@@ -114,17 +137,67 @@ function getInitialMetricWindow(): MetricWindow {
   return fallback;
 }
 
+// 변경 이유: 계정 prefs hydrate 후 market/sort 등의 store 값이 뒤늦게 바뀌며 market 캐시→로딩 플리커가 생기므로, LS에 저장된 prefs로 초기값을 선결정한다.
+function getInitialMarket(): Market {
+  const fallback: Market = "spot";
+  const prefs = readAccountPrefsFromLs();
+  const m = mapMarketDefault(String(prefs.market_default ?? ""));
+  return m ?? fallback;
+}
+
+function getInitialSortKey(): SortKey {
+  const fallback: SortKey = "quoteVolume";
+  const prefs = readAccountPrefsFromLs();
+  const sk = mapSortDefault(String(prefs.sort_default ?? ""));
+  return sk ?? fallback;
+}
+
+function getInitialChartTf(): ChartTf {
+  const fallback: ChartTf = "1d";
+  const prefs = readAccountPrefsFromLs();
+  const tf = mapChartTf(String(prefs.tf_default ?? ""));
+  return tf ?? fallback;
+}
+
+function getInitialCurrency(): Currency {
+  const fallback: Currency = "KRW";
+  const prefs = readAccountPrefsFromLs();
+  const ccy = mapCurrency(String(prefs.ccy_default ?? ""));
+  return ccy ?? fallback;
+}
+
+function getInitialLang(): Lang {
+  const fallback: Lang = "ko";
+  const prefs = readAccountPrefsFromLs();
+  const lang = mapLang(String(prefs.lang ?? ""));
+  return lang ?? fallback;
+}
+
+function getInitialTheme(): Theme {
+  const fallback: Theme = "light";
+  const prefs = readAccountPrefsFromLs();
+  const theme = mapTheme(String(prefs.theme ?? ""));
+  return theme ?? fallback;
+}
+
+function getInitialTz(): string {
+  const fallback = "UTC";
+  const prefs = readAccountPrefsFromLs();
+  const tz = String(prefs.tz ?? "").trim();
+  return tz || fallback;
+}
+
 export const useSymbolsStore = create<SymbolsStoreState>((set) => ({
-  market: "spot",
+  market: getInitialMarket(),
   // 기본: qv(거래대금) 내림차순
-  sortKey: "quoteVolume",
+  sortKey: getInitialSortKey(),
   sortOrder: "desc",
   metricWindow: getInitialMetricWindow(),
-  chartTf: "1d",
-  ccyDefault: "KRW",
-  lang: "ko",
-  theme: "light",
-  tz: "UTC",
+  chartTf: getInitialChartTf(),
+  ccyDefault: getInitialCurrency(),
+  lang: getInitialLang(),
+  theme: getInitialTheme(),
+  tz: getInitialTz(),
   setMarket: (market) => set({ market }),
   setSortKey: (sortKey) => set({ sortKey }),
   setSortOrder: (sortOrder) => set({ sortOrder }),
@@ -138,24 +211,27 @@ export const useSymbolsStore = create<SymbolsStoreState>((set) => ({
   setLang: (lang) => set({ lang }),
   setTheme: (theme) => set({ theme }),
   setTz: (tz) => set({ tz }),
-  applyAccountPrefs: (prefs) =>
+  applyAccountPrefs: (prefs) => {
+    const merged: AccountPrefsInput = { ...readAccountPrefsFromLs(), ...(prefs || {}) };
+    writeAccountPrefsToLs(merged);
     set((state) => {
       const next: Partial<SymbolsStoreState> = {};
-      const m = mapMarketDefault(String(prefs.market_default ?? ""));
+      const m = mapMarketDefault(String(merged.market_default ?? ""));
       if (m) next.market = m;
-      const sk = mapSortDefault(String(prefs.sort_default ?? ""));
+      const sk = mapSortDefault(String(merged.sort_default ?? ""));
       if (sk) next.sortKey = sk;
-      const tf = mapChartTf(String(prefs.tf_default ?? ""));
+      const tf = mapChartTf(String(merged.tf_default ?? ""));
       if (tf) next.chartTf = tf;
-      const ccy = mapCurrency(String(prefs.ccy_default ?? ""));
+      const ccy = mapCurrency(String(merged.ccy_default ?? ""));
       if (ccy) next.ccyDefault = ccy;
-      const lang = mapLang(String(prefs.lang ?? ""));
+      const lang = mapLang(String(merged.lang ?? ""));
       if (lang) next.lang = lang;
-      const theme = mapTheme(String(prefs.theme ?? ""));
+      const theme = mapTheme(String(merged.theme ?? ""));
       if (theme) next.theme = theme;
-      const tz = String(prefs.tz ?? "").trim();
+      const tz = String(merged.tz ?? "").trim();
       if (tz) next.tz = tz;
       if (!Object.keys(next).length) return state;
       return { ...state, ...next };
-    })
+    });
+  }
 }));

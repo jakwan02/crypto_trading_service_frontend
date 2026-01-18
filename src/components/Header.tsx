@@ -33,7 +33,7 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [noticeOpen, setNoticeOpen] = useState(false);
-  const { user, signOut, isPro } = useAuth();
+  const { user, signOut, isPro, sessionReady } = useAuth();
   const { t } = useTranslation();
   const displayName = useMemo(() => {
     if (!user) return t("common.guest");
@@ -103,7 +103,9 @@ export default function Header() {
             </span>
           )}
 
-          {!user ? (
+          {!sessionReady ? (
+            <div className="h-9 w-24 animate-pulse rounded-full bg-gray-200" />
+          ) : !user ? (
             <Link
               href="/login"
               className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-primary-dark"
@@ -215,7 +217,9 @@ export default function Header() {
                 </span>
               )}
 
-              {!user ? (
+              {!sessionReady ? (
+                <div className="h-10 w-full animate-pulse rounded-full bg-gray-200" />
+              ) : !user ? (
                 <Link
                   href="/login"
                   onClick={() => setMobileOpen(false)}

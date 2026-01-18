@@ -1034,3 +1034,18 @@ Logs/Artifacts:
 - <none>
 Next:
 - /market?window=1Y에서 F5 시 스켈레톤 재전환이 사라졌는지 확인
+
+2026-01-18 02:15 (local)
+Task: 새로고침 Auth/Market 플리커 제거
+Scope: src/components/Header.tsx, src/store/useSymbolStore.ts, codex_log.md
+Why: refresh 전 user=null로 Header가 로그인→유저로 바뀌고, 계정 prefs hydrate가 market store를 뒤늦게 바꿔 캐시 표시 후 로딩이 재발생했기 때문.
+Key changes:
+- Header에서 sessionReady 전에는 로그인 버튼 대신 스켈레톤을 표시해 로그인→유저 플리커 제거
+- account prefs를 localStorage에 저장/초기 로드해 market/sort 등의 초기값을 선결정(캐시→로딩 재전환 감소)
+Commands run (user):
+- npm run build -> not run
+Logs/Artifacts:
+- <none>
+Next:
+- F5 새로고침 시 Header가 로그인 버튼으로 깜빡이지 않는지 확인
+- /market에서 캐시가 보이는 상태로 로딩 스켈레톤이 다시 뜨지 않는지 확인
