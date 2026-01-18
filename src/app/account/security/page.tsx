@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/appClient";
 import { getAcc } from "@/lib/token";
 import { buildAuthMessage, parseAuthError } from "@/lib/auth/authErrors";
+import { requestGoogleIdToken } from "@/lib/googleOidc";
 
 type SetupResponse = { otpauth_url: string };
 type BackupCodesResponse = { backup_codes: string[] };
@@ -45,6 +46,9 @@ export default function SecurityPage() {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [mfaActionCode, setMfaActionCode] = useState("");
   const [disablePassword, setDisablePassword] = useState("");
+  // 변경 이유: Google 계정 step-up 재인증 토큰 보관
+  const [googleIdToken, setGoogleIdToken] = useState("");
+  const [googleStatus, setGoogleStatus] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteMfaCode, setDeleteMfaCode] = useState("");
   const [deleteReason, setDeleteReason] = useState("");
@@ -142,12 +146,32 @@ export default function SecurityPage() {
     }
   };
 
+  // 변경 이유: 비밀번호 없는 Google 계정의 step-up 재인증 흐름 제공
+  const handleGoogleReauth = async () => {
+    if (submitting) return;
+    setError("");
+    setGoogleStatus("");
+    setSubmitting(true);
+    try {
+      const token = await requestGoogleIdToken();
+      setGoogleIdToken(token);
+      setGoogleStatus(t("security.googleReauthDone"));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t("auth.requestFailed");
+      setError(message || t("auth.requestFailed"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleDisable = async () => {
-    if (!hasPassword) {
-      router.push(`/account/password-set?next=${encodeURIComponent("/account/security#mfa")}`);
+    if (submitting || !mfaActionCode) return;
+    if (hasPassword) {
+      if (!disablePassword) return;
+    } else if (!googleIdToken) {
+      setError(t("security.googleReauthRequired"));
       return;
     }
-    if (submitting || !disablePassword || !mfaActionCode) return;
     setError("");
     setStatus("");
     setSubmitting(true);
@@ -155,7 +179,11 @@ export default function SecurityPage() {
       await apiRequest("/auth/2fa/disable", {
         method: "POST",
         headers: getAuthHeaders(),
-        json: { password: disablePassword, mfa_code: mfaActionCode }
+        json: {
+          password: hasPassword ? disablePassword : undefined,
+          google_id_token: hasPassword ? undefined : googleIdToken,
+          mfa_code: mfaActionCode
+        }
       });
       setBackupCodes([]);
       setSetupUrl("");
@@ -218,11 +246,13 @@ export default function SecurityPage() {
   };
 
   const handleDelete = async () => {
-    if (!hasPassword) {
-      router.push(`/account/password-set?next=${encodeURIComponent("/account/security#delete")}`);
+    if (submitting) return;
+    if (hasPassword) {
+      if (!deletePassword) return;
+    } else if (!googleIdToken) {
+      setError(t("security.googleReauthRequired"));
       return;
     }
-    if (submitting || !deletePassword) return;
     if (mfaEnabled && !deleteMfaCode) return;
     setError("");
     setStatus("");
@@ -231,7 +261,12 @@ export default function SecurityPage() {
       const res = await apiRequest<DeleteResponse>("/account/delete", {
         method: "POST",
         headers: getAuthHeaders(),
-        json: { password: deletePassword, mfa_code: deleteMfaCode || undefined, reason: deleteReason || undefined }
+        json: {
+          password: hasPassword ? deletePassword : undefined,
+          google_id_token: hasPassword ? undefined : googleIdToken,
+          mfa_code: deleteMfaCode || undefined,
+          reason: deleteReason || undefined
+        }
       });
       setPurgeAfterDays(res.purge_after_days);
       setStatus(t("security.deleteDone"));
@@ -260,13 +295,24 @@ export default function SecurityPage() {
             <div className="mb-4 rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
               <h2 className="text-sm font-semibold text-amber-900">{t("security.passwordMissingTitle")}</h2>
               <p className="mt-2 text-sm text-amber-800">{t("security.passwordMissingDesc")}</p>
-              <button
-                type="button"
-                onClick={() => router.push(`/account/password-set?next=${encodeURIComponent("/account/security")}`)}
-                className="mt-4 inline-flex rounded-full bg-amber-600 px-4 py-2 text-xs font-semibold text-white"
-              >
-                {t("security.passwordMissingCta")}
-              </button>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleGoogleReauth}
+                  disabled={submitting}
+                  className="inline-flex rounded-full bg-amber-700 px-4 py-2 text-xs font-semibold text-white"
+                >
+                  {googleIdToken ? t("security.googleReauthDoneShort") : t("security.googleReauthCta")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push(`/account/password-set?next=${encodeURIComponent("/account/security")}`)}
+                  className="inline-flex rounded-full border border-amber-300 px-4 py-2 text-xs font-semibold text-amber-900"
+                >
+                  {t("security.passwordMissingCta")}
+                </button>
+              </div>
+              {googleStatus ? <p className="mt-2 text-xs text-amber-800">{googleStatus}</p> : null}
             </div>
           ) : null}
 
@@ -364,8 +410,16 @@ export default function SecurityPage() {
 		                    </>
                       ) : (
                         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
-                          <p className="font-semibold">{t("security.passwordMissingTitle")}</p>
-                          <p className="mt-1 text-[11px] text-amber-800">{t("security.passwordMissingDesc")}</p>
+                          <p className="font-semibold">{t("security.googleReauthTitle")}</p>
+                          <p className="mt-1 text-[11px] text-amber-800">{t("security.googleReauthDesc")}</p>
+                          <button
+                            type="button"
+                            onClick={handleGoogleReauth}
+                            disabled={submitting}
+                            className="mt-2 inline-flex rounded-full bg-amber-700 px-3 py-1.5 text-[11px] font-semibold text-white"
+                          >
+                            {googleIdToken ? t("security.googleReauthDoneShort") : t("security.googleReauthCta")}
+                          </button>
                         </div>
                       )}
 	                  <div className="flex flex-wrap gap-2">
@@ -377,25 +431,14 @@ export default function SecurityPage() {
                     >
 	                      {t("security.backupRegenerate")}
 	                    </button>
-                      {hasPassword ? (
-	                      <button
-	                        type="button"
-	                        onClick={handleDisable}
-	                        disabled={submitting || !mfaActionCode || !disablePassword}
-	                        className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600"
-	                      >
-	                        {t("security.mfaDisable")}
-	                      </button>
-                      ) : (
-	                      <button
-	                        type="button"
-	                        onClick={() => router.push(`/account/password-set?next=${encodeURIComponent("/account/security#mfa")}`)}
-	                        disabled={submitting}
-	                        className="rounded-full bg-amber-600 px-4 py-2 text-xs font-semibold text-white"
-	                      >
-	                        {t("security.passwordMissingCta")}
-	                      </button>
-                      )}
+	                    <button
+	                      type="button"
+	                      onClick={handleDisable}
+	                      disabled={submitting || !mfaActionCode || (hasPassword ? !disablePassword : !googleIdToken)}
+	                      className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600"
+	                    >
+	                      {t("security.mfaDisable")}
+	                    </button>
 	                  </div>
 	                </div>
 	              )}
@@ -485,15 +528,49 @@ export default function SecurityPage() {
                   </button>
                 </div>
               ) : (
-                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                  <p className="font-semibold">{t("security.passwordMissingTitle")}</p>
-                  <p className="mt-1 text-sm text-amber-800">{t("security.passwordMissingDesc")}</p>
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+                    <p className="font-semibold">{t("security.googleReauthTitle")}</p>
+                    <p className="mt-1 text-[11px] text-amber-800">{t("security.googleReauthDesc")}</p>
+                    <button
+                      type="button"
+                      onClick={handleGoogleReauth}
+                      disabled={submitting}
+                      className="mt-2 inline-flex rounded-full bg-amber-700 px-3 py-1.5 text-[11px] font-semibold text-white"
+                    >
+                      {googleIdToken ? t("security.googleReauthDoneShort") : t("security.googleReauthCta")}
+                    </button>
+                  </div>
+                  {mfaEnabled ? (
+                    <>
+                      <label className="text-xs font-semibold text-gray-600">{t("security.mfaCodeLabel")}</label>
+                      <input
+                        name="security-delete-mfa-code"
+                        autoComplete="off"
+                        inputMode="numeric"
+                        value={deleteMfaCode}
+                        onChange={(event) => setDeleteMfaCode(event.target.value)}
+                        placeholder={t("security.mfaCodePlaceholder")}
+                        className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+                      />
+                    </>
+                  ) : null}
+                  <label className="text-xs font-semibold text-gray-600">{t("security.deleteReason")}</label>
+                  <input
+                    name="security-delete-reason"
+                    autoComplete="off"
+                    value={deleteReason}
+                    onChange={(event) => setDeleteReason(event.target.value)}
+                    placeholder={t("security.deleteReasonPlaceholder")}
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+                  />
                   <button
                     type="button"
-                    onClick={() => router.push(`/account/password-set?next=${encodeURIComponent("/account/security#delete")}`)}
-                    className="mt-3 inline-flex rounded-full bg-amber-600 px-4 py-2 text-xs font-semibold text-white"
+                    onClick={handleDelete}
+                    disabled={submitting || !googleIdToken || (mfaEnabled && !deleteMfaCode)}
+                    className="rounded-full bg-rose-500 px-4 py-2 text-xs font-semibold text-white"
                   >
-                    {t("security.passwordMissingCta")}
+                    {t("security.deleteCta")}
                   </button>
                 </div>
               )}

@@ -1063,3 +1063,16 @@ Logs/Artifacts:
 - intercept-console-error.ts: hydration mismatch(Spot/UM className swap) (user report)
 Next:
 - / (홈)에서 F5 시 hydration mismatch 콘솔 에러가 사라졌는지 확인
+2026-01-18 09:02 (local)
+Task: 보안 페이지에 Google 재인증(step-up) 흐름 추가
+Scope: src/app/account/security/page.tsx, src/i18n/locales/ko.ts, src/i18n/locales/en.ts, codex_log.md
+Why: 비밀번호 없는 Google 계정도 민감 작업을 진행할 수 있도록 step-up 재인증 UI를 제공하기 위해.
+Key changes:
+- 2FA 비활성화/탈퇴 요청에 google_id_token 포함 로직 추가
+- Google 재인증 버튼/상태 및 안내 문구 추가
+Commands run (user):
+- (not run) N/A
+Logs/Artifacts:
+- <none>
+Next:
+- 보안 페이지에서 Google 재인증 후 탈퇴/2FA 비활성화 동작 확인
