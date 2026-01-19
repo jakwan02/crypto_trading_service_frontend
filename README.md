@@ -46,6 +46,13 @@ npm run dev
 
 Google OIDC 클라이언트 ID가 없으면 Google 로그인이 비활성화됩니다.
 
+## Docs
+- `docs/INDEX.md` (프론트 문서 인덱스/읽는 순서)
+- `docs/ENV.md` (base URL/WS URL/Caddy 단일 오리진 설정)
+- `docs/I18N.md` (i18n namespace 구조/키 노출 재발 방지)
+- `docs/ERROR_UX.md` (서버 메시지 노출 금지/에러 UX 표준)
+- `docs/UI_GUIDE.md` (페이지/버튼/카드 스타일 정합)
+
 ## Tests
 
 ```bash

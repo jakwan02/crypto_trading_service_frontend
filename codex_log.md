@@ -1157,3 +1157,17 @@ Logs/Artifacts:
 Next:
 - /billing, /usage, /watchlists 화면에서 영문/키 노출이 없는지 확인
 - /watchlists 및 /watchlists/shared/[token]에서 마켓이 “현물/선물(UM)”로 표시되는지 확인
+
+2026-01-19 09:03 (local)
+Task: 프론트 문서 체계 추가(ENV/i18n/에러UX/UI/워크플로우)로 정합성 강화
+Scope: docs/INDEX.md, docs/CONTEXT.md, docs/RECENT.md, docs/ENV.md, docs/I18N.md, docs/ERROR_UX.md, docs/UI_GUIDE.md, docs/WORKFLOWS.md, README.md, codex_log.md
+Why: i18n 키 노출, base URL/WS URL 혼선, 에러 메시지 원문 노출 같은 재발성 문제를 문서로 고정하고, 페이지 확장 시 스타일/UX 정합을 유지하기 위해.
+Key changes:
+- 프론트 문서 세트(docs/*) 추가: 실행/환경변수, i18n 구조, 에러 UX, UI 스타일, Week2 플로우를 단일 규칙으로 고정
+- README에 문서 인덱스 링크 추가
+Commands run (user):
+- (not run) N/A
+Logs/Artifacts:
+- docs/INDEX.md
+Next:
+- 신규 페이지/기능 추가 시 docs/INDEX.md의 Update triggers 기준으로 문서 동시 갱신
