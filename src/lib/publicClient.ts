@@ -28,6 +28,13 @@ function withApiToken(headers: Headers): void {
   if (token) headers.set("X-API-Token", token);
 }
 
+function parseRetryAfterSec(res: Response): number | undefined {
+  const raw = String(res.headers.get("Retry-After") || "").trim();
+  if (!raw) return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
 async function safeJson(res: Response): Promise<unknown | null> {
   const contentType = res.headers.get("content-type") || "";
   if (!contentType.includes("application/json")) return null;
@@ -77,6 +84,7 @@ export async function publicRequest<T>(path: string, init: RequestInit = {}): Pr
     error.code = code;
     error.status = res.status;
     error.payload = payload ?? undefined;
+    error.retry_after = parseRetryAfterSec(res);
     throw error;
   }
   return (payload ?? null) as T;
@@ -113,4 +121,3 @@ export async function getSharedWatchlist(token: string): Promise<NormalizedShare
   });
   return normalizeShared(payload);
 }
-

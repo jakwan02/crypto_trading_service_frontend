@@ -567,6 +567,7 @@ const ko = {
     couponPlaceholder: "쿠폰 코드(선택)"
   },
   errors: {
+    debug: "디버그 정보",
     retry: "재시도",
     unauthorized: {
       title: "로그인이 필요합니다",
@@ -578,11 +579,46 @@ const ko = {
     },
     rateLimit: {
       title: "사용량이 초과되었습니다",
-      desc: "오늘 한도 또는 분당 한도를 초과했습니다. 잠시 후 다시 시도하거나 업그레이드하세요."
+      desc: "오늘 한도 또는 분당 한도를 초과했습니다. 잠시 후 다시 시도하거나 업그레이드하세요.",
+      retryAfter: "{{seconds}} 후 다시 시도할 수 있습니다."
+    },
+    quotaExceeded: {
+      title: "오늘 사용량이 초과되었습니다",
+      desc: "오늘 한도를 모두 사용했습니다. 한도 초기화 후 다시 시도하거나 업그레이드하세요.",
+      used: "사용량",
+      resetAt: "초기화 시각",
+      retryAfter: "재시도까지"
     },
     watchlistsLimit: {
       title: "워치리스트 한도 초과",
       desc: "현재 플랜 한도를 초과했습니다."
+    },
+    billing: {
+      unsupportedProvider: {
+        title: "지원하지 않는 결제 수단입니다",
+        desc: "선택한 상품과 결제 수단 조합을 지원하지 않습니다. 다른 결제 수단을 선택하거나 상품을 변경하세요."
+      },
+      unsupportedCurrency: {
+        title: "지원하지 않는 통화입니다",
+        desc: "선택한 결제 수단에서 해당 통화를 지원하지 않습니다. 다른 통화를 선택해주세요."
+      },
+      originNotAllowed: {
+        title: "결제를 시작할 수 없습니다",
+        desc: "현재 접속한 주소에서 결제 시작이 허용되지 않습니다. 올바른 도메인/환경에서 다시 시도해주세요."
+      },
+      invalidPath: {
+        title: "결제를 시작할 수 없습니다",
+        desc: "결제 복귀 경로가 올바르지 않습니다. 잠시 후 다시 시도해주세요."
+      },
+      unavailable: {
+        title: "결제 준비 중 문제가 발생했습니다",
+        desc: "잠시 후 다시 시도해주세요."
+      },
+      backToUpgrade: "Upgrade로 이동",
+      unsupportedPlanChange: {
+        title: "플랜 변경이 지원되지 않습니다",
+        desc: "현재 상태에서는 플랜 변경을 진행할 수 없습니다. Billing에서 상태를 확인하거나 기간 만료 후 다시 시도하세요."
+      }
     },
     generic: {
       title: "요청에 실패했습니다",
@@ -593,6 +629,27 @@ const ko = {
     title: "Billing",
     desc: "플랜, 구독, 인보이스를 관리합니다.",
     goBilling: "Billing으로 이동",
+    status: {
+      title: "이용 상태",
+      plan: "플랜",
+      subscription: "구독",
+      none: "없음",
+      subStatus: {
+        active: "활성",
+        cancelAtPeriodEnd: "기간 종료 후 해지",
+        canceled: "해지됨",
+        pastDue: "결제 실패",
+        unknown: "확인 필요"
+      },
+      pastDue: {
+        title: "결제에 문제가 있습니다",
+        desc: "결제 실패로 서비스가 제한될 수 있습니다. 결제 수단/결제 상태를 확인한 뒤 상태를 새로고침하세요.",
+        helpCta: "무엇을 해야 하나요?",
+        refreshCta: "상태 새로고침",
+        help:
+          "1) PayPal/Eximbay 등 결제사에서 결제 수단/잔액/승인 상태를 확인하세요.\n2) 결제 실패를 해결한 뒤 몇 분 후 다시 시도하거나, 이 화면에서 “상태 새로고침”을 눌러 반영 여부를 확인하세요.\n3) 지속되면 결제사 정책/오류로 인해 갱신이 제한될 수 있습니다."
+      }
+    },
     actions: {
       title: "관리",
       desc: "구독 해지/재활성, 재구매, 환불 요청을 수행합니다.",
@@ -607,7 +664,25 @@ const ko = {
       title: "Invoices",
       desc: "인보이스 목록 및 다운로드",
       recent: "최근 인보이스",
-      all: "전체 보기"
+      all: "전체 보기",
+      status: {
+        paid: "결제 완료",
+        pending: "처리 중",
+        unpaid: "미결제",
+        failed: "실패",
+        refunded: "환불",
+        canceled: "취소",
+        unknown: "확인 필요"
+      },
+      table: {
+        date: "날짜",
+        amount: "금액",
+        currency: "통화",
+        status: "상태",
+        download: "다운로드",
+        downloadCta: "열기",
+        empty: "인보이스가 없습니다."
+      }
     },
     refund: {
       cta: "환불 요청",
@@ -647,7 +722,13 @@ const ko = {
     rpm: "RPM",
     rpmHint: "분당 사용량",
     rpmHintNoUsed: "현재 사용량은 서버에서 제공되지 않을 수 있습니다.",
-    entitlements: "엔티틀먼트"
+    entitlements: "엔티틀먼트",
+    ent: {
+      watchlistsMaxLists: "워치리스트 최대 개수",
+      watchlistsMaxItems: "리스트당 최대 심볼",
+      alertsMaxRules: "알림 최대 규칙",
+      historyMaxDays: "히스토리 보관(일)"
+    }
   },
   watchlists: {
     title: "Watchlists",
@@ -673,6 +754,13 @@ const ko = {
       title: "공유 링크",
       copy: "복사",
       copied: "복사됨"
+    },
+    table: {
+      market: "마켓",
+      symbol: "심볼",
+      remove: "삭제",
+      removeCta: "삭제",
+      empty: "아이템이 없습니다."
     },
     shared: {
       title: "Shared Watchlist",

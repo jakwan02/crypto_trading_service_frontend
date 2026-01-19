@@ -2,6 +2,7 @@ export type ApiError = Error & {
   code?: string;
   status?: number;
   payload?: unknown;
+  retry_after?: number;
 };
 
 import { getAcc, setAcc } from "@/lib/token";
@@ -31,6 +32,13 @@ const APP_BASE_URL = resolveAppBase();
 function withApiToken(headers: Headers): void {
   const token = String(process.env.NEXT_PUBLIC_API_TOKEN || "").trim();
   if (token) headers.set("X-API-Token", token);
+}
+
+function parseRetryAfterSec(res: Response): number | undefined {
+  const raw = String(res.headers.get("Retry-After") || "").trim();
+  if (!raw) return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
 async function safeJson(res: Response): Promise<unknown | null> {
@@ -168,6 +176,7 @@ export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Pr
       error.code = code;
       error.status = res2.status;
       error.payload = payload ?? undefined;
+      error.retry_after = parseRetryAfterSec(res2);
       throw error;
     }
   }
@@ -178,6 +187,7 @@ export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Pr
     error.code = code;
     error.status = res.status;
     error.payload = payload ?? undefined;
+    error.retry_after = parseRetryAfterSec(res);
     throw error;
   }
 

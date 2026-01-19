@@ -17,6 +17,7 @@ function readQuery(): URLSearchParams {
 export default function BillingReturnPage() {
   const { t } = useTranslation();
   const { user, sessionReady, refresh } = useAuth();
+  const showDebug = process.env.NODE_ENV !== "production";
   const [phase, setPhase] = useState<Phase>("loading");
   const [error, setError] = useState<unknown>(null);
 
@@ -106,7 +107,13 @@ export default function BillingReturnPage() {
         {phase === "loading" || phase === "checking" ? (
           <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
             <p className="text-sm text-gray-700">{t("billing.return.checking")}</p>
-            <p className="mt-2 text-xs text-gray-500">{orderKey ? `order=${orderKey}` : t("billing.return.noOrder")}</p>
+            {orderKey ? (
+              showDebug ? (
+                <p className="mt-2 text-xs text-gray-500">{`order=${orderKey}`}</p>
+              ) : null
+            ) : (
+              <p className="mt-2 text-xs text-gray-500">{t("billing.return.noOrder")}</p>
+            )}
           </div>
         ) : null}
 

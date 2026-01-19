@@ -43,8 +43,8 @@ export default function SharedWatchlistClient({ token }: Props) {
             <table className="w-full table-fixed">
               <thead className="bg-gray-50">
                 <tr className="text-left text-xs font-semibold text-gray-600">
-                  <th className="px-4 py-3">Market</th>
-                  <th className="px-4 py-3">Symbol</th>
+                  <th className="px-4 py-3">{t("watchlists.table.market")}</th>
+                  <th className="px-4 py-3">{t("watchlists.table.symbol")}</th>
                   <th className="px-4 py-3 text-right">{t("watchlists.shared.chart")}</th>
                 </tr>
               </thead>

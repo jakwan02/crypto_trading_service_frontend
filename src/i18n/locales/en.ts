@@ -567,6 +567,7 @@ const en = {
     couponPlaceholder: "Coupon code (optional)"
   },
   errors: {
+    debug: "Debug",
     retry: "Retry",
     unauthorized: {
       title: "Login required",
@@ -578,11 +579,46 @@ const en = {
     },
     rateLimit: {
       title: "Usage limit exceeded",
-      desc: "You reached the daily or per-minute limit. Try again later or upgrade."
+      desc: "You reached the daily or per-minute limit. Try again later or upgrade.",
+      retryAfter: "Try again in {{seconds}}."
+    },
+    quotaExceeded: {
+      title: "Daily quota exceeded",
+      desc: "You used up today’s quota. Try again after reset or upgrade.",
+      used: "Usage",
+      resetAt: "Resets at",
+      retryAfter: "Retry after"
     },
     watchlistsLimit: {
       title: "Watchlists limit exceeded",
       desc: "Your current plan limit has been reached."
+    },
+    billing: {
+      unsupportedProvider: {
+        title: "Unsupported payment method",
+        desc: "This product and provider combination is not supported. Choose another provider or product."
+      },
+      unsupportedCurrency: {
+        title: "Unsupported currency",
+        desc: "This provider does not support the selected currency. Please choose another currency."
+      },
+      originNotAllowed: {
+        title: "Unable to start checkout",
+        desc: "Checkout is not allowed from this origin. Please use the correct domain/environment."
+      },
+      invalidPath: {
+        title: "Unable to start checkout",
+        desc: "Return/cancel path is invalid. Please try again."
+      },
+      unavailable: {
+        title: "Checkout is unavailable",
+        desc: "Please try again later."
+      },
+      backToUpgrade: "Back to Upgrade",
+      unsupportedPlanChange: {
+        title: "Plan change is not supported",
+        desc: "You can’t change plans in the current state. Check Billing or retry after the current period ends."
+      }
     },
     generic: {
       title: "Request failed",
@@ -593,6 +629,27 @@ const en = {
     title: "Billing",
     desc: "Manage plan, subscription, and invoices.",
     goBilling: "Go to Billing",
+    status: {
+      title: "Status",
+      plan: "Plan",
+      subscription: "Subscription",
+      none: "None",
+      subStatus: {
+        active: "Active",
+        cancelAtPeriodEnd: "Cancels at period end",
+        canceled: "Canceled",
+        pastDue: "Past due",
+        unknown: "Needs attention"
+      },
+      pastDue: {
+        title: "Payment issue detected",
+        desc: "Your subscription payment failed and access may be restricted. Check your payment method and refresh the status.",
+        helpCta: "What should I do?",
+        refreshCta: "Refresh status",
+        help:
+          "1) Check your payment method/balance/approval status in your provider account (PayPal/Eximbay).\n2) After fixing the issue, wait a few minutes and click “Refresh status” here.\n3) If it persists, renewal may be blocked by provider policy or an unrecoverable error."
+      }
+    },
     actions: {
       title: "Actions",
       desc: "Cancel/reactivate subscription, repurchase, and request refunds.",
@@ -607,7 +664,25 @@ const en = {
       title: "Invoices",
       desc: "Invoice list and download",
       recent: "Recent invoices",
-      all: "View all"
+      all: "View all",
+      status: {
+        paid: "Paid",
+        pending: "Pending",
+        unpaid: "Unpaid",
+        failed: "Failed",
+        refunded: "Refunded",
+        canceled: "Canceled",
+        unknown: "Needs attention"
+      },
+      table: {
+        date: "Date",
+        amount: "Amount",
+        currency: "Currency",
+        status: "Status",
+        download: "Download",
+        downloadCta: "Open",
+        empty: "No invoices."
+      }
     },
     refund: {
       cta: "Request refund",
@@ -647,7 +722,13 @@ const en = {
     rpm: "RPM",
     rpmHint: "Per-minute usage",
     rpmHintNoUsed: "Current RPM usage may not be provided by the server.",
-    entitlements: "Entitlements"
+    entitlements: "Entitlements",
+    ent: {
+      watchlistsMaxLists: "Max watchlists",
+      watchlistsMaxItems: "Max items per list",
+      alertsMaxRules: "Max alert rules",
+      historyMaxDays: "History retention (days)"
+    }
   },
   watchlists: {
     title: "Watchlists",
@@ -673,6 +754,13 @@ const en = {
       title: "Share link",
       copy: "Copy",
       copied: "Copied"
+    },
+    table: {
+      market: "Market",
+      symbol: "Symbol",
+      remove: "Remove",
+      removeCta: "Remove",
+      empty: "No items."
     },
     shared: {
       title: "Shared Watchlist",

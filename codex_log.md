@@ -1107,3 +1107,20 @@ Logs/Artifacts:
 - <none>
 Next:
 - /market 테이블에서 별 클릭 시 차트로 이동하지 않는지 확인
+
+2026-01-19 07:39 (local)
+Task: Week2 Billing/Usage/Watchlists 사용자 친화 UX 보강(past_due/에러 매핑/Retry-After/즐겨찾기 즉시 반영)
+Scope: src/lib/appClient.ts, src/lib/publicClient.ts, src/lib/apiErr.ts, src/components/common/ApiErrorView.tsx, src/components/billing/BillingStatus.tsx, src/app/billing/page.tsx, src/app/billing/return/page.tsx, src/components/watchlists/FavoriteStar.tsx, src/components/billing/InvoiceTable.tsx, src/i18n/locales/ko.ts, src/i18n/locales/en.ts, codex_log.md
+Why: 서버 코드/메시지 노출을 줄이고, 결제 실패(past_due)·사용량(quota_exceeded)·결제 옵션 불일치 등 주요 케이스를 사용자 친화적인 문구/CTA로 안내하며, 즐겨찾기 반영 지연을 체감 개선하기 위해.
+Key changes:
+- ApiError에 Retry-After를 포함하고(quota_exceeded 포함) ApiErrorView에서 reset_at/Retry-After를 사용자에게 표시(프로덕션은 디버그 정보 숨김)
+- checkout 옵션 오류(unsupported_provider/currency/origin/path, unsupported_plan_change) 문구 매핑 + Billing past_due 전용 안내/새로고침 CTA 추가
+- 즐겨찾기(FavoriteStar) optimistic update로 즉시 반영 + Invoice/Watchlists/Usage 일부 하드코딩 문구 i18n 보강
+Commands run (user):
+- (not run) npm run lint -> 미실행
+- (not run) npm run build -> 미실행
+Logs/Artifacts:
+- <none>
+Next:
+- /billing에서 past_due 배너/안내/새로고침 동작 확인
+- 429(quota_exceeded) 발생 시 reset_at/Retry-After 표기 확인, 즐겨찾기 토글 즉시 반영 확인

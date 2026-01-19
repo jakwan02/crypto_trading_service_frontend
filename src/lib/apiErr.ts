@@ -7,6 +7,16 @@ function asRecord(value: unknown): AnyRecord | null {
   return value as AnyRecord;
 }
 
+export function getErrRetryAfterSec(err: unknown): number | undefined {
+  if (!err || typeof err !== "object") return undefined;
+  const direct = (err as { retry_after?: unknown }).retry_after;
+  const n = Number(direct);
+  if (Number.isFinite(n) && n > 0) return n;
+  const meta = getErrMeta(err);
+  const metaN = meta && typeof meta.retry_after_sec !== "undefined" ? Number(meta.retry_after_sec) : NaN;
+  return Number.isFinite(metaN) && metaN > 0 ? metaN : undefined;
+}
+
 export function getErrStatus(err: unknown): number | undefined {
   if (!err) return undefined;
   if (typeof err === "object" && "status" in err) {
@@ -44,4 +54,3 @@ export function isConflict(err: unknown): boolean {
 export function isRateLimited(err: unknown): boolean {
   return getErrStatus(err) === 429;
 }
-

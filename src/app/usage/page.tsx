@@ -77,12 +77,12 @@ export default function UsagePage() {
     const maxAlerts = entInt(planEnt, ["alerts", "max_rules"]);
     const maxHistory = entInt(planEnt, ["history", "max_days"]);
 
-    rows.push({ label: "watchlists.max_lists", value: maxLists === null ? "-" : String(maxLists) });
-    rows.push({ label: "watchlists.max_items_per_list", value: maxItems === null ? "-" : String(maxItems) });
-    rows.push({ label: "alerts.max_rules", value: maxAlerts === null ? "-" : String(maxAlerts) });
-    rows.push({ label: "history.max_days", value: maxHistory === null ? "-" : String(maxHistory) });
+    rows.push({ label: t("usage.ent.watchlistsMaxLists"), value: maxLists === null ? "-" : String(maxLists) });
+    rows.push({ label: t("usage.ent.watchlistsMaxItems"), value: maxItems === null ? "-" : String(maxItems) });
+    rows.push({ label: t("usage.ent.alertsMaxRules"), value: maxAlerts === null ? "-" : String(maxAlerts) });
+    rows.push({ label: t("usage.ent.historyMaxDays"), value: maxHistory === null ? "-" : String(maxHistory) });
     return rows;
-  }, [planEnt]);
+  }, [planEnt, t]);
 
   return (
     <RequireAuth>
@@ -165,4 +165,3 @@ export default function UsagePage() {
     </RequireAuth>
   );
 }
-

@@ -44,13 +44,35 @@ export default function FavoriteStar({ market, symbol, className = "" }: Props) 
 
   const isFav = Boolean(query.data?.set.has(favKey));
 
-  const addMutation = useMutation({
+  const addMutation = useMutation<unknown, unknown, void, { prev?: FavoritesState }>({
     mutationFn: () => favoritesAdd(String(symbol || "").toUpperCase(), String(market || "spot")),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["favorites"] })
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ["favorites"] });
+      const prev = qc.getQueryData<FavoritesState>(["favorites"]);
+      const nextSet = new Set<string>(prev?.set ? Array.from(prev.set) : []);
+      nextSet.add(favKey);
+      qc.setQueryData<FavoritesState>(["favorites"], { set: nextSet });
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData<FavoritesState>(["favorites"], ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["favorites"] })
   });
-  const removeMutation = useMutation({
+  const removeMutation = useMutation<unknown, unknown, void, { prev?: FavoritesState }>({
     mutationFn: () => favoritesRemove(String(symbol || "").toUpperCase(), String(market || "spot")),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["favorites"] })
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ["favorites"] });
+      const prev = qc.getQueryData<FavoritesState>(["favorites"]);
+      const nextSet = new Set<string>(prev?.set ? Array.from(prev.set) : []);
+      nextSet.delete(favKey);
+      qc.setQueryData<FavoritesState>(["favorites"], { set: nextSet });
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData<FavoritesState>(["favorites"], ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["favorites"] })
   });
 
   const toggle = useCallback(() => {
@@ -68,10 +90,13 @@ export default function FavoriteStar({ market, symbol, className = "" }: Props) 
     }
   }, [addMutation, isFav, removeMutation, router, sessionReady, user]);
 
+  const pending = addMutation.isPending || removeMutation.isPending;
+
   return (
     <button
       type="button"
       aria-label={isFav ? "Unfavorite" : "Favorite"}
+      disabled={pending}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => {
         e.stopPropagation();
@@ -80,7 +105,7 @@ export default function FavoriteStar({ market, symbol, className = "" }: Props) 
       }}
       className={`inline-flex h-8 w-8 items-center justify-center rounded-full border ${
         isFav ? "border-primary/40 bg-primary/10 text-primary" : "border-gray-200 bg-white text-gray-500"
-      } transition hover:border-primary/30 hover:text-primary ${className}`}
+      } transition hover:border-primary/30 hover:text-primary disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     >
       <Star className={`h-4 w-4 ${isFav ? "fill-current" : ""}`} />
     </button>

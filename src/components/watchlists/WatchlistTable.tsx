@@ -1,6 +1,7 @@
 "use client";
 
 import type { WatchlistItem } from "@/types/watchlists";
+import { useTranslation } from "react-i18next";
 
 type Props = {
   items: WatchlistItem[];
@@ -8,14 +9,15 @@ type Props = {
 };
 
 export default function WatchlistTable({ items, onRemove }: Props) {
+  const { t } = useTranslation();
   return (
     <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
       <table className="w-full table-fixed">
         <thead className="bg-gray-50">
           <tr className="text-left text-xs font-semibold text-gray-600">
-            <th className="px-4 py-3">Market</th>
-            <th className="px-4 py-3">Symbol</th>
-            <th className="px-4 py-3 text-right">Remove</th>
+            <th className="px-4 py-3">{t("watchlists.table.market")}</th>
+            <th className="px-4 py-3">{t("watchlists.table.symbol")}</th>
+            <th className="px-4 py-3 text-right">{t("watchlists.table.remove")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
@@ -30,7 +32,7 @@ export default function WatchlistTable({ items, onRemove }: Props) {
                     onClick={() => onRemove(String(it.market || "spot"), String(it.symbol || "").toUpperCase())}
                     className="rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:border-primary/30 hover:text-primary"
                   >
-                    Remove
+                    {t("watchlists.table.removeCta")}
                   </button>
                 </td>
               </tr>
@@ -38,7 +40,7 @@ export default function WatchlistTable({ items, onRemove }: Props) {
           ) : (
             <tr>
               <td colSpan={3} className="px-4 py-10 text-center text-sm text-gray-500">
-                No items
+                {t("watchlists.table.empty")}
               </td>
             </tr>
           )}
@@ -47,4 +49,3 @@ export default function WatchlistTable({ items, onRemove }: Props) {
     </div>
   );
 }
-

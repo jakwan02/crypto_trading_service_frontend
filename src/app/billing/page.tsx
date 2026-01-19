@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 
 export default function BillingPage() {
   const { t } = useTranslation();
+  const showDebug = process.env.NODE_ENV !== "production";
   const [refundOpen, setRefundOpen] = useState(false);
   const [refundInvoiceId, setRefundInvoiceId] = useState("");
   const [refundReason, setRefundReason] = useState("");
@@ -80,7 +81,7 @@ export default function BillingPage() {
           ) : billingQuery.data ? (
             <>
               <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-                <BillingStatus data={billingQuery.data} />
+                <BillingStatus data={billingQuery.data} onRefresh={() => billingQuery.refetch()} />
 
                 <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
                   <h2 className="text-sm font-semibold text-gray-900">{t("billing.actions.title")}</h2>
@@ -189,10 +190,11 @@ export default function BillingPage() {
                     </div>
                   ) : null}
 
-                  {billingQuery.data?.subscription ? (
-                    <p className="mt-4 text-xs text-gray-500">
-                      status={billingQuery.data.subscription.status || "-"} · provider={billingQuery.data.subscription.provider || "-"}
-                    </p>
+                  {showDebug && billingQuery.data?.subscription ? (
+                    <details className="mt-4 rounded-2xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
+                      <summary className="cursor-pointer font-semibold">{t("errors.debug")}</summary>
+                      <pre className="mt-2 whitespace-pre-wrap">{JSON.stringify(billingQuery.data.subscription, null, 2)}</pre>
+                    </details>
                   ) : null}
                   {!billingQuery.data?.subscription && getErrCode(billingQuery.error) === "subscription_not_found" ? (
                     <p className="mt-4 text-xs text-gray-500">{t("billing.sub.none")}</p>
@@ -216,4 +218,3 @@ export default function BillingPage() {
     </RequireAuth>
   );
 }
-
