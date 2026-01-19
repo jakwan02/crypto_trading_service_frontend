@@ -6,6 +6,8 @@
 ## 2026-01-19
 - [week3/frontend] Screener/Alerts/Portfolio/Research UI를 백엔드 Week3 계약(/app,/api) 기반으로 구현 + 웹푸시 SW/텔레그램 게이트 추가
   - impact: `/screener`, `/alerts`, `/portfolio`, `/research` 라우트 동작 및 차트 보조지표(RSI/MACD/BB) 표시가 브라우저 계산으로 전환됨
+- [chart] 캔들 아래 보조지표 패널(Volume/RSI/MACD) + BB 오버레이 + 사용자 설정(LocalStorage) 추가
+  - impact: `/chart/[symbol]`에서 바이낸스/TradingView 스타일로 멀티 패널 지표 차트를 제공(서버 부하 증가 없음)
 - [i18n] namespace 누락으로 `billing.title` 등 키가 그대로 노출되던 문제를 ns 자동 구성으로 방지 + Week2 화면 ko 문구 정리
   - why: 신규 namespace(billing/usage/watchlists/errors/devBilling) 추가 시 init.ns 누락으로 번역이 깨지는 재발 방지
   - impact: `/upgrade` 플랜 카드/`/billing`/`/usage`/`/watchlists` 텍스트 정합 및 마켓 표기(현물/선물) 개선

@@ -163,6 +163,13 @@ const ja = {
     loadError: "チャートデータの読み込みに失敗しました。",
     loadingMore: "読み込み中...",
     loadMore: "過去データを読み込む",
+    indicatorsButton: "指標",
+    indicatorSettingsTitle: "指標設定",
+    indicatorReset: "リセット",
+    indicatorBbOverlay: "ボリンジャーバンド（オーバーレイ）",
+    indicatorVolumePane: "出来高（パネル）",
+    indicatorRsiPane: "RSI（パネル）",
+    indicatorMacdPane: "MACD（パネル）",
     aiSignals: {
       signal1Title: "上昇確率",
       signal1Desc: "62% · ボラ拡大ゾーン",

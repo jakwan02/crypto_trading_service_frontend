@@ -14,6 +14,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSymbolsStore } from "@/store/useSymbolStore";
 import { formatCompactNumber } from "@/lib/format";
 import type { TechIndicators } from "@/lib/indicators";
+import type { ChartIndicatorConfigV1 } from "@/lib/chartIndicatorConfig";
+import {
+  DEFAULT_CHART_INDICATOR_CONFIG,
+  readChartIndicatorConfigFromLs,
+  sanitizeChartIndicatorConfig,
+  writeChartIndicatorConfigToLs
+} from "@/lib/chartIndicatorConfig";
 
 const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
 const FLASH_MS = 800;
@@ -58,6 +65,34 @@ export default function SymbolChartClient({ symbol }: Props) {
   const changeIsNumber = Number.isFinite(changeValue);
   const [livePrice, setLivePrice] = useState<number | null>(null);
   const [tech, setTech] = useState<TechIndicators | null>(null);
+  const [indicatorCfg, setIndicatorCfg] = useState<ChartIndicatorConfigV1>(() => readChartIndicatorConfigFromLs());
+  const [indicatorUiOpen, setIndicatorUiOpen] = useState(false);
+  const indicatorUiRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    writeChartIndicatorConfigToLs(indicatorCfg);
+  }, [indicatorCfg]);
+
+  useEffect(() => {
+    if (!indicatorUiOpen) return;
+    const onDown = (ev: MouseEvent) => {
+      const el = indicatorUiRef.current;
+      if (!el) return;
+      const target = ev.target as Node | null;
+      if (!target) return;
+      if (!el.contains(target)) setIndicatorUiOpen(false);
+    };
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") setIndicatorUiOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [indicatorUiOpen]);
+
   const handleLastCandle = useCallback((candle: Candle | null) => {
     if (!candle || !Number.isFinite(candle.close)) {
       setLivePrice(null);
@@ -67,6 +102,10 @@ export default function SymbolChartClient({ symbol }: Props) {
   }, []);
   const handleIndicators = useCallback((indicators: TechIndicators | null) => {
     setTech(indicators);
+  }, []);
+
+  const applyCfg = useCallback((next: ChartIndicatorConfigV1) => {
+    setIndicatorCfg(sanitizeChartIndicatorConfig(next));
   }, []);
   const tfLabel = tf;
   const [flashView, setFlashView] = useState<{
@@ -364,6 +403,180 @@ export default function SymbolChartClient({ symbol }: Props) {
                   </button>
                 ))}
               </div>
+              <div ref={indicatorUiRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIndicatorUiOpen((v) => !v)}
+                  className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  {t("chart.indicatorsButton")}
+                </button>
+                {indicatorUiOpen ? (
+                  <div className="absolute right-0 z-20 mt-2 w-[320px] rounded-2xl border border-gray-200 bg-white p-3 shadow-lg">
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="text-xs font-semibold text-gray-900">{t("chart.indicatorSettingsTitle")}</div>
+                      <button
+                        type="button"
+                        onClick={() => applyCfg(DEFAULT_CHART_INDICATOR_CONFIG)}
+                        className="text-xs font-semibold text-primary hover:underline"
+                      >
+                        {t("chart.indicatorReset")}
+                      </button>
+                    </div>
+
+                    <div className="space-y-3 text-xs text-gray-700">
+                      <div className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={indicatorCfg.overlays.bb.enabled}
+                            onChange={(e) =>
+                              applyCfg({
+                                ...indicatorCfg,
+                                overlays: { ...indicatorCfg.overlays, bb: { ...indicatorCfg.overlays.bb, enabled: e.target.checked } }
+                              })
+                            }
+                          />
+                          <span>{t("chart.indicatorBbOverlay")}</span>
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            className="w-16 rounded border border-gray-200 bg-white px-2 py-1"
+                            value={indicatorCfg.overlays.bb.n}
+                            onChange={(e) =>
+                              applyCfg({
+                                ...indicatorCfg,
+                                overlays: { ...indicatorCfg.overlays, bb: { ...indicatorCfg.overlays.bb, n: Number(e.target.value) } }
+                              })
+                            }
+                          />
+                          <input
+                            type="number"
+                            step="0.1"
+                            className="w-16 rounded border border-gray-200 bg-white px-2 py-1"
+                            value={indicatorCfg.overlays.bb.k}
+                            onChange={(e) =>
+                              applyCfg({
+                                ...indicatorCfg,
+                                overlays: { ...indicatorCfg.overlays, bb: { ...indicatorCfg.overlays.bb, k: Number(e.target.value) } }
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={indicatorCfg.panes.volume.enabled}
+                            onChange={(e) =>
+                              applyCfg({
+                                ...indicatorCfg,
+                                panes: { ...indicatorCfg.panes, volume: { enabled: e.target.checked } }
+                              })
+                            }
+                          />
+                          <span>{t("chart.indicatorVolumePane")}</span>
+                        </label>
+                      </div>
+
+                      <div className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={indicatorCfg.panes.rsi.enabled}
+                            onChange={(e) =>
+                              applyCfg({
+                                ...indicatorCfg,
+                                panes: { ...indicatorCfg.panes, rsi: { ...indicatorCfg.panes.rsi, enabled: e.target.checked } }
+                              })
+                            }
+                          />
+                          <span>{t("chart.indicatorRsiPane")}</span>
+                        </label>
+                        <input
+                          type="number"
+                          className="w-16 rounded border border-gray-200 bg-white px-2 py-1"
+                          value={indicatorCfg.panes.rsi.n}
+                          onChange={(e) =>
+                            applyCfg({
+                              ...indicatorCfg,
+                              panes: { ...indicatorCfg.panes, rsi: { ...indicatorCfg.panes.rsi, n: Number(e.target.value) } }
+                            })
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2 rounded-xl bg-gray-50 px-3 py-2">
+                        <label className="flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={indicatorCfg.panes.macd.enabled}
+                              onChange={(e) =>
+                                applyCfg({
+                                  ...indicatorCfg,
+                                  panes: {
+                                    ...indicatorCfg.panes,
+                                    macd: { ...indicatorCfg.panes.macd, enabled: e.target.checked }
+                                  }
+                                })
+                              }
+                            />
+                            {t("chart.indicatorMacdPane")}
+                          </span>
+                        </label>
+                        <div className="flex items-center justify-between gap-2">
+                          <input
+                            type="number"
+                            className="w-16 rounded border border-gray-200 bg-white px-2 py-1"
+                            value={indicatorCfg.panes.macd.fast}
+                            onChange={(e) =>
+                              applyCfg({
+                                ...indicatorCfg,
+                                panes: {
+                                  ...indicatorCfg.panes,
+                                  macd: { ...indicatorCfg.panes.macd, fast: Number(e.target.value) }
+                                }
+                              })
+                            }
+                          />
+                          <input
+                            type="number"
+                            className="w-16 rounded border border-gray-200 bg-white px-2 py-1"
+                            value={indicatorCfg.panes.macd.slow}
+                            onChange={(e) =>
+                              applyCfg({
+                                ...indicatorCfg,
+                                panes: {
+                                  ...indicatorCfg.panes,
+                                  macd: { ...indicatorCfg.panes.macd, slow: Number(e.target.value) }
+                                }
+                              })
+                            }
+                          />
+                          <input
+                            type="number"
+                            className="w-16 rounded border border-gray-200 bg-white px-2 py-1"
+                            value={indicatorCfg.panes.macd.signal}
+                            onChange={(e) =>
+                              applyCfg({
+                                ...indicatorCfg,
+                                panes: {
+                                  ...indicatorCfg.panes,
+                                  macd: { ...indicatorCfg.panes.macd, signal: Number(e.target.value) }
+                                }
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
               {!isPro ? (
                 <span className="rounded-full border border-dashed border-gray-200 px-3 py-1 text-xs text-gray-400">
                   {t("chart.freeHistory")}
@@ -376,6 +589,7 @@ export default function SymbolChartClient({ symbol }: Props) {
               market={marketParam || undefined}
               onLastCandle={handleLastCandle}
               onIndicators={handleIndicators}
+              indicatorConfig={indicatorCfg}
             />
           </div>
 
@@ -411,15 +625,15 @@ export default function SymbolChartClient({ symbol }: Props) {
               <h3 className="text-sm font-semibold text-gray-900">{t("chart.techIndicators")}</h3>
               <ul className="mt-3 space-y-2 text-sm text-gray-600">
                 <li className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-                  <span>RSI</span>
+                  <span>{`RSI(${indicatorCfg.panes.rsi.n})`}</span>
                   <span className="font-medium text-gray-900">{fmtNum(tech?.rsi14, 2)}</span>
                 </li>
                 <li className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-                  <span>MACD</span>
+                  <span>{`MACD(${indicatorCfg.panes.macd.fast},${indicatorCfg.panes.macd.slow},${indicatorCfg.panes.macd.signal})`}</span>
                   <span className="font-medium text-gray-900">{fmtNum(tech?.macd_hist, 6)}</span>
                 </li>
                 <li className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-                  <span>BB(20,2)</span>
+                  <span>{`BB(${indicatorCfg.overlays.bb.n},${indicatorCfg.overlays.bb.k})`}</span>
                   <span className="font-medium text-gray-900">
                     {fmtNum(tech?.bb_lower, 8)} / {fmtNum(tech?.bb_mid, 8)} / {fmtNum(tech?.bb_upper, 8)}
                   </span>

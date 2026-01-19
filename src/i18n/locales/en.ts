@@ -308,6 +308,13 @@ const en = {
     loadError: "Failed to load chart data.",
     loadingMore: "Loading...",
     loadMore: "Load previous data",
+    indicatorsButton: "Indicators",
+    indicatorSettingsTitle: "Indicator settings",
+    indicatorReset: "Reset",
+    indicatorBbOverlay: "Bollinger Bands (overlay)",
+    indicatorVolumePane: "Volume (pane)",
+    indicatorRsiPane: "RSI (pane)",
+    indicatorMacdPane: "MACD (pane)",
     aiSignals: {
       signal1Title: "Upside probability",
       signal1Desc: "62% · Volatility expansion zone",

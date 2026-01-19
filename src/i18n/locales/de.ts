@@ -163,6 +163,13 @@ const de = {
     loadError: "Chartdaten konnten nicht geladen werden.",
     loadingMore: "Lädt...",
     loadMore: "Ältere Daten laden",
+    indicatorsButton: "Indikatoren",
+    indicatorSettingsTitle: "Indikator-Einstellungen",
+    indicatorReset: "Zurücksetzen",
+    indicatorBbOverlay: "Bollinger-Bänder (Overlay)",
+    indicatorVolumePane: "Volumen (Panel)",
+    indicatorRsiPane: "RSI (Panel)",
+    indicatorMacdPane: "MACD (Panel)",
     aiSignals: {
       signal1Title: "Aufwärtspotenzial",
       signal1Desc: "62% · Volatilitätszone",

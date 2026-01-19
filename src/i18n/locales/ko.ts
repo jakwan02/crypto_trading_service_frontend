@@ -308,6 +308,13 @@ const ko = {
     loadError: "차트 로딩 중 오류가 발생했습니다.",
     loadingMore: "로딩 중...",
     loadMore: "이전 데이터 불러오기",
+    indicatorsButton: "지표",
+    indicatorSettingsTitle: "보조지표 설정",
+    indicatorReset: "초기화",
+    indicatorBbOverlay: "볼린저 밴드(오버레이)",
+    indicatorVolumePane: "거래량(패널)",
+    indicatorRsiPane: "RSI(패널)",
+    indicatorMacdPane: "MACD(패널)",
     aiSignals: {
       signal1Title: "상승 확률",
       signal1Desc: "62% · 변동성 확대 구간",

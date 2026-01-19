@@ -1273,3 +1273,19 @@ Logs/Artifacts:
 - N/A
 Next:
 - markdown 스타일(heading/list/code) UI 정합이 필요하면 Tailwind 스타일링 추가
+
+2026-01-19 23:40 (local)
+Task: Chart 보조지표 멀티 패널(Volume/RSI/MACD) + BB 오버레이 + 사용자 설정 UI 구현
+Scope: src/components/ChartContainer.tsx, src/app/chart/[symbol]/SymbolChartClient.tsx, src/lib/chartIndicatorConfig.ts, src/lib/chartIndicatorSeries.ts, src/i18n/locales/{ko,en,ja,de}.ts, docs/RECENT.md, codex_log.md
+Why: 바이낸스/TradingView 수준의 “캔들 아래 보조지표 패널”을 서버 부하 없이 제공하고, 사용자 설정을 영속화하기 위해.
+Key changes:
+- 차트 멀티 패널 구성(메인 캔들 + Volume/RSI/MACD 패널) 및 타임스케일/크로스헤어 동기화
+- BB 오버레이(메인 차트) + 지표 설정(토글/파라미터) UI 추가(LocalStorage 저장)
+Commands run (agent):
+- npm run lint
+- npx tsc --noEmit
+- npm run build
+Logs/Artifacts:
+- docs/RECENT.md
+Next:
+- `/chart/[symbol]`에서 지표 토글/파라미터 변경 시 즉시 반영 및 새로고침 후 유지 확인
