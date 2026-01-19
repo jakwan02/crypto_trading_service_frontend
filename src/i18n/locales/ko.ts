@@ -39,7 +39,10 @@ const ko = {
     paymentDesc: "잔액이 부족할 때 빠르게 충전하고 거래를 이어가세요.",
     billing: "결제/청구",
     usage: "사용량",
-    watchlists: "워치리스트"
+    watchlists: "워치리스트",
+    screener: "스크리너",
+    portfolio: "포트폴리오",
+    research: "리서치"
   },
   nav: {
     home: "Home",
@@ -51,7 +54,143 @@ const ko = {
     payment: "Payment",
     billing: "결제/청구",
     usage: "사용량",
-    watchlists: "워치리스트"
+    watchlists: "워치리스트",
+    screener: "스크리너",
+    portfolio: "포트폴리오",
+    research: "리서치"
+  },
+  screener: {
+    title: "스크리너",
+    desc: "조건을 조합해 후보군을 빠르게 검색하고 저장합니다.",
+    savedTitle: "저장된 스크리너",
+    new: "새로 만들기",
+    delete: "삭제",
+    builderTitle: "조건 빌더",
+    market: "마켓",
+    logic: "조건 결합",
+    logicAnd: "모두 만족(AND)",
+    logicOr: "하나라도 만족(OR)",
+    conditions: "조건",
+    addCondition: "조건 추가",
+    noConditions: "조건을 추가해주세요.",
+    cond: {
+      metric: "지표(캐시)",
+      ind: "지표(Indicators)",
+      breakout: "돌파(Donchian)",
+      volSpike: "거래량 급증"
+    },
+    remove: "제거",
+    saveNamePlaceholder: "저장 이름 (예: 고거래대금 돌파)",
+    save: "저장",
+    update: "업데이트",
+    run: "실행",
+    loadMore: "더 보기",
+    resultsTitle: "결과",
+    resultsMeta: "items={{n}} · server={{t}}ms",
+    colSymbol: "심볼",
+    colPrice: "가격",
+    colPct: "변동률(%)",
+    colQv: "거래대금",
+    colVolume: "거래량",
+    metricField: {
+      qv: "거래대금",
+      volume: "거래량",
+      pct: "변동률",
+      price: "가격"
+    }
+  },
+  alerts: {
+    title: "알림",
+    desc: "가격/변동률/거래량/지표 조건을 기반으로 알림을 발송합니다.",
+    newRule: "새 알림 규칙",
+    rules: "규칙",
+    history: "히스토리",
+    loadMore: "더 보기",
+    delete: "삭제",
+    on: "ON",
+    off: "OFF",
+    create: "생성",
+    fieldMarket: "마켓",
+    fieldSymbol: "심볼",
+    fieldType: "타입",
+    fieldWindow: "윈도우",
+    fieldOp: "연산자",
+    fieldValue: "값",
+    fieldIndicator: "지표",
+    fieldRepeat: "반복",
+    fieldCooldownSec: "쿨다운(초)",
+    fieldChannels: "채널",
+    channelsRequired: "채널을 1개 이상 선택하세요.",
+    type: { price: "가격", pct: "퍼센트", volume: "거래량", indicator: "지표" },
+    repeat: { once: "1회", cooldown: "쿨다운" },
+    channel: { push: "웹푸시", email: "이메일", telegram: "텔레그램" }
+  },
+  push: {
+    title: "웹푸시",
+    unsupported: "이 브라우저는 웹푸시를 지원하지 않습니다.",
+    subscribed: "구독됨",
+    notSubscribed: "미구독",
+    subscribe: "구독",
+    unsubscribe: "구독 해제",
+    test: "테스트 발송"
+  },
+  telegram: {
+    title: "텔레그램",
+    linked: "연결됨",
+    notLinked: "미연결",
+    unknown: "상태 미확인",
+    issue: "링크 발급",
+    check: "연결 확인",
+    unlink: "연결 해제",
+    openDeepLink: "봇 열기(/start)",
+    howTo: "연결 방법",
+    howToStep: "텔레그램에서 봇을 열고: /start {{token}}"
+  },
+  portfolio: {
+    title: "포트폴리오",
+    desc: "수동 포지션 원장 기반으로 PnL/리스크를 계산합니다.",
+    baseCcy: "기준 통화",
+    equity: "Equity",
+    mdd: "MDD",
+    sharpe: "Sharpe",
+    positions: "포지션",
+    assumptionsTitle: "계산 가정",
+    assumptionsDesc: "선물/숏 포함, FIFO 기준. 수수료/슬리피지/펀딩을 반영하며, 마크 가격은 실시간 캐시 값을 사용합니다.",
+    addTx: "거래 입력",
+    submitTx: "거래 추가",
+    cashTitle: "현금(입출금)",
+    cashDirection: "구분",
+    cashDeposit: "입금",
+    cashWithdraw: "출금",
+    cashAmount: "금액",
+    submitCash: "현금 반영",
+    txHistory: "거래 원장",
+    cashHistory: "현금 원장",
+    delete: "삭제",
+    fieldMarket: "마켓",
+    fieldSymbol: "심볼",
+    fieldPosSide: "포지션",
+    fieldSide: "매수/매도",
+    fieldQty: "수량",
+    fieldPrice: "가격",
+    fieldLeverage: "레버리지",
+    fieldFee: "수수료",
+    fieldNote: "메모",
+    colSymbol: "심볼",
+    colSide: "포지션",
+    colQty: "수량",
+    colAvg: "평단",
+    colMark: "마크",
+    colPnl: "PnL"
+  },
+  research: {
+    title: "리서치",
+    desc: "브리핑/리포트/가이드를 검색하고 확인합니다.",
+    searchPlaceholder: "검색어",
+    categoryPlaceholder: "카테고리 slug(선택)",
+    tagPlaceholder: "태그 slug(선택)",
+    loadMore: "더 보기",
+    invalidSlug: "잘못된 slug 입니다."
   },
   home: {
     hero: {
@@ -602,6 +741,26 @@ const ko = {
     watchlistsLimit: {
       title: "워치리스트 한도 초과",
       desc: "현재 플랜 한도를 초과했습니다."
+    },
+    screenersLimit: {
+      title: "스크리너 한도 초과",
+      desc: "현재 플랜 한도를 초과했습니다. 업그레이드 후 다시 시도해주세요."
+    },
+    alertRulesLimit: {
+      title: "알림 규칙 한도 초과",
+      desc: "현재 플랜 한도를 초과했습니다. 업그레이드 후 다시 시도해주세요."
+    },
+    invalidScreenerDsl: {
+      title: "조건이 올바르지 않습니다",
+      desc: "조건/값을 확인한 뒤 다시 시도해주세요."
+    },
+    pushDisabled: {
+      title: "웹푸시를 사용할 수 없습니다",
+      desc: "서버 설정(VAPID)이 준비되지 않았습니다."
+    },
+    telegramDisabled: {
+      title: "텔레그램을 사용할 수 없습니다",
+      desc: "서버 설정(봇 토큰/봇 username)이 준비되지 않았습니다."
     },
     billing: {
       unsupportedProvider: {

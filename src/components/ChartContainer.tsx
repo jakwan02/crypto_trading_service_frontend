@@ -5,12 +5,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CandlestickData, IChartApi, ISeriesApi, UTCTimestamp } from "lightweight-charts";
 import { useTranslation } from "react-i18next";
 import { useChart, type Candle } from "@/hooks/useChart";
+import { computeTechIndicators, type TechIndicators } from "@/lib/indicators";
 
 type Props = {
   symbol: string | null;
   timeframe: string;
   market?: string;
   onLastCandle?: (candle: Candle | null) => void;
+  onIndicators?: (indicators: TechIndicators | null) => void;
 };
 
 function pricePrecisionByLast(px: number): { precision: number; minMove: number } {
@@ -33,7 +35,7 @@ function fmtPrice(px: number, precision: number, locale: string): string {
   });
 }
 
-export default function ChartContainer({ symbol, timeframe, market, onLastCandle }: Props) {
+export default function ChartContainer({ symbol, timeframe, market, onLastCandle, onIndicators }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -57,6 +59,18 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
     const last = candles && candles.length > 0 ? candles[candles.length - 1] : null;
     onLastCandle(last || null);
   }, [candles, onLastCandle]);
+
+  const tech = useMemo(() => {
+    if (!candles || candles.length < 5) return null;
+    const closes = candles.map((c) => Number(c.close)).filter((x) => Number.isFinite(x));
+    if (closes.length < 5) return null;
+    return computeTechIndicators(closes);
+  }, [candles]);
+
+  useEffect(() => {
+    if (!onIndicators) return;
+    onIndicators(tech);
+  }, [onIndicators, tech]);
 
   // 마지막 종가로 precision/minMove 동적 선택
   const pf = useMemo(() => {

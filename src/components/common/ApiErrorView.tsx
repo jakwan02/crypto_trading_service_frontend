@@ -341,6 +341,98 @@ export default function ApiErrorView({ error, onRetry, onUpgrade, onGoBilling }:
     );
   }
 
+  if (code === "screeners_limit_exceeded" || code === "alert_rules_limit_exceeded") {
+    const limit = meta && typeof meta.limit === "number" ? meta.limit : undefined;
+    const current = meta && typeof meta.current === "number" ? meta.current : undefined;
+    const titleKey = code === "screeners_limit_exceeded" ? "errors.screenersLimit.title" : "errors.alertRulesLimit.title";
+    const descKey = code === "screeners_limit_exceeded" ? "errors.screenersLimit.desc" : "errors.alertRulesLimit.desc";
+    const extra =
+      typeof limit === "number" && typeof current === "number" ? ` (limit=${limit}, current=${current})` : "";
+    return (
+      <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">{t(titleKey)}</h2>
+        <p className="mt-2 text-sm text-gray-600">
+          {t(descKey)}
+          {extra}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {onUpgrade ? (
+            <button
+              type="button"
+              onClick={onUpgrade}
+              className="inline-flex rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink hover:bg-primary-dark"
+            >
+              {t("common.proUpgrade")}
+            </button>
+          ) : (
+            <Link
+              href="/upgrade"
+              className="inline-flex rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink hover:bg-primary-dark"
+            >
+              {t("common.proUpgrade")}
+            </Link>
+          )}
+          {onRetry ? (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-primary/30 hover:text-primary"
+            >
+              {t("errors.retry")}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 400 && code === "invalid_screener_dsl") {
+    return (
+      <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">{t("errors.invalidScreenerDsl.title")}</h2>
+        <p className="mt-2 text-sm text-gray-600">{t("errors.invalidScreenerDsl.desc")}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {onRetry ? (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink hover:bg-primary-dark"
+            >
+              {t("errors.retry")}
+            </button>
+          ) : null}
+        </div>
+        {showDebug ? (
+          <details className="mt-4 rounded-2xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
+            <summary className="cursor-pointer font-semibold">{t("errors.debug")}</summary>
+            <pre className="mt-2 whitespace-pre-wrap">
+              {`status=${status ?? "-"}\ncode=${code || "-"}\nmeta=${JSON.stringify(meta || {}, null, 2)}\nmessage=${message || "-"}`}
+            </pre>
+          </details>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (code === "push_disabled" || code === "telegram_disabled") {
+    const titleKey = code === "push_disabled" ? "errors.pushDisabled.title" : "errors.telegramDisabled.title";
+    const descKey = code === "push_disabled" ? "errors.pushDisabled.desc" : "errors.telegramDisabled.desc";
+    return (
+      <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">{t(titleKey)}</h2>
+        <p className="mt-2 text-sm text-gray-600">{t(descKey)}</p>
+        {showDebug ? (
+          <details className="mt-4 rounded-2xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
+            <summary className="cursor-pointer font-semibold">{t("errors.debug")}</summary>
+            <pre className="mt-2 whitespace-pre-wrap">
+              {`status=${status ?? "-"}\ncode=${code || "-"}\nmessage=${message || "-"}`}
+            </pre>
+          </details>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
       <h2 className="text-base font-semibold text-gray-900">{t("errors.generic.title")}</h2>

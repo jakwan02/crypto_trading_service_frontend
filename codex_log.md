@@ -1241,3 +1241,35 @@ Logs/Artifacts:
 - src/components/SymbolTable.tsx
 Next:
 - /market에서 스크롤 중 행 간격이 안정적인지 확인
+
+2026-01-19 12:32 (local)
+Task: Week3 프론트(Screener/Alerts/Portfolio/Research + Push/Telegram + Indicators) 구현 및 백/프 파일 정리
+Scope: src/app/screener/page.tsx, src/app/alerts/page.tsx, src/app/portfolio/page.tsx, src/app/research/page.tsx, src/app/research/[slug]/page.tsx, src/components/push/PushGate.tsx, src/components/telegram/TelegramGate.tsx, public/sw.js, src/components/ChartContainer.tsx, src/app/chart/[symbol]/SymbolChartClient.tsx, src/components/Navigation.tsx, src/components/Header.tsx, src/lib/{screenersClient,alertsClient,pushClient,telegramClient,portfolioClient,postsClient,indicators}.ts, src/types/{screener,alerts,push,telegram,portfolio,content}.ts, src/i18n/locales/{ko,en}.ts, src/components/common/ApiErrorView.tsx, docs/RECENT.md, codex_log.md
+Why: backend Week3 계약(/app screeners|alerts|push|telegram|portfolio 및 /api posts)에 맞춰 프론트를 실제 동작 가능한 상태로 반영하고, 웹푸시/텔레그램/지표 표시까지 포함해 Week3 요구를 종결하기 위해.
+Key changes:
+- `/screener` 조건 빌더 + 실행 + 저장 스크리너 UI 추가
+- `/alerts`를 API 기반(룰 CRUD/히스토리)으로 전환 + PushGate/TelegramGate + 서비스워커(sw.js) 추가
+- `/portfolio` 원장 입력(거래/현금) + 포지션/리스크 요약 UI 추가
+- `/research` posts 목록/검색 + 상세(마크다운 원문 표시) UI 추가
+- 차트 보조지표(RSI14/MACD/BB) 브라우저 계산 값을 실시간 표시로 연결
+Commands run (agent):
+- npm test
+- npm run lint
+- npm run build
+Logs/Artifacts:
+- docs/RECENT.md
+Next:
+- VAPID_* / TELEGRAM_* 설정 후 `/alerts`에서 채널 연결 및 테스트 발송 확인
+
+2026-01-19 12:37 (local)
+Task: Research 상세에서 Markdown 렌더링 추가
+Scope: src/app/research/[slug]/page.tsx, package.json, package-lock.json, codex_log.md
+Why: 콘텐츠 본문(body_md)을 “마크다운 콘텐츠”로 사용자에게 읽기 좋게 제공하기 위해.
+Key changes:
+- `markdown-it` + `@types/markdown-it` 추가 후, `/research/[slug]`에서 HTML 렌더링(HTML 비활성화) 적용
+Commands run (agent):
+- npm run build
+Logs/Artifacts:
+- N/A
+Next:
+- markdown 스타일(heading/list/code) UI 정합이 필요하면 Tailwind 스타일링 추가

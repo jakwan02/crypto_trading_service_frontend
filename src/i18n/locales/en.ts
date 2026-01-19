@@ -39,7 +39,10 @@ const en = {
     paymentDesc: "Add funds quickly when your balance is low.",
     billing: "Billing",
     usage: "Usage",
-    watchlists: "Watchlists"
+    watchlists: "Watchlists",
+    screener: "Screener",
+    portfolio: "Portfolio",
+    research: "Research"
   },
   nav: {
     home: "Home",
@@ -51,7 +54,143 @@ const en = {
     payment: "Payment",
     billing: "Billing",
     usage: "Usage",
-    watchlists: "Watchlists"
+    watchlists: "Watchlists",
+    screener: "Screener",
+    portfolio: "Portfolio",
+    research: "Research"
+  },
+  screener: {
+    title: "Screener",
+    desc: "Combine conditions to search and save screeners.",
+    savedTitle: "Saved screeners",
+    new: "New",
+    delete: "Delete",
+    builderTitle: "Condition builder",
+    market: "Market",
+    logic: "Logic",
+    logicAnd: "AND",
+    logicOr: "OR",
+    conditions: "Conditions",
+    addCondition: "Add condition",
+    noConditions: "Add at least one condition.",
+    cond: {
+      metric: "Metric (cache)",
+      ind: "Indicator",
+      breakout: "Breakout (Donchian)",
+      volSpike: "Volume spike"
+    },
+    remove: "Remove",
+    saveNamePlaceholder: "Save name (e.g., breakout + qv)",
+    save: "Save",
+    update: "Update",
+    run: "Run",
+    loadMore: "Load more",
+    resultsTitle: "Results",
+    resultsMeta: "items={{n}} · server={{t}}ms",
+    colSymbol: "Symbol",
+    colPrice: "Price",
+    colPct: "Pct(%)",
+    colQv: "Quote volume",
+    colVolume: "Volume",
+    metricField: {
+      qv: "Quote volume",
+      volume: "Volume",
+      pct: "Pct",
+      price: "Price"
+    }
+  },
+  alerts: {
+    title: "Alerts",
+    desc: "Send alerts based on price/pct/volume/indicators.",
+    newRule: "New rule",
+    rules: "Rules",
+    history: "History",
+    loadMore: "Load more",
+    delete: "Delete",
+    on: "ON",
+    off: "OFF",
+    create: "Create",
+    fieldMarket: "Market",
+    fieldSymbol: "Symbol",
+    fieldType: "Type",
+    fieldWindow: "Window",
+    fieldOp: "Operator",
+    fieldValue: "Value",
+    fieldIndicator: "Indicator",
+    fieldRepeat: "Repeat",
+    fieldCooldownSec: "Cooldown (sec)",
+    fieldChannels: "Channels",
+    channelsRequired: "Select at least one channel.",
+    type: { price: "Price", pct: "Pct", volume: "Volume", indicator: "Indicator" },
+    repeat: { once: "Once", cooldown: "Cooldown" },
+    channel: { push: "Web push", email: "Email", telegram: "Telegram" }
+  },
+  push: {
+    title: "Web push",
+    unsupported: "Web push is not supported in this browser.",
+    subscribed: "Subscribed",
+    notSubscribed: "Not subscribed",
+    subscribe: "Subscribe",
+    unsubscribe: "Unsubscribe",
+    test: "Send test"
+  },
+  telegram: {
+    title: "Telegram",
+    linked: "Linked",
+    notLinked: "Not linked",
+    unknown: "Unknown",
+    issue: "Issue link",
+    check: "Check link",
+    unlink: "Unlink",
+    openDeepLink: "Open bot (/start)",
+    howTo: "How to link",
+    howToStep: "Open the bot on Telegram: /start {{token}}"
+  },
+  portfolio: {
+    title: "Portfolio",
+    desc: "Calculate PnL/risk from manual ledger.",
+    baseCcy: "Base currency",
+    equity: "Equity",
+    mdd: "MDD",
+    sharpe: "Sharpe",
+    positions: "Positions",
+    assumptionsTitle: "Assumptions",
+    assumptionsDesc: "Futures/short supported, FIFO, fee/slippage/funding included. Mark uses realtime cache.",
+    addTx: "Add transaction",
+    submitTx: "Add trade",
+    cashTitle: "Cash",
+    cashDirection: "Direction",
+    cashDeposit: "Deposit",
+    cashWithdraw: "Withdraw",
+    cashAmount: "Amount",
+    submitCash: "Apply cash",
+    txHistory: "Transactions",
+    cashHistory: "Cash ledger",
+    delete: "Delete",
+    fieldMarket: "Market",
+    fieldSymbol: "Symbol",
+    fieldPosSide: "Position",
+    fieldSide: "Side",
+    fieldQty: "Qty",
+    fieldPrice: "Price",
+    fieldLeverage: "Leverage",
+    fieldFee: "Fee",
+    fieldNote: "Note",
+    colSymbol: "Symbol",
+    colSide: "Side",
+    colQty: "Qty",
+    colAvg: "Avg",
+    colMark: "Mark",
+    colPnl: "PnL"
+  },
+  research: {
+    title: "Research",
+    desc: "Search briefings/reports/guides.",
+    searchPlaceholder: "Search",
+    categoryPlaceholder: "Category slug (optional)",
+    tagPlaceholder: "Tag slug (optional)",
+    loadMore: "Load more",
+    invalidSlug: "Invalid slug."
   },
   home: {
     hero: {
@@ -602,6 +741,26 @@ const en = {
     watchlistsLimit: {
       title: "Watchlists limit exceeded",
       desc: "Your current plan limit has been reached."
+    },
+    screenersLimit: {
+      title: "Screener limit exceeded",
+      desc: "You have reached your plan limit. Upgrade and try again."
+    },
+    alertRulesLimit: {
+      title: "Alert rules limit exceeded",
+      desc: "You have reached your plan limit. Upgrade and try again."
+    },
+    invalidScreenerDsl: {
+      title: "Invalid conditions",
+      desc: "Check your conditions and try again."
+    },
+    pushDisabled: {
+      title: "Web push unavailable",
+      desc: "Server push settings (VAPID) are not configured."
+    },
+    telegramDisabled: {
+      title: "Telegram unavailable",
+      desc: "Server Telegram bot settings are not configured."
     },
     billing: {
       unsupportedProvider: {

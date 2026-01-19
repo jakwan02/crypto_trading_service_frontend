@@ -13,6 +13,7 @@ import type { Candle } from "@/hooks/useChart";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSymbolsStore } from "@/store/useSymbolStore";
 import { formatCompactNumber } from "@/lib/format";
+import type { TechIndicators } from "@/lib/indicators";
 
 const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
 const FLASH_MS = 800;
@@ -56,12 +57,16 @@ export default function SymbolChartClient({ symbol }: Props) {
   const changeValue = info?.change24h ?? NaN;
   const changeIsNumber = Number.isFinite(changeValue);
   const [livePrice, setLivePrice] = useState<number | null>(null);
+  const [tech, setTech] = useState<TechIndicators | null>(null);
   const handleLastCandle = useCallback((candle: Candle | null) => {
     if (!candle || !Number.isFinite(candle.close)) {
       setLivePrice(null);
       return;
     }
     setLivePrice(candle.close);
+  }, []);
+  const handleIndicators = useCallback((indicators: TechIndicators | null) => {
+    setTech(indicators);
   }, []);
   const tfLabel = tf;
   const [flashView, setFlashView] = useState<{
@@ -94,6 +99,11 @@ export default function SymbolChartClient({ symbol }: Props) {
     Number.isFinite(x)
       ? x.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 8 })
       : "-";
+  const fmtNum = (x: number | null | undefined, digits: number) => {
+    const n = typeof x === "number" ? x : NaN;
+    if (!Number.isFinite(n)) return "-";
+    return n.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: digits });
+  };
   const fmtWithUnit = (value: number, unit?: string) => {
     const base = formatCompactNumber(value, locale);
     if (base === "-") return base;
@@ -365,6 +375,7 @@ export default function SymbolChartClient({ symbol }: Props) {
               timeframe={tf}
               market={marketParam || undefined}
               onLastCandle={handleLastCandle}
+              onIndicators={handleIndicators}
             />
           </div>
 
@@ -401,15 +412,17 @@ export default function SymbolChartClient({ symbol }: Props) {
               <ul className="mt-3 space-y-2 text-sm text-gray-600">
                 <li className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
                   <span>RSI</span>
-                  <span className="font-medium text-gray-900">{t("chart.techValues.rsi")}</span>
+                  <span className="font-medium text-gray-900">{fmtNum(tech?.rsi14, 2)}</span>
                 </li>
                 <li className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
                   <span>MACD</span>
-                  <span className="font-medium text-gray-900">{t("chart.techValues.macd")}</span>
+                  <span className="font-medium text-gray-900">{fmtNum(tech?.macd_hist, 6)}</span>
                 </li>
                 <li className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-                  <span>{t("chart.techValues.bollingerLabel")}</span>
-                  <span className="font-medium text-gray-900">{t("chart.techValues.bollingerValue")}</span>
+                  <span>BB(20,2)</span>
+                  <span className="font-medium text-gray-900">
+                    {fmtNum(tech?.bb_lower, 8)} / {fmtNum(tech?.bb_mid, 8)} / {fmtNum(tech?.bb_upper, 8)}
+                  </span>
                 </li>
               </ul>
             </div>

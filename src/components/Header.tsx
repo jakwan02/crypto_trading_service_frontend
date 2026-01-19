@@ -190,11 +190,32 @@ export default function Header() {
                     {t("common.watchlists")}
                   </Link>
                   <Link
+                    href="/screener"
+                    onClick={() => setAccountOpen(false)}
+                    className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                  >
+                    {t("common.screener")}
+                  </Link>
+                  <Link
+                    href="/portfolio"
+                    onClick={() => setAccountOpen(false)}
+                    className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                  >
+                    {t("common.portfolio")}
+                  </Link>
+                  <Link
                     href="/alerts"
                     onClick={() => setAccountOpen(false)}
                     className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
                   >
                     {t("common.alerts")}
+                  </Link>
+                  <Link
+                    href="/research"
+                    onClick={() => setAccountOpen(false)}
+                    className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                  >
+                    {t("common.research")}
                   </Link>
                   <button
                     type="button"
