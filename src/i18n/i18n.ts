@@ -12,6 +12,9 @@ const initialLanguage =
     ? document.documentElement.lang || "ko"
     : "ko";
 
+// 변경 이유: resources 최상위 키(=namespace)를 자동 반영해 billing/usage/watchlists/errors 등 누락으로 키가 그대로 노출되는 문제를 방지
+const namespaces = Object.keys(resources.ko);
+
 async function loadLocaleBundle(lng: string) {
   const base = String(lng || "").split("-")[0];
   if (!base) return;
@@ -44,26 +47,7 @@ if (!i18n.isInitialized) {
       supportedLngs: supported,
       nonExplicitSupportedLngs: true,
       defaultNS: "common",
-      ns: [
-        "common",
-        "nav",
-        "home",
-        "market",
-        "table",
-        "chart",
-        "ai",
-        "news",
-        "alertsPage",
-        "auth",
-        "security",
-        "account",
-        "accountSettings",
-        "upgrade",
-        "payment",
-        "education",
-        "legal",
-        "footer"
-      ],
+      ns: namespaces,
       nsSeparator: ".",
       detection: isBrowser
         ? {

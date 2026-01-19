@@ -564,7 +564,16 @@ const ko = {
     currencySubNote: "구독(sub)은 결제사 정책으로 USD만 지원합니다.",
     provider: "결제 수단",
     coupon: "쿠폰",
-    couponPlaceholder: "쿠폰 코드(선택)"
+    couponPlaceholder: "쿠폰 코드(선택)",
+    planCard: {
+      title: { free: "무료", pro: "Pro" },
+      badge: { current: "현재 이용 중", selectable: "선택 가능" },
+      section: { api: "API", watchlists: "워치리스트", alerts: "알림", history: "히스토리" },
+      apiLine: "분당 {{rpm}}회 · 일 {{day}}회",
+      watchlistsLine: "리스트 {{lists}}개 · 리스트당 {{items}}개",
+      alertsLine: "규칙 {{maxRules}}개",
+      historyLine: "{{maxDays}}일"
+    }
   },
   errors: {
     debug: "디버그 정보",

@@ -1124,3 +1124,19 @@ Logs/Artifacts:
 Next:
 - /billing에서 past_due 배너/안내/새로고침 동작 확인
 - 429(quota_exceeded) 발생 시 reset_at/Retry-After 표기 확인, 즐겨찾기 토글 즉시 반영 확인
+
+2026-01-19 08:20 (local)
+Task: i18n namespace 자동 로딩 + /upgrade 플랜 카드 번역 적용(키 노출 방지)
+Scope: src/i18n/i18n.ts, src/components/billing/PlanCard.tsx, src/i18n/locales/ko.ts, src/i18n/locales/en.ts, codex_log.md
+Why: billing/usage/watchlists/errors 네임스페이스 누락으로 번역 키가 그대로 노출되고, /upgrade 플랜 카드가 영문 하드코딩으로 사용자 친화적이지 않기 때문.
+Key changes:
+- resources 최상위 키를 ns로 자동 등록해 네임스페이스 누락을 원천 차단
+- PlanCard의 Current/Selectable/API/Watchlists/Alerts/History 및 라인 포맷을 i18n로 전환
+Commands run (user):
+- (not run) npm run lint -> 미실행
+- (not run) npm run dev -> 미실행
+Logs/Artifacts:
+- <none>
+Next:
+- /billing, /usage, /watchlists에서 billing.title 같은 키가 더 이상 노출되지 않는지 확인
+- /upgrade 플랜 카드(Free/Pro) 배지/섹션/라인이 한국어로 표시되는지 확인

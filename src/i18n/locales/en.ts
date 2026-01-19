@@ -564,7 +564,16 @@ const en = {
     currencySubNote: "Subscription (sub) supports USD only by provider policy.",
     provider: "Provider",
     coupon: "Coupon",
-    couponPlaceholder: "Coupon code (optional)"
+    couponPlaceholder: "Coupon code (optional)",
+    planCard: {
+      title: { free: "Free", pro: "Pro" },
+      badge: { current: "Current", selectable: "Selectable" },
+      section: { api: "API", watchlists: "Watchlists", alerts: "Alerts", history: "History" },
+      apiLine: "rpm: {{rpm}} · day: {{day}}",
+      watchlistsLine: "lists: {{lists}} · items: {{items}}",
+      alertsLine: "max_rules: {{maxRules}}",
+      historyLine: "max_days: {{maxDays}}"
+    }
   },
   errors: {
     debug: "Debug",
