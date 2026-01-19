@@ -567,6 +567,7 @@ const en = {
     couponPlaceholder: "Coupon code (optional)",
     planCard: {
       title: { free: "Free", pro: "Pro" },
+      code: { free: "FREE", pro: "PRO" },
       badge: { current: "Current", selectable: "Selectable" },
       section: { api: "API", watchlists: "Watchlists", alerts: "Alerts", history: "History" },
       apiLine: "rpm: {{rpm}} · day: {{day}}",
@@ -750,6 +751,7 @@ const en = {
     pickOne: "Pick a watchlist.",
     itemsTitle: "Items",
     addSymbol: "Add",
+    addSymbolPlaceholder: "Symbol (e.g. BTCUSDT)",
     updateCta: "Update",
     deleteCta: "Delete",
     editName: "Name",
@@ -758,6 +760,15 @@ const en = {
     detailDesc: "Detail/share/manage items",
     back: "Back to list",
     invalidId: "Invalid id.",
+    badgeDefault: "DEFAULT",
+    defaults: {
+      favoritesName: "Favorites"
+    },
+    market: {
+      spot: "Spot",
+      um: "UM",
+      cm: "CM"
+    },
     share: {
       cta: "Create share link",
       title: "Share link",

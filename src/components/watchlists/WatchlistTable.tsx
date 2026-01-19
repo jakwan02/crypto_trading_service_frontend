@@ -10,6 +10,14 @@ type Props = {
 
 export default function WatchlistTable({ items, onRemove }: Props) {
   const { t } = useTranslation();
+  const marketLabel = (raw?: string | null): string => {
+    const v = String(raw || "").trim().toLowerCase();
+    if (!v) return "-";
+    if (v === "spot") return t("watchlists.market.spot");
+    if (v === "um") return t("watchlists.market.um");
+    if (v === "cm") return t("watchlists.market.cm");
+    return String(raw || "").toUpperCase();
+  };
   return (
     <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
       <table className="w-full table-fixed">
@@ -24,7 +32,7 @@ export default function WatchlistTable({ items, onRemove }: Props) {
           {items.length ? (
             items.map((it) => (
               <tr key={`${it.market}:${it.symbol}`} className="bg-white">
-                <td className="px-4 py-3">{String(it.market || "spot").toUpperCase()}</td>
+                <td className="px-4 py-3">{marketLabel(it.market)}</td>
                 <td className="px-4 py-3 font-semibold text-gray-900">{String(it.symbol || "").toUpperCase()}</td>
                 <td className="px-4 py-3 text-right">
                   <button

@@ -10,6 +10,14 @@ type Props = { token: string };
 
 export default function SharedWatchlistClient({ token }: Props) {
   const { t } = useTranslation();
+  const marketLabel = (raw?: string | null): string => {
+    const v = String(raw || "").trim().toLowerCase();
+    if (!v) return "-";
+    if (v === "spot") return t("watchlists.market.spot");
+    if (v === "um") return t("watchlists.market.um");
+    if (v === "cm") return t("watchlists.market.cm");
+    return String(raw || "").toUpperCase();
+  };
   const query = useQuery({
     queryKey: ["sharedWatchlist", token],
     queryFn: () => getSharedWatchlist(token),
@@ -52,7 +60,7 @@ export default function SharedWatchlistClient({ token }: Props) {
                 {items.length ? (
                   items.map((it) => (
                     <tr key={`${it.market}:${it.symbol}`} className="bg-white">
-                      <td className="px-4 py-3">{String(it.market || "spot").toUpperCase()}</td>
+                      <td className="px-4 py-3">{marketLabel(it.market)}</td>
                       <td className="px-4 py-3 font-semibold text-gray-900">{String(it.symbol || "").toUpperCase()}</td>
                       <td className="px-4 py-3 text-right">
                         <Link

@@ -37,9 +37,9 @@ const ko = {
     },
     payment: "Payment",
     paymentDesc: "잔액이 부족할 때 빠르게 충전하고 거래를 이어가세요.",
-    billing: "Billing",
-    usage: "Usage",
-    watchlists: "Watchlists"
+    billing: "결제/청구",
+    usage: "사용량",
+    watchlists: "워치리스트"
   },
   nav: {
     home: "Home",
@@ -49,9 +49,9 @@ const ko = {
     news: "News",
     alerts: "Alerts",
     payment: "Payment",
-    billing: "Billing",
-    usage: "Usage",
-    watchlists: "Watchlists"
+    billing: "결제/청구",
+    usage: "사용량",
+    watchlists: "워치리스트"
   },
   home: {
     hero: {
@@ -567,6 +567,7 @@ const ko = {
     couponPlaceholder: "쿠폰 코드(선택)",
     planCard: {
       title: { free: "무료", pro: "Pro" },
+      code: { free: "무료", pro: "PRO" },
       badge: { current: "현재 이용 중", selectable: "선택 가능" },
       section: { api: "API", watchlists: "워치리스트", alerts: "알림", history: "히스토리" },
       apiLine: "분당 {{rpm}}회 · 일 {{day}}회",
@@ -635,9 +636,9 @@ const ko = {
     }
   },
   billing: {
-    title: "Billing",
-    desc: "플랜, 구독, 인보이스를 관리합니다.",
-    goBilling: "Billing으로 이동",
+    title: "결제/청구",
+    desc: "구독, 인보이스, 환불 요청을 관리합니다.",
+    goBilling: "결제/청구로 이동",
     status: {
       title: "이용 상태",
       plan: "플랜",
@@ -670,7 +671,7 @@ const ko = {
       none: "현재 활성 구독이 없습니다."
     },
     invoices: {
-      title: "Invoices",
+      title: "인보이스",
       desc: "인보이스 목록 및 다운로드",
       recent: "최근 인보이스",
       all: "전체 보기",
@@ -684,11 +685,11 @@ const ko = {
         unknown: "확인 필요"
       },
       table: {
-        date: "날짜",
+        date: "발행일",
         amount: "금액",
         currency: "통화",
         status: "상태",
-        download: "다운로드",
+        download: "영수증",
         downloadCta: "열기",
         empty: "인보이스가 없습니다."
       }
@@ -721,17 +722,17 @@ const ko = {
     }
   },
   usage: {
-    title: "Usage",
-    desc: "사용량과 한도를 확인합니다.",
-    goUsage: "Usage로 이동",
-    plan: "플랜",
-    planHint: "플랜별 한도는 Billing/Plans 기준",
+    title: "사용량",
+    desc: "오늘 사용량과 플랜 한도를 확인합니다.",
+    goUsage: "사용량으로 이동",
+    plan: "현재 플랜",
+    planHint: "한도는 Billing의 플랜 정책 기준입니다.",
     callsToday: "오늘 API 호출",
-    callsTodayHint: "calls_per_day 기준",
-    rpm: "RPM",
+    callsTodayHint: "일일 한도 기준",
+    rpm: "분당 요청(RPM)",
     rpmHint: "분당 사용량",
-    rpmHintNoUsed: "현재 사용량은 서버에서 제공되지 않을 수 있습니다.",
-    entitlements: "엔티틀먼트",
+    rpmHintNoUsed: "현재 분당 사용량은 서버에서 제공되지 않을 수 있습니다.",
+    entitlements: "한도(Entitlements)",
     ent: {
       watchlistsMaxLists: "워치리스트 최대 개수",
       watchlistsMaxItems: "리스트당 최대 심볼",
@@ -740,26 +741,36 @@ const ko = {
     }
   },
   watchlists: {
-    title: "Watchlists",
+    title: "워치리스트",
     desc: "관심 심볼을 리스트로 관리합니다.",
-    listTitle: "목록",
+    listTitle: "내 워치리스트",
     createTitle: "새 워치리스트",
-    createNamePlaceholder: "이름",
+    createNamePlaceholder: "이름(예: 즐겨찾기)",
     createTagsPlaceholder: "태그(쉼표로 구분)",
-    createCta: "생성",
+    createCta: "만들기",
     pickOne: "워치리스트를 선택하세요.",
-    itemsTitle: "아이템",
+    itemsTitle: "심볼 목록",
     addSymbol: "추가",
-    updateCta: "수정",
+    addSymbolPlaceholder: "심볼(예: BTCUSDT)",
+    updateCta: "저장",
     deleteCta: "삭제",
     editName: "이름",
     editTags: "태그",
-    detailTitle: "Watchlist",
-    detailDesc: "상세/공유/아이템 관리",
-    back: "목록으로",
+    detailTitle: "워치리스트",
+    detailDesc: "상세/공유/심볼 관리",
+    back: "워치리스트로",
     invalidId: "잘못된 ID 입니다.",
+    badgeDefault: "기본",
+    defaults: {
+      favoritesName: "즐겨찾기"
+    },
+    market: {
+      spot: "현물",
+      um: "선물(UM)",
+      cm: "선물(CM)"
+    },
     share: {
-      cta: "공유 링크 생성",
+      cta: "공유 링크 만들기",
       title: "공유 링크",
       copy: "복사",
       copied: "복사됨"

@@ -46,7 +46,12 @@ export default function PlanCard({ plan, selected, current, onSelect }: Props) {
 
   const border = selected ? "border-primary/40 ring-2 ring-primary/10" : "border-gray-200";
   const badge = current ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600";
-  const codeLabel = String(plan.code || "").trim().toUpperCase();
+  const codeLabel = useMemo(() => {
+    const code = String(plan.code || "").trim().toLowerCase();
+    if (code === "free") return t("upgrade.planCard.code.free", { defaultValue: "FREE" });
+    if (code === "pro") return t("upgrade.planCard.code.pro", { defaultValue: "PRO" });
+    return String(plan.code || "").trim().toUpperCase();
+  }, [plan.code, t]);
 
   return (
     <button

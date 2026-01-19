@@ -35,9 +35,18 @@ export default function WatchlistDetailClient({ id }: Props) {
     staleTime: 5_000
   });
 
+  const displayName = useCallback(
+    (raw: string, isDefault?: boolean) => {
+      const name = String(raw || "");
+      const isDefaultFavorites = Boolean(isDefault) && name.trim().toLowerCase() === "favorites";
+      return isDefaultFavorites ? t("watchlists.defaults.favoritesName") : name;
+    },
+    [t]
+  );
+
   useEffect(() => {
     if (!detailQuery.data) return;
-    const name = String(detailQuery.data.name || "");
+    const name = displayName(String(detailQuery.data.name || ""), detailQuery.data.is_default);
     const tags = (detailQuery.data.tags ?? []).join(", ");
     const tok = String(detailQuery.data.share_token || "");
     queueMicrotask(() => {
@@ -45,7 +54,7 @@ export default function WatchlistDetailClient({ id }: Props) {
       setEditTags(tags);
       setShareToken(tok);
     });
-  }, [detailQuery.data]);
+  }, [detailQuery.data, displayName]);
 
   const updateMutation = useMutation({
     mutationFn: () => updateWatchlist(id, { name: editName.trim() || undefined, tags: parseTags(editTags) }),
@@ -112,7 +121,9 @@ export default function WatchlistDetailClient({ id }: Props) {
           ) : detailQuery.data ? (
             <>
               <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900">{detailQuery.data.name}</h2>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {displayName(String(detailQuery.data.name || ""), detailQuery.data.is_default)}
+                </h2>
                 <p className="mt-1 text-xs text-gray-500">
                   {(detailQuery.data.tags ?? []).length ? (detailQuery.data.tags ?? []).join(", ") : "-"}
                 </p>
@@ -179,14 +190,14 @@ export default function WatchlistDetailClient({ id }: Props) {
                     onChange={(e) => setAddMarket(e.target.value)}
                     className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
                   >
-                    <option value="spot">spot</option>
-                    <option value="um">um</option>
-                    <option value="cm">cm</option>
+                    <option value="spot">{t("watchlists.market.spot")}</option>
+                    <option value="um">{t("watchlists.market.um")}</option>
+                    <option value="cm">{t("watchlists.market.cm")}</option>
                   </select>
                   <input
                     value={addSymbol}
                     onChange={(e) => setAddSymbol(e.target.value)}
-                    placeholder="BTCUSDT"
+                    placeholder={t("watchlists.addSymbolPlaceholder")}
                     className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
                   />
                   <button

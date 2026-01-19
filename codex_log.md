@@ -1140,3 +1140,20 @@ Logs/Artifacts:
 Next:
 - /billing, /usage, /watchlists에서 billing.title 같은 키가 더 이상 노출되지 않는지 확인
 - /upgrade 플랜 카드(Free/Pro) 배지/섹션/라인이 한국어로 표시되는지 확인
+
+2026-01-19 08:37 (local)
+Task: Week2 번역/문구 사용자친화(ko) + 워치리스트 마켓 표기 개선
+Scope: src/i18n/locales/ko.ts, src/i18n/locales/en.ts, src/components/watchlists/WatchlistPicker.tsx, src/components/watchlists/WatchlistTable.tsx, src/app/watchlists/page.tsx, src/app/watchlists/[id]/watchlistDetailClient.tsx, src/app/watchlists/shared/[token]/sharedWatchlistClient.tsx, src/components/billing/PlanCard.tsx, codex_log.md
+Why: ko 로케일에서 Billing/Usage/Watchlists 문구가 영문으로 남아있고, 워치리스트에서 SPOT/UM 같은 코드가 그대로 노출되어 사용자 친화적이지 않기 때문.
+Key changes:
+- ko 로케일에서 결제/청구·사용량·워치리스트 주요 타이틀/설명/버튼 문구를 한국어로 통일
+- WatchlistPicker 기본 뱃지/기본 즐겨찾기 이름 표시 및 WatchlistTable/공유 페이지 마켓(spot/um/cm) 라벨화
+- /upgrade PlanCard 상단 코드 라벨도 i18n로 전환
+Commands run (user):
+- npm run lint -> 성공(경고 13)
+- npm run build -> 성공(next build OK)
+Logs/Artifacts:
+- lint warnings 13
+Next:
+- /billing, /usage, /watchlists 화면에서 영문/키 노출이 없는지 확인
+- /watchlists 및 /watchlists/shared/[token]에서 마켓이 “현물/선물(UM)”로 표시되는지 확인

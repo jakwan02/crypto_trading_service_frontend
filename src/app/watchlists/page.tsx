@@ -136,6 +136,12 @@ export default function WatchlistsPage() {
   );
 
   const selectedMeta = useMemo(() => items.find((w) => String(w.id) === String(selectedId)) || null, [items, selectedId]);
+  const displaySelectedName = useMemo(() => {
+    const rawName = String(detailQuery.data?.name || selectedMeta?.name || "");
+    const isDefaultFavorites =
+      Boolean(detailQuery.data?.is_default ?? selectedMeta?.is_default) && rawName.trim().toLowerCase() === "favorites";
+    return isDefaultFavorites ? t("watchlists.defaults.favoritesName") : rawName;
+  }, [detailQuery.data?.is_default, detailQuery.data?.name, selectedMeta?.is_default, selectedMeta?.name, t]);
 
   return (
     <RequireAuth>
@@ -213,7 +219,7 @@ export default function WatchlistsPage() {
                     <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div>
-                          <h2 className="text-lg font-semibold text-gray-900">{detailQuery.data.name}</h2>
+                          <h2 className="text-lg font-semibold text-gray-900">{displaySelectedName}</h2>
                           <p className="mt-1 text-xs text-gray-500">
                             {(detailQuery.data.tags ?? []).length ? (detailQuery.data.tags ?? []).join(", ") : "-"}
                           </p>
@@ -292,14 +298,14 @@ export default function WatchlistsPage() {
                           onChange={(e) => setAddMarket(e.target.value)}
                           className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
                         >
-                          <option value="spot">spot</option>
-                          <option value="um">um</option>
-                          <option value="cm">cm</option>
+                          <option value="spot">{t("watchlists.market.spot")}</option>
+                          <option value="um">{t("watchlists.market.um")}</option>
+                          <option value="cm">{t("watchlists.market.cm")}</option>
                         </select>
                         <input
                           value={addSymbol}
                           onChange={(e) => setAddSymbol(e.target.value)}
-                          placeholder="BTCUSDT"
+                          placeholder={t("watchlists.addSymbolPlaceholder")}
                           className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
                         />
                         <button
