@@ -1213,3 +1213,17 @@ Logs/Artifacts:
 - docs/AGENT_GUIDE.md
 Next:
 - 신규 채팅 시작 시 Appendix v5를 기본 프롬프트로 사용
+
+2026-01-19 09:30 (local)
+Task: 헤더 드롭다운 바깥 클릭/ESC 닫힘 + SymbolTable 스크롤 정렬 안정화
+Scope: src/components/Header.tsx, src/components/SymbolTable.tsx, src/app/globals.css, docs/RECENT.md, codex_log.md
+Why: 알림/계정 메뉴가 바깥 클릭에도 닫히지 않는 UX 문제와, 테이블 스크롤바로 헤더/바디 정렬이 흔들려 마진이 어긋나 보이는 문제를 완화하기 위해.
+Key changes:
+- `Header.tsx`: 바깥 클릭/ESC로 알림·계정 드롭다운 자동 닫힘 + 서로 배타적으로 열리도록 처리
+- `SymbolTable.tsx`/`globals.css`: `scrollbar-gutter: stable` 적용으로 스크롤바 유무에 따른 좌우 정렬 틀어짐 완화
+Commands run (user):
+- (not run) N/A
+Logs/Artifacts:
+- src/components/Header.tsx
+Next:
+- UI가 어긋나는 페이지가 있으면 페이지 URL 1개 + 스크린샷 1장으로 추가 정합(여백/정렬) 반영

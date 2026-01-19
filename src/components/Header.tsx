@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, ChevronDown, Crown, Menu, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -35,10 +35,41 @@ export default function Header() {
   const [noticeOpen, setNoticeOpen] = useState(false);
   const { user, signOut, isPro, sessionReady } = useAuth();
   const { t } = useTranslation();
+  const accountWrapRef = useRef<HTMLDivElement | null>(null);
+  const noticeWrapRef = useRef<HTMLDivElement | null>(null);
   const displayName = useMemo(() => {
     if (!user) return t("common.guest");
     return String(user.name || "").trim() || String(user.email || t("common.user"));
   }, [user, t]);
+
+  // 변경 이유: 알림/계정 드롭다운이 바깥 클릭/ESC로 닫히지 않아 UX가 불편한 문제를 해결
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      setAccountOpen(false);
+      setNoticeOpen(false);
+    }
+
+    function onPointerDown(e: MouseEvent | TouchEvent) {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (accountOpen && accountWrapRef.current && !accountWrapRef.current.contains(target)) {
+        setAccountOpen(false);
+      }
+      if (noticeOpen && noticeWrapRef.current && !noticeWrapRef.current.contains(target)) {
+        setNoticeOpen(false);
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("mousedown", onPointerDown, true);
+    document.addEventListener("touchstart", onPointerDown, true);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("mousedown", onPointerDown, true);
+      document.removeEventListener("touchstart", onPointerDown, true);
+    };
+  }, [accountOpen, noticeOpen]);
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur">
@@ -58,18 +89,21 @@ export default function Header() {
         <div className="hidden items-center gap-3 md:flex">
           <LanguageSwitcher />
 
-          <div className="relative">
+          <div ref={noticeWrapRef} className="relative">
             <button
               type="button"
-              onClick={() => setNoticeOpen((prev) => !prev)}
+              onClick={() => {
+                setNoticeOpen((prev) => !prev);
+                setAccountOpen(false);
+              }}
               className="relative rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary"
               aria-label={t("common.notifications.label")}
             >
               <Bell className="h-4 w-4" />
               <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
             </button>
-              {noticeOpen ? (
-                <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-gray-200 bg-white p-3 shadow-lg">
+            {noticeOpen ? (
+              <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-gray-200 bg-white p-3 shadow-lg">
                 <p className="text-xs font-semibold text-gray-500">{t("common.recentAlerts")}</p>
                 <div className="mt-3 space-y-2">
                   {NOTIFICATIONS.map((item) => (
@@ -113,10 +147,13 @@ export default function Header() {
               {t("common.login")}
             </Link>
           ) : (
-            <div className="relative">
+            <div ref={accountWrapRef} className="relative">
               <button
                 type="button"
-                onClick={() => setAccountOpen((prev) => !prev)}
+                onClick={() => {
+                  setAccountOpen((prev) => !prev);
+                  setNoticeOpen(false);
+                }}
                 className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
               >
                 {displayName}

@@ -148,3 +148,8 @@ button {
 button:hover:not(:disabled) {
   transform: translateY(-1px);
 }
+
+/* 변경 이유: 테이블 가로 스크롤바 유무로 헤더/바디 정렬이 틀어져 "좌우 마진이 어긋나 보이는" 문제를 완화 */
+.scrollbar-gutter-stable {
+  scrollbar-gutter: stable;
+}

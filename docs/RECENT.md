@@ -9,6 +9,8 @@
   - impact: `/upgrade` 플랜 카드/`/billing`/`/usage`/`/watchlists` 텍스트 정합 및 마켓 표기(현물/선물) 개선
 - [docs] `docs/AGENT_GUIDE.md`에 “매 채팅 시작 지침 v5” copy/paste 블록 고정(응답 포맷/증거/검증 흐름 포함)
   - impact: 프론트/백엔드 공통 정합 규칙 + 결과물 형식을 단일 SOT로 고정해 재발성 이슈(i18n/UX/env 드리프트) 방지
+- [ux] 헤더 드롭다운(알림/계정) 바깥 클릭/ESC 닫힘 처리 + SymbolTable 스크롤바 거터 고정으로 정렬 틀어짐 완화
+  - impact: 탭/메뉴가 화면에 남는 UX 문제 해결, 테이블 헤더/바디 좌우 정렬 안정화
 
 ## 2026-01-18
 - [week2] Billing/Usage/Watchlists/Upgrade/Return 페이지 도입 + dev billing(/dev/billing) 플로우 추가

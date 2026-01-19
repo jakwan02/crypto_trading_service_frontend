@@ -657,7 +657,7 @@ export default function SymbolTable({
 
       <div
         ref={parentRef}
-        className="max-h-[560px] overflow-auto rounded-xl border border-gray-100"
+        className="scrollbar-gutter-stable max-h-[560px] overflow-auto rounded-xl border border-gray-100"
         style={{ overscrollBehavior: "contain" }}
       >
         <table className="min-w-[1000px] w-full table-fixed border-collapse border-spacing-0 text-left text-gray-900">
