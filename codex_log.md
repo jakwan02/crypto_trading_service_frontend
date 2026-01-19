@@ -1305,3 +1305,17 @@ Logs/Artifacts:
 - docs/RECENT.md
 Next:
 - (user run) 백엔드 `alembic upgrade head` 후 `/pricing`·`/status`·`/support` 플로우 브라우저 검증
+
+2026-01-19 17:45 (local)
+Task: PROD 에러 원문 노출 방지(인라인) + i18n 보강(Google 로그인)
+Scope: src/components/GoogleSignInButton.tsx, src/i18n/locales/{ko,en}.ts, docs/RECENT.md, codex_log.md
+Why: 운영(PROD) 환경에서 내부 메시지/설정 키 등의 원문이 그대로 노출되는 UX/보안 이슈를 방지하기 위해.
+Key changes:
+- Google 로그인 실패/설정 누락 시 ko/en 친화 메시지로 통일하고, 개발 환경에서만 상세 표시
+Commands run (agent):
+- npm run lint (warnings only)
+- npm run build (success)
+Logs/Artifacts:
+- docs/RECENT.md
+Next:
+- (user run) PROD 빌드에서 Google 로그인 실패 시 상세 원문이 보이지 않는지 확인

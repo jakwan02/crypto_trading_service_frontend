@@ -491,6 +491,8 @@ const en = {
     loginLink: "Sign in",
     hasAccount: "Already have an account?",
     redirecting: "Starting Google sign-in.",
+    googleLoginUnavailable: "Google sign-in is not configured yet. Please try again later.",
+    googleLoginFailed: "Google sign-in failed. Please try again later.",
     agreement: "By continuing, you agree to the Terms of Service and Privacy Policy.",
     loginFailed: "Sign-in failed. Please try again.",
     signupFailed: "Sign-up failed. Please try again.",

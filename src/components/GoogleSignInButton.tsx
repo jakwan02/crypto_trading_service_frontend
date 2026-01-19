@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type GoogleCredentialResponse = {
   credential: string;
@@ -82,8 +83,18 @@ export function GoogleSignInButton({
   const onIdTokenRef = useRef(onIdToken);
   const onErrorRef = useRef(onError);
   const [error, setError] = useState("");
+  const { t } = useTranslation();
+  const showDebug = process.env.NODE_ENV !== "production";
 
   const clientId = useMemo(() => getClientId(), []);
+
+  const reportError = useCallback((err: unknown) => {
+    const debugMsg = normalizeErrorMessage(err);
+    const userMsg = t("auth.googleLoginFailed");
+    const msg = showDebug ? debugMsg : userMsg;
+    setError(msg);
+    onErrorRef.current?.(msg);
+  }, [showDebug, t]);
 
   useEffect(() => {
     onIdTokenRef.current = onIdToken;
@@ -96,7 +107,7 @@ export function GoogleSignInButton({
   useEffect(() => {
     if (!containerRef.current) return;
     if (!clientId) {
-      const message = "NEXT_PUBLIC_GOOGLE_CLIENT_ID is missing.";
+      const message = showDebug ? "NEXT_PUBLIC_GOOGLE_CLIENT_ID is missing." : t("auth.googleLoginUnavailable");
       setError(message);
       onErrorRef.current?.(message);
       return;
@@ -121,9 +132,7 @@ export function GoogleSignInButton({
             try {
               await onIdTokenRef.current(response.credential);
             } catch (err) {
-              const message = normalizeErrorMessage(err);
-              setError(message);
-              onErrorRef.current?.(message);
+              reportError(err);
             }
           }
         });
@@ -144,16 +153,14 @@ export function GoogleSignInButton({
         });
       } catch (err) {
         if (cancelled) return;
-        const message = normalizeErrorMessage(err);
-        setError(message);
-        onErrorRef.current?.(message);
+        reportError(err);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [clientId]);
+  }, [clientId, reportError, showDebug, t]);
 
   return (
     <div

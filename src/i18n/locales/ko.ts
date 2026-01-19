@@ -491,6 +491,8 @@ const ko = {
     loginLink: "로그인",
     hasAccount: "이미 계정이 있으신가요?",
     redirecting: "Google 로그인 진행 중입니다.",
+    googleLoginUnavailable: "현재 Google 로그인 설정이 준비되지 않았습니다. 잠시 후 다시 시도해주세요.",
+    googleLoginFailed: "Google 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.",
     agreement: "로그인을 진행하면 서비스 약관과 개인정보 처리방침에 동의하게 됩니다.",
     loginFailed: "로그인에 실패했습니다. 다시 시도해주세요.",
     signupFailed: "회원가입에 실패했습니다. 다시 시도해주세요.",

@@ -6,6 +6,8 @@
 ## 2026-01-19
 - [week4/frontend] Pricing/Status/Changelog/Support/Legal(CookieBanner) + Admin UI(/admin/*) 구현(Week4 설계 반영)
   - impact: `/pricing`, `/status`, `/changelog`, `/support`, `/cookies`, `/disclaimer` 및 `/terms`/`/privacy`가 백엔드 Week4 계약(/api/*,/app/*) 기반으로 동작
+- [ux/auth] Google 로그인 인라인 오류 메시지 i18n(ko/en) 적용 + PROD에서 내부/원문 노출 방지
+  - impact: 설정 누락/스크립트 실패 시에도 사용자에게는 친화 메시지만 노출(개발 환경만 상세 표시)
 - [week3/frontend] Screener/Alerts/Portfolio/Research UI를 백엔드 Week3 계약(/app,/api) 기반으로 구현 + 웹푸시 SW/텔레그램 게이트 추가
   - impact: `/screener`, `/alerts`, `/portfolio`, `/research` 라우트 동작 및 차트 보조지표(RSI/MACD/BB) 표시가 브라우저 계산으로 전환됨
 - [chart] 캔들 아래 보조지표 패널(Volume/RSI/MACD) + BB 오버레이 + 사용자 설정(LocalStorage) 추가
