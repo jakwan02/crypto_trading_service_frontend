@@ -1199,3 +1199,17 @@ Logs/Artifacts:
 - docs/AGENT_GUIDE.md
 Next:
 - 신규 채팅 시작 시 Appendix v4를 기본 프롬프트로 사용
+
+2026-01-19 09:30 (local)
+Task: 프론트 채팅 지침 Appendix를 v5로 승격
+Scope: docs/AGENT_GUIDE.md, docs/RECENT.md, codex_log.md
+Why: v4/v5 지침 혼용으로 “응답 포맷/증거 제시/검증 흐름”이 흔들리는 드리프트를 방지하기 위해.
+Key changes:
+- `docs/AGENT_GUIDE.md` Appendix의 채팅 지침을 v5로 교체(응답 포맷 고정 포함)
+- `docs/RECENT.md`의 지침 버전 표기를 v5로 정정
+Commands run (user):
+- (not run) N/A
+Logs/Artifacts:
+- docs/AGENT_GUIDE.md
+Next:
+- 신규 채팅 시작 시 Appendix v5를 기본 프롬프트로 사용
