@@ -38,7 +38,8 @@ const WIN_OPTS: MetricWindow[] = ["1m", "5m", "15m", "1h", "4h", "1d", "1w", "1M
 const PRICE_FLASH_MS = 300;
 const BLINK_MS = 180;
 const VIRTUAL_OVERSCAN = 20;
-const ROW_ESTIMATE = 40;
+// 변경 이유: 가상 스크롤 row height 추정치가 실제 렌더 높이와 어긋나면 "위/아래 여백이 틀어져 보이는" 현상이 발생할 수 있어 고정 높이로 정합화
+const ROW_HEIGHT = 44;
 const SKELETON_ROWS = 12;
 // 변경 이유: 헤더/바디에 동일한 grid 템플릿을 적용해 컬럼 정렬을 고정
 const GRID_TEMPLATE =
@@ -484,7 +485,7 @@ export default function SymbolTable({
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => ROW_ESTIMATE,
+    estimateSize: () => ROW_HEIGHT,
     observeElementOffset: observeOffsetNoSync,
     overscan: VIRTUAL_OVERSCAN
   });
@@ -702,18 +703,19 @@ export default function SymbolTable({
               const row = rows[virtualRow.index];
               if (!row) return null;
               return (
-                <tr
-                  key={row.id}
-                  className="cursor-pointer border-b border-gray-200 transition hover:bg-primary/10"
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    transform: `translateY(${virtualRow.start}px)`,
-                    display: "grid",
-                    gridTemplateColumns: GRID_TEMPLATE,
-                    width: "100%"
-                  }}
-                  onClick={() => {
+              <tr
+                key={row.id}
+                className="cursor-pointer border-b border-gray-200 transition hover:bg-primary/10"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  transform: `translateY(${virtualRow.start}px)`,
+                  display: "grid",
+                  gridTemplateColumns: GRID_TEMPLATE,
+                  height: `${ROW_HEIGHT}px`,
+                  width: "100%"
+                }}
+                onClick={() => {
                     // 변경 이유: 차트 진입 전 market store 동기화
                     const nextMarket = String(row.original.market || "").trim().toLowerCase();
                     if (nextMarket === "spot" || nextMarket === "um") {
@@ -726,7 +728,7 @@ export default function SymbolTable({
                   }}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-3 py-2 truncate">
+                    <td key={cell.id} className="px-3 py-1.5 truncate">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

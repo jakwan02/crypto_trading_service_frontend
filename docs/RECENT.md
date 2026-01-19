@@ -11,6 +11,8 @@
   - impact: 프론트/백엔드 공통 정합 규칙 + 결과물 형식을 단일 SOT로 고정해 재발성 이슈(i18n/UX/env 드리프트) 방지
 - [ux] 헤더 드롭다운(알림/계정) 바깥 클릭/ESC 닫힘 처리 + SymbolTable 스크롤바 거터 고정으로 정렬 틀어짐 완화
   - impact: 탭/메뉴가 화면에 남는 UX 문제 해결, 테이블 헤더/바디 좌우 정렬 안정화
+- [ux] /market SymbolTable 가상 스크롤 row height 정합화(고정 높이)로 행 여백 어긋남 완화
+  - impact: 심볼 행의 위/아래 여백이 들쭉날쭉해 보이는 현상 완화
 
 ## 2026-01-18
 - [week2] Billing/Usage/Watchlists/Upgrade/Return 페이지 도입 + dev billing(/dev/billing) 플로우 추가

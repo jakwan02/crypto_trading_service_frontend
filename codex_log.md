@@ -1227,3 +1227,17 @@ Logs/Artifacts:
 - src/components/Header.tsx
 Next:
 - UI가 어긋나는 페이지가 있으면 페이지 URL 1개 + 스크린샷 1장으로 추가 정합(여백/정렬) 반영
+
+2026-01-19 10:07 (local)
+Task: /market SymbolTable 행 여백 정합화(가상 스크롤 row height 고정)
+Scope: src/components/SymbolTable.tsx, docs/RECENT.md, codex_log.md
+Why: 가상 스크롤의 row height 추정치가 실제 렌더 높이와 어긋나면 행 간격이 들쭉날쭉해 보일 수 있어 고정 높이로 정합화하기 위해.
+Key changes:
+- `SymbolTable.tsx`: row height를 44px로 고정하고 virtualizer estimate도 동일 값으로 맞춤
+- `docs/RECENT.md`에 UX 개선 기록 추가
+Commands run (user):
+- (not run) N/A
+Logs/Artifacts:
+- src/components/SymbolTable.tsx
+Next:
+- /market에서 스크롤 중 행 간격이 안정적인지 확인
