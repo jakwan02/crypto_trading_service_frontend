@@ -61,4 +61,4 @@ npm run dev
 ## When starting a new chat (AI 최소 주입)
 - 프론트 작업: `docs/CONTEXT.md` + `docs/RECENT.md`
 - 백엔드 인터페이스/정책 변경이 포함되면: `backend/docs/CONTRACTS.md`도 추가
-
+- 변경 дисцип린/정합성 규칙은 `docs/AGENT_GUIDE.md`를 따른다.

@@ -1171,3 +1171,31 @@ Logs/Artifacts:
 - docs/INDEX.md
 Next:
 - 신규 페이지/기능 추가 시 docs/INDEX.md의 Update triggers 기준으로 문서 동시 갱신
+
+2026-01-19 09:15 (local)
+Task: 프론트 에이전트 가이드 추가(서버 메시지 노출 금지/i18n 정합/UI 정합/SoT 규칙)
+Scope: docs/AGENT_GUIDE.md, docs/INDEX.md, docs/ENV.md, codex_log.md
+Why: 프로젝트 확장 시 i18n 키 노출/URL 혼선/서버 에러 원문 노출이 재발하지 않도록 “고정 규칙”을 문서로 표준화하기 위해.
+Key changes:
+- `docs/AGENT_GUIDE.md` 추가 및 docs/INDEX.md에 연결
+- `docs/ENV.md`에 backend reverse proxy 문서 상호 참조 추가
+Commands run (user):
+- (not run) N/A
+Logs/Artifacts:
+- docs/AGENT_GUIDE.md
+Next:
+- 신규 페이지/에러 처리 추가 시 `docs/AGENT_GUIDE.md`/`docs/ERROR_UX.md` 규칙 준수 확인
+
+2026-01-19 09:20 (local)
+Task: 프론트 에이전트 가이드에 채팅 지침 v4 추가
+Scope: docs/AGENT_GUIDE.md, docs/RECENT.md, codex_log.md
+Why: 프론트 작업에서도 “기업급 정합성/UX/i18n/에러 처리” 규칙을 채팅 단에서 copy/paste로 고정해 재발을 방지하기 위해.
+Key changes:
+- `docs/AGENT_GUIDE.md`에 “매 채팅 시작 지침(고정) v4” Appendix 추가
+- `docs/RECENT.md`에 문서 업데이트 기록 추가
+Commands run (user):
+- (not run) N/A
+Logs/Artifacts:
+- docs/AGENT_GUIDE.md
+Next:
+- 신규 채팅 시작 시 Appendix v4를 기본 프롬프트로 사용

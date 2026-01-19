@@ -39,6 +39,9 @@ NEXT_PUBLIC_API_BASE_URL=/
 NEXT_PUBLIC_WS_BASE_URL=http://localhost
 ```
 
+관련 백엔드 문서:
+- `backend/docs/reverse_proxy_caddy.md`
+
 ### 운영(리버스프록시 단일 오리진)
 ```bash
 NEXT_PUBLIC_API_BASE_URL=/
@@ -48,4 +51,3 @@ NEXT_PUBLIC_WS_BASE_URL=https://<your-domain>
 ## 주의(재발 방지)
 - `NEXT_PUBLIC_WS_BASE_URL=/` 는 금지
   - 프론트 코드에서 `new WebSocket(\`\${wsBase}/ws_...\`)` 형태로 URL을 만들기 때문에, 반드시 `ws(s)://` 또는 `http(s)://` 기반이어야 한다.
-
