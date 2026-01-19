@@ -1,0 +1,62 @@
+"use client";
+
+import { useParams } from "next/navigation";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import ApiErrorView from "@/components/common/ApiErrorView";
+import { getChangelog } from "@/lib/changelogClient";
+import MarkdownIt from "markdown-it";
+
+export default function ChangelogDetailPage() {
+  const { t } = useTranslation();
+  const params = useParams<{ slug?: string }>();
+  const slug = String(params?.slug || "").trim();
+  const md = useMemo(() => new MarkdownIt({ html: false, linkify: true, breaks: true }), []);
+
+  const q = useQuery({
+    queryKey: ["changelog", slug],
+    queryFn: () => getChangelog(slug),
+    enabled: !!slug
+  });
+
+  const item = q.data;
+  const bodyHtml = useMemo(() => md.render(String(item?.body_md || "")), [md, item?.body_md]);
+
+  if (!slug) {
+    return (
+      <main className="min-h-screen bg-transparent">
+        <div className="mx-auto w-full max-w-3xl px-4 py-10">
+          <p className="text-sm text-gray-500">{t("changelog.invalidSlug")}</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (q.error) {
+    return (
+      <main className="min-h-screen bg-transparent">
+        <div className="mx-auto w-full max-w-3xl px-4 py-10">
+          <ApiErrorView error={q.error} onRetry={() => q.refetch()} />
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-transparent">
+      <div className="mx-auto w-full max-w-3xl px-4 py-10">
+        <header className="mb-6">
+          <p className="text-xs text-gray-400">{item?.published_at ? String(item.published_at).slice(0, 10) : ""}</p>
+          <h1 className="mt-2 text-3xl font-semibold text-gray-900">{item?.title || slug}</h1>
+          {item?.summary ? <p className="mt-3 text-sm text-gray-600">{item.summary}</p> : null}
+        </header>
+
+        <article className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="text-sm leading-7 text-gray-800" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
+        </article>
+      </div>
+    </main>
+  );
+}
+

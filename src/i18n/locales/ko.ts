@@ -46,6 +46,8 @@ const ko = {
   },
   nav: {
     home: "Home",
+    pricing: "가격",
+    status: "상태",
     market: "Market",
     charts: "Charts",
     ai: "AI Insights",
@@ -57,7 +59,9 @@ const ko = {
     watchlists: "워치리스트",
     screener: "스크리너",
     portfolio: "포트폴리오",
-    research: "리서치"
+    research: "리서치",
+    changelog: "공지/릴리즈",
+    support: "고객지원"
   },
   screener: {
     title: "스크리너",
@@ -199,7 +203,8 @@ const ko = {
       description:
         "실시간 데이터, 차트, 알림, 프리미엄 분석을 한 화면에서 연결해 투자 판단 시간을 줄입니다.",
       ctaMarket: "마켓 바로가기",
-      ctaAlerts: "알림 설정"
+      ctaAlerts: "알림 설정",
+      ctaPricing: "가격 보기"
     },
     focus: {
       title: "Today’s Focus",
@@ -262,6 +267,14 @@ const ko = {
       item2: "자주 보는 코인을 워치리스트로 묶어 빠르게 확인할 수 있습니다.",
       item3: "리스크 경고 알림을 통해 손절 타이밍을 놓치지 않습니다.",
       goAlerts: "알림 관리로 이동"
+    },
+    metrics: {
+      title: "서비스 지표",
+      coveredSymbols: "커버 심볼",
+      activeUsers7d: "활성 사용자(7d)",
+      apiP95: "API p95",
+      serverTime: "서버 시간",
+      collecting: "집계 중"
     }
   },
   market: {
@@ -1020,7 +1033,173 @@ const ko = {
       }
     }
   },
+  pricing: {
+    title: "가격",
+    desc: "무료로 시작하고, 필요할 때 Pro로 확장하세요.",
+    empty: "현재 표시할 플랜이 없습니다.",
+    cardSub: "기능 제한/정책은 아래 문서에서 확인할 수 있습니다.",
+    current: "현재 플랜",
+    price: "가격",
+    billingCycle: "결제 주기/수단은 Checkout에서 확정됩니다.",
+    ctaStartFree: "무료로 시작하기",
+    ctaUpgrade: "업그레이드",
+    ctaGoBilling: "청구 관리",
+    terms: "이용약관",
+    privacy: "개인정보처리방침",
+    support: "고객지원"
+  },
+  status: {
+    title: "상태",
+    desc: "서비스 상태와 장애/점검 이력을 확인합니다.",
+    componentLabel: "컴포넌트:",
+    ingestLag: "수집 지연",
+    openIncidents: "진행 중 장애",
+    upcomingMaintenances: "예정/진행 점검",
+    historyIncidents: "장애 이력",
+    historyMaintenances: "점검 이력",
+    emptyOpen: "현재 진행 중인 장애가 없습니다.",
+    emptyUpcoming: "등록된 예정 점검이 없습니다.",
+    emptyHistory: "등록된 이력이 없습니다.",
+    component: {
+      api: "API",
+      ws: "WebSocket",
+      db: "DB",
+      redis: "Redis",
+      ingest: "Ingest"
+    }
+  },
+  changelog: {
+    title: "공지/릴리즈 노트",
+    desc: "서비스 업데이트와 공지를 확인합니다.",
+    tabChangelog: "릴리즈 노트",
+    tabAnnouncements: "공지",
+    empty: "등록된 글이 없습니다.",
+    invalidSlug: "잘못된 항목입니다."
+  },
+  support: {
+    title: "고객지원",
+    desc: "FAQ 확인 및 문의 티켓을 등록할 수 있습니다.",
+    ctaTicket: "문의하기",
+    ctaStatus: "상태 페이지",
+    emptyFaq: "등록된 FAQ가 없습니다.",
+    category: "카테고리:"
+  },
+  supportTickets: {
+    title: "문의 티켓",
+    desc: "문의 내용을 남기면 관리자 답변을 받을 수 있습니다.",
+    newTitle: "새 문의",
+    subject: "제목",
+    subjectPh: "예: 결제 오류 문의",
+    category: "카테고리",
+    priority: "우선순위",
+    priorityLow: "낮음",
+    priorityNormal: "보통",
+    priorityHigh: "높음",
+    body: "내용",
+    bodyPh: "상황/재현 단계/스크린샷 링크 등을 남겨주세요.",
+    submit: "등록",
+    listTitle: "내 티켓",
+    empty: "등록된 티켓이 없습니다.",
+    updated: "최근 업데이트:"
+  },
+  supportTicket: {
+    title: "티켓",
+    invalidId: "잘못된 티켓입니다.",
+    meta: "상태:",
+    thread: "대화",
+    emptyThread: "대화가 없습니다.",
+    me: "나",
+    admin: "관리자",
+    reply: "답변/추가 문의",
+    replyPh: "추가 내용을 입력하세요.",
+    send: "보내기",
+    close: "종료"
+  },
+  admin: {
+    navTitle: "Admin",
+    navStatus: "Status",
+    navSupport: "Support",
+    navChangelog: "Changelog",
+    navLegal: "Legal",
+    forbiddenTitle: "권한이 없습니다",
+    forbiddenDesc: "이 페이지는 관리자만 접근할 수 있습니다.",
+    goHome: "홈으로"
+  },
+  adminStatus: {
+    title: "Admin · Status",
+    desc: "장애/점검을 등록하고 상태 페이지에 노출합니다.",
+    incidentNew: "새 장애",
+    incidentList: "장애 목록",
+    maintNew: "새 점검",
+    maintList: "점검 목록",
+    component: "컴포넌트",
+    severity: "심각도",
+    status: "상태",
+    startAt: "시작 시각(ISO)",
+    titleField: "제목",
+    body: "내용(MD)",
+    create: "생성",
+    resolve: "해결 처리",
+    delete: "삭제"
+  },
+  adminSupport: {
+    title: "Admin · Support",
+    desc: "티켓 답변 및 FAQ를 관리합니다.",
+    ticketList: "티켓 목록",
+    ticketDetail: "티켓 상세",
+    selectTicket: "좌측 목록에서 티켓을 선택하세요.",
+    searchEmail: "사용자 이메일 검색",
+    all: "전체",
+    status: "상태:",
+    priority: "우선순위:",
+    markResolved: "Resolved",
+    markClosed: "Closed",
+    replyPh: "답변 내용을 입력하세요.",
+    reply: "답변 보내기",
+    faqNew: "새 FAQ",
+    faqList: "FAQ 목록",
+    category: "카테고리",
+    question: "질문",
+    answer: "답변(MD)",
+    published: "공개",
+    create: "생성",
+    delete: "삭제"
+  },
+  adminChangelog: {
+    title: "Admin · Changelog",
+    desc: "공지/릴리즈 노트를 관리합니다.",
+    new: "새 항목",
+    list: "목록",
+    typeChangelog: "릴리즈 노트",
+    typeNotice: "공지",
+    slugPh: "slug (예: v1-0-0)",
+    titlePh: "제목",
+    summaryPh: "요약",
+    bodyPh: "본문(MD)",
+    published: "공개",
+    create: "생성",
+    delete: "삭제"
+  },
+  adminLegal: {
+    title: "Admin · Legal",
+    desc: "약관/개인정보/쿠키/면책 문서를 관리합니다.",
+    new: "새 문서",
+    list: "목록",
+    titlePh: "제목",
+    bodyPh: "본문(MD)",
+    published: "공개",
+    create: "생성",
+    delete: "삭제"
+  },
+  cookie: {
+    title: "쿠키 사용 안내",
+    desc: "서비스 품질 개선과 이용 분석을 위해 쿠키를 사용합니다.",
+    learnMore: "자세히",
+    onlyNecessary: "필수만",
+    acceptAll: "전체 허용"
+  },
   legal: {
+    version: "버전:",
     privacyTitle: "Privacy Policy",
     privacyDesc: "CoinDash는 개인정보 보호를 최우선으로 합니다.",
     privacyItems: {
@@ -1036,13 +1215,21 @@ const ko = {
       item2: "2. 서비스는 시장 데이터 제공에 집중하며, 투자 손익에 대한 책임을 지지 않습니다.",
       item3: "3. 결제 및 KYC 기능은 추후 별도 안내에 따라 제공됩니다.",
       item4: "4. 자세한 약관은 고객센터를 통해 확인할 수 있습니다."
-    }
+    },
+    cookieTitle: "쿠키 정책",
+    disclaimerTitle: "투자 유의/면책"
   },
   footer: {
     company: "CoinDash Labs",
     policy: "Policy",
+    pricing: "가격",
+    status: "상태",
+    changelog: "공지/릴리즈",
+    support: "고객지원",
     terms: "서비스 이용약관",
     privacy: "개인정보 처리방침",
+    cookies: "쿠키 정책",
+    disclaimer: "투자 유의/면책",
     subscription: "구독 관리",
     businessNumber: "사업자등록번호: 123-45-67890",
     ceo: "대표자: 홍길동",

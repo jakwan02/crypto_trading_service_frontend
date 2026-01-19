@@ -33,7 +33,7 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [noticeOpen, setNoticeOpen] = useState(false);
-  const { user, signOut, isPro, sessionReady } = useAuth();
+  const { user, signOut, isPro, isAdmin, sessionReady } = useAuth();
   const { t } = useTranslation();
   const accountWrapRef = useRef<HTMLDivElement | null>(null);
   const noticeWrapRef = useRef<HTMLDivElement | null>(null);
@@ -217,6 +217,42 @@ export default function Header() {
                   >
                     {t("common.research")}
                   </Link>
+                  {isAdmin ? (
+                    <>
+                      <div className="my-1 border-t border-gray-200" />
+                      <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                        {t("admin.navTitle")}
+                      </p>
+                      <Link
+                        href="/admin/status"
+                        onClick={() => setAccountOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                      >
+                        {t("admin.navStatus")}
+                      </Link>
+                      <Link
+                        href="/admin/support"
+                        onClick={() => setAccountOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                      >
+                        {t("admin.navSupport")}
+                      </Link>
+                      <Link
+                        href="/admin/changelog"
+                        onClick={() => setAccountOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                      >
+                        {t("admin.navChangelog")}
+                      </Link>
+                      <Link
+                        href="/admin/legal"
+                        onClick={() => setAccountOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                      >
+                        {t("admin.navLegal")}
+                      </Link>
+                    </>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => {
@@ -308,6 +344,38 @@ export default function Header() {
                   >
                     {t("common.account")}
                   </Link>
+                  {isAdmin ? (
+                    <>
+                      <Link
+                        href="/admin/status"
+                        onClick={() => setMobileOpen(false)}
+                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                      >
+                        {t("admin.navStatus")}
+                      </Link>
+                      <Link
+                        href="/admin/support"
+                        onClick={() => setMobileOpen(false)}
+                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                      >
+                        {t("admin.navSupport")}
+                      </Link>
+                      <Link
+                        href="/admin/changelog"
+                        onClick={() => setMobileOpen(false)}
+                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                      >
+                        {t("admin.navChangelog")}
+                      </Link>
+                      <Link
+                        href="/admin/legal"
+                        onClick={() => setMobileOpen(false)}
+                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                      >
+                        {t("admin.navLegal")}
+                      </Link>
+                    </>
+                  ) : null}
                   <Link
                     href="/billing"
                     onClick={() => setMobileOpen(false)}

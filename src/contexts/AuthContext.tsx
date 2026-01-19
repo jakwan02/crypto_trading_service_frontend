@@ -65,6 +65,7 @@ type AuthContextValue = {
   sessionReady: boolean;
   plan: Plan | null;
   isPro: boolean;
+  isAdmin: boolean;
   signInWithGoogle: () => Promise<LoginResult>;
   signInWithGoogleIdToken: (idToken: string, options?: { mfaCode?: string }) => Promise<LoginResult>;
   signOut: () => Promise<void>;
@@ -78,6 +79,7 @@ const AuthContext = createContext<AuthContextValue>({
   sessionReady: false,
   plan: null,
   isPro: false,
+  isAdmin: false,
   signInWithGoogle: async () => ({}),
   signInWithGoogleIdToken: async () => ({}),
   signOut: async () => {},
@@ -314,6 +316,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sessionReady,
       plan,
       isPro: plan?.code === "pro",
+      isAdmin: String(user?.role || "").toLowerCase() === "admin",
       signInWithGoogle,
       signInWithGoogleIdToken,
       signOut,

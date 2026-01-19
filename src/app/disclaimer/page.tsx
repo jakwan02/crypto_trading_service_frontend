@@ -7,18 +7,19 @@ import ApiErrorView from "@/components/common/ApiErrorView";
 import { getLatestLegal } from "@/lib/legalClient";
 import MarkdownIt from "markdown-it";
 
-export default function PrivacyPage() {
+export default function DisclaimerPage() {
   const { t, i18n } = useTranslation();
   const locale = String(i18n.language || "ko").split("-")[0];
   const md = useMemo(() => new MarkdownIt({ html: false, linkify: true, breaks: true }), []);
-  const q = useQuery({ queryKey: ["legal.privacy", locale], queryFn: () => getLatestLegal("privacy", locale), retry: 1 });
+
+  const q = useQuery({ queryKey: ["legal.disclaimer", locale], queryFn: () => getLatestLegal("disclaimer", locale), retry: 1 });
   const doc = q.data;
   const bodyHtml = useMemo(() => md.render(String(doc?.body_md || "")), [md, doc?.body_md]);
 
   return (
     <main className="min-h-screen bg-transparent">
       <div className="mx-auto w-full max-w-3xl px-4 py-12">
-        <h1 className="text-2xl font-semibold text-gray-900">{doc?.title || t("legal.privacyTitle")}</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">{doc?.title || t("legal.disclaimerTitle")}</h1>
         <p className="mt-2 text-sm text-gray-500">{t("legal.version")} {doc?.version || "-"}</p>
         {q.isError ? (
           <div className="mt-6">
@@ -33,3 +34,4 @@ export default function PrivacyPage() {
     </main>
   );
 }
+

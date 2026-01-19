@@ -46,6 +46,8 @@ const en = {
   },
   nav: {
     home: "Home",
+    pricing: "Pricing",
+    status: "Status",
     market: "Market",
     charts: "Charts",
     ai: "AI Insights",
@@ -57,7 +59,9 @@ const en = {
     watchlists: "Watchlists",
     screener: "Screener",
     portfolio: "Portfolio",
-    research: "Research"
+    research: "Research",
+    changelog: "Changelog",
+    support: "Support"
   },
   screener: {
     title: "Screener",
@@ -199,7 +203,8 @@ const en = {
       description:
         "Connect real-time data, charts, alerts, and premium analysis in one dashboard to speed up decisions.",
       ctaMarket: "Go to Market",
-      ctaAlerts: "Set Alerts"
+      ctaAlerts: "Set Alerts",
+      ctaPricing: "View Pricing"
     },
     focus: {
       title: "Today’s Focus",
@@ -262,6 +267,14 @@ const en = {
       item2: "Group favorite coins in a watchlist.",
       item3: "Risk alerts help you avoid missing exits.",
       goAlerts: "Go to Alerts"
+    },
+    metrics: {
+      title: "Service Metrics",
+      coveredSymbols: "Covered symbols",
+      activeUsers7d: "Active users (7d)",
+      apiP95: "API p95",
+      serverTime: "Server time",
+      collecting: "Collecting"
     }
   },
   market: {
@@ -1020,7 +1033,173 @@ const en = {
       }
     }
   },
+  pricing: {
+    title: "Pricing",
+    desc: "Start free and upgrade to Pro when you need more.",
+    empty: "No plans available.",
+    cardSub: "See documents below for limits and policies.",
+    current: "Current plan",
+    price: "Price",
+    billingCycle: "Billing cycle/provider is finalized at checkout.",
+    ctaStartFree: "Start free",
+    ctaUpgrade: "Upgrade",
+    ctaGoBilling: "Go to Billing",
+    terms: "Terms",
+    privacy: "Privacy",
+    support: "Support"
+  },
+  status: {
+    title: "Status",
+    desc: "Check current status and incident/maintenance history.",
+    componentLabel: "Component:",
+    ingestLag: "Ingest lag",
+    openIncidents: "Open incidents",
+    upcomingMaintenances: "Upcoming/In-progress maintenance",
+    historyIncidents: "Incident history",
+    historyMaintenances: "Maintenance history",
+    emptyOpen: "No ongoing incidents.",
+    emptyUpcoming: "No upcoming maintenance.",
+    emptyHistory: "No history available.",
+    component: {
+      api: "API",
+      ws: "WebSocket",
+      db: "DB",
+      redis: "Redis",
+      ingest: "Ingest"
+    }
+  },
+  changelog: {
+    title: "Changelog",
+    desc: "Updates and announcements.",
+    tabChangelog: "Changelog",
+    tabAnnouncements: "Announcements",
+    empty: "No items yet.",
+    invalidSlug: "Invalid item."
+  },
+  support: {
+    title: "Support",
+    desc: "Browse FAQs and create support tickets.",
+    ctaTicket: "Create ticket",
+    ctaStatus: "Status",
+    emptyFaq: "No FAQs available.",
+    category: "Category:"
+  },
+  supportTickets: {
+    title: "Support Tickets",
+    desc: "Create a ticket to contact support.",
+    newTitle: "New ticket",
+    subject: "Subject",
+    subjectPh: "e.g. Billing issue",
+    category: "Category",
+    priority: "Priority",
+    priorityLow: "Low",
+    priorityNormal: "Normal",
+    priorityHigh: "High",
+    body: "Message",
+    bodyPh: "Describe the issue and steps to reproduce.",
+    submit: "Submit",
+    listTitle: "My tickets",
+    empty: "No tickets yet.",
+    updated: "Updated:"
+  },
+  supportTicket: {
+    title: "Ticket",
+    invalidId: "Invalid ticket.",
+    meta: "Status:",
+    thread: "Thread",
+    emptyThread: "No messages.",
+    me: "Me",
+    admin: "Admin",
+    reply: "Reply",
+    replyPh: "Write a message.",
+    send: "Send",
+    close: "Close"
+  },
+  admin: {
+    navTitle: "Admin",
+    navStatus: "Status",
+    navSupport: "Support",
+    navChangelog: "Changelog",
+    navLegal: "Legal",
+    forbiddenTitle: "Forbidden",
+    forbiddenDesc: "This page is for admins only.",
+    goHome: "Go home"
+  },
+  adminStatus: {
+    title: "Admin · Status",
+    desc: "Manage incidents and maintenance.",
+    incidentNew: "New incident",
+    incidentList: "Incidents",
+    maintNew: "New maintenance",
+    maintList: "Maintenance",
+    component: "Component",
+    severity: "Severity",
+    status: "Status",
+    startAt: "Start time (ISO)",
+    titleField: "Title",
+    body: "Body (MD)",
+    create: "Create",
+    resolve: "Resolve",
+    delete: "Delete"
+  },
+  adminSupport: {
+    title: "Admin · Support",
+    desc: "Manage tickets and FAQs.",
+    ticketList: "Tickets",
+    ticketDetail: "Ticket detail",
+    selectTicket: "Select a ticket from the list.",
+    searchEmail: "Search user email",
+    all: "All",
+    status: "Status:",
+    priority: "Priority:",
+    markResolved: "Resolved",
+    markClosed: "Closed",
+    replyPh: "Write a reply.",
+    reply: "Send reply",
+    faqNew: "New FAQ",
+    faqList: "FAQs",
+    category: "Category",
+    question: "Question",
+    answer: "Answer (MD)",
+    published: "Published",
+    create: "Create",
+    delete: "Delete"
+  },
+  adminChangelog: {
+    title: "Admin · Changelog",
+    desc: "Manage changelog and announcements.",
+    new: "New entry",
+    list: "Entries",
+    typeChangelog: "Changelog",
+    typeNotice: "Announcement",
+    slugPh: "slug (e.g. v1-0-0)",
+    titlePh: "Title",
+    summaryPh: "Summary",
+    bodyPh: "Body (MD)",
+    published: "Published",
+    create: "Create",
+    delete: "Delete"
+  },
+  adminLegal: {
+    title: "Admin · Legal",
+    desc: "Manage legal documents.",
+    new: "New doc",
+    list: "Docs",
+    titlePh: "Title",
+    bodyPh: "Body (MD)",
+    published: "Published",
+    create: "Create",
+    delete: "Delete"
+  },
+  cookie: {
+    title: "Cookie notice",
+    desc: "We use cookies to improve the service and analyze usage.",
+    learnMore: "Learn more",
+    onlyNecessary: "Necessary only",
+    acceptAll: "Accept all"
+  },
   legal: {
+    version: "Version:",
     privacyTitle: "Privacy Policy",
     privacyDesc: "CoinDash prioritizes user privacy.",
     privacyItems: {
@@ -1036,13 +1215,21 @@ const en = {
       item2: "2. The service focuses on market data and is not responsible for gains or losses.",
       item3: "3. Payment and KYC features will be announced separately.",
       item4: "4. Full terms are available via customer support."
-    }
+    },
+    cookieTitle: "Cookie Policy",
+    disclaimerTitle: "Disclaimer"
   },
   footer: {
     company: "CoinDash Labs",
     policy: "Policy",
+    pricing: "Pricing",
+    status: "Status",
+    changelog: "Changelog",
+    support: "Support",
     terms: "Terms of Service",
     privacy: "Privacy Policy",
+    cookies: "Cookie Policy",
+    disclaimer: "Disclaimer",
     subscription: "Subscription",
     businessNumber: "Business registration: 123-45-67890",
     ceo: "CEO: Hong Gil-dong",

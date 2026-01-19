@@ -21,11 +21,29 @@ export default function Footer() {
             <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
               {t("footer.policy")}
             </span>
+            <Link href="/pricing" className="hover:text-gray-700">
+              {t("footer.pricing")}
+            </Link>
+            <Link href="/status" className="hover:text-gray-700">
+              {t("footer.status")}
+            </Link>
+            <Link href="/changelog" className="hover:text-gray-700">
+              {t("footer.changelog")}
+            </Link>
+            <Link href="/support" className="hover:text-gray-700">
+              {t("footer.support")}
+            </Link>
             <Link href="/terms" className="hover:text-gray-700">
               {t("footer.terms")}
             </Link>
             <Link href="/privacy" className="hover:text-gray-700">
               {t("footer.privacy")}
+            </Link>
+            <Link href="/cookies" className="hover:text-gray-700">
+              {t("footer.cookies")}
+            </Link>
+            <Link href="/disclaimer" className="hover:text-gray-700">
+              {t("footer.disclaimer")}
             </Link>
             <Link href="/account" className="hover:text-gray-700">
               {t("footer.subscription")}

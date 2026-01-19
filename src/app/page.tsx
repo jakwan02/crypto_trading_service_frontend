@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { ArrowUpRight, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useSymbols } from "@/hooks/useSymbols";
 import { useSymbolsStore } from "@/store/useSymbolStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCompactNumber } from "@/lib/format";
+import { getSiteMetrics } from "@/lib/siteClient";
 
 const NEWS_ITEMS = [
   {
@@ -31,6 +33,7 @@ export default function HomePage() {
   const { data, isLoading } = useSymbols("1d");
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
+  const siteMetricsQ = useQuery({ queryKey: ["siteMetrics"], queryFn: getSiteMetrics, retry: 1 });
 
   const summary = useMemo(() => {
     if (!data || data.length === 0) return null;
@@ -87,6 +90,12 @@ export default function HomePage() {
                 >
                   {t("home.hero.ctaAlerts")}
                 </Link>
+                <Link
+                  href="/pricing"
+                  className="rounded-full border border-gray-200 px-5 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                >
+                  {t("home.hero.ctaPricing")}
+                </Link>
               </div>
             </div>
             <div className="fade-up rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -103,6 +112,35 @@ export default function HomePage() {
                 <div className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2">
                   <span>{t("home.focus.item3")}</span>
                   <span className="text-xs text-secondary">{t("home.focus.item3Meta")}</span>
+                </div>
+              </div>
+              <div className="mt-5 rounded-2xl border border-gray-200 bg-gray-50 p-3">
+                <p className="text-[11px] font-semibold text-gray-500">{t("home.metrics.title")}</p>
+                <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-700">
+                  <div className="rounded-xl bg-white px-3 py-2">
+                    <p className="text-[11px] text-gray-500">{t("home.metrics.coveredSymbols")}</p>
+                    <p className="mt-1 font-semibold text-gray-900">
+                      {siteMetricsQ.isLoading ? "..." : siteMetricsQ.data ? siteMetricsQ.data.covered_symbols_total.toLocaleString(locale) : "-"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-white px-3 py-2">
+                    <p className="text-[11px] text-gray-500">{t("home.metrics.activeUsers7d")}</p>
+                    <p className="mt-1 font-semibold text-gray-900">
+                      {siteMetricsQ.isLoading ? "..." : siteMetricsQ.data ? siteMetricsQ.data.active_users_7d.toLocaleString(locale) : "-"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-white px-3 py-2">
+                    <p className="text-[11px] text-gray-500">{t("home.metrics.apiP95")}</p>
+                    <p className="mt-1 font-semibold text-gray-900">
+                      {siteMetricsQ.isLoading ? "..." : siteMetricsQ.data?.api_p95_ms != null ? `${Math.round(siteMetricsQ.data.api_p95_ms)}ms` : t("home.metrics.collecting")}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-white px-3 py-2">
+                    <p className="text-[11px] text-gray-500">{t("home.metrics.serverTime")}</p>
+                    <p className="mt-1 font-semibold text-gray-900">
+                      {siteMetricsQ.isLoading ? "..." : siteMetricsQ.data ? String(siteMetricsQ.data.server_time).slice(0, 19).replace("T", " ") : "-"}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

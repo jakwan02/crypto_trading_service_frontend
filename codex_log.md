@@ -1289,3 +1289,19 @@ Logs/Artifacts:
 - docs/RECENT.md
 Next:
 - `/chart/[symbol]`에서 지표 토글/파라미터 변경 시 즉시 반영 및 새로고침 후 유지 확인
+
+2026-01-20 00:10 (local)
+Task: Week4(Pricing/Status/Changelog/Legal/Support) 프론트 구현
+Scope: src/app/{pricing,status,changelog/*,support/*,cookies,disclaimer,terms,privacy}/page.tsx, src/app/admin/{status,support,changelog,legal}/page.tsx, src/components/{Navigation,Footer,Header}.tsx, src/components/legal/CookieBanner.tsx, src/components/auth/RequireAdmin.tsx, src/contexts/AuthContext.tsx, src/lib/{siteClient,statusClient,changelogClient,legalClient,supportClient}.ts, src/types/{site,status,changelog,legal,support}.ts, src/i18n/locales/{ko,en}.ts, docs/RECENT.md, codex_log.md
+Why: Week4 설계(신뢰성/가격/상태/법무/CS)를 “모든 경우의 수 UX + i18n(ko/en)”로 프론트에 완결하기 위해.
+Key changes:
+- `/pricing` 마케팅 페이지 + `/status` 상태 페이지 + `/changelog` 공지/릴리즈(상세 포함) + `/support` FAQ/티켓 UI 추가
+- `/terms`/`/privacy`를 백엔드 `legal_docs` 기반 렌더로 전환 + 전역 `CookieBanner` 추가
+- 관리자 최소 UI(`/admin/status|support|changelog|legal`) 및 `AuthContext.isAdmin`/Admin 보호 컴포넌트 추가
+Commands run (agent):
+- npm run lint
+- npm run build
+Logs/Artifacts:
+- docs/RECENT.md
+Next:
+- (user run) 백엔드 `alembic upgrade head` 후 `/pricing`·`/status`·`/support` 플로우 브라우저 검증

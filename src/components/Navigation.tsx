@@ -7,6 +7,8 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const NAV_LINKS = [
   { href: "/", labelKey: "nav.home" },
+  { href: "/pricing", labelKey: "nav.pricing" },
+  { href: "/status", labelKey: "nav.status" },
   { href: "/market", labelKey: "nav.market" },
   { href: "/chart", labelKey: "nav.charts" },
   { href: "/screener", labelKey: "nav.screener" },
@@ -17,7 +19,9 @@ const NAV_LINKS = [
   { href: "/billing", labelKey: "nav.billing" },
   { href: "/indicators", labelKey: "nav.ai", pro: true },
   { href: "/news", labelKey: "nav.news" },
-  { href: "/alerts", labelKey: "nav.alerts" }
+  { href: "/alerts", labelKey: "nav.alerts" },
+  { href: "/changelog", labelKey: "nav.changelog" },
+  { href: "/support", labelKey: "nav.support" }
 ];
 
 type Props = {
