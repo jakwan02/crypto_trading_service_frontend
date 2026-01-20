@@ -169,6 +169,34 @@ export default function Header() {
                     {t("common.account")}
                   </Link>
                   <Link
+                    href="/rankings"
+                    onClick={() => setAccountOpen(false)}
+                    className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                  >
+                    {t("common.rankings")}
+                  </Link>
+                  <Link
+                    href="/calendar"
+                    onClick={() => setAccountOpen(false)}
+                    className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                  >
+                    {t("common.calendar")}
+                  </Link>
+                  <Link
+                    href="/referral"
+                    onClick={() => setAccountOpen(false)}
+                    className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                  >
+                    {t("common.referral")}
+                  </Link>
+                  <Link
+                    href="/developer"
+                    onClick={() => setAccountOpen(false)}
+                    className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                  >
+                    {t("common.developer")}
+                  </Link>
+                  <Link
                     href="/billing"
                     onClick={() => setAccountOpen(false)}
                     className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
@@ -224,18 +252,68 @@ export default function Header() {
                         {t("admin.navTitle")}
                       </p>
                       <Link
-                        href="/admin/status"
+                        href="/admin"
                         onClick={() => setAccountOpen(false)}
                         className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
                       >
-                        {t("admin.navStatus")}
+                        {t("admin.navDashboard")}
                       </Link>
+                      <Link
+                        href="/admin/users"
+                        onClick={() => setAccountOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                      >
+                        {t("admin.navUsers")}
+                      </Link>
+                      <Link
+                        href="/admin/billing"
+                        onClick={() => setAccountOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                      >
+                        {t("admin.navBilling")}
+                      </Link>
+                      <Link
+                        href="/admin/monitoring"
+                        onClick={() => setAccountOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                      >
+                        {t("admin.navMonitoring")}
+                      </Link>
+                      <Link
+                        href="/admin/growth"
+                        onClick={() => setAccountOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                      >
+                        {t("admin.navGrowth")}
+                      </Link>
+                      <Link
+                        href="/admin/calendar"
+                        onClick={() => setAccountOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                      >
+                        {t("admin.navCalendar")}
+                      </Link>
+                      <Link
+                        href="/admin/audit"
+                        onClick={() => setAccountOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                      >
+                        {t("admin.navAudit")}
+                      </Link>
+                      <div className="my-1 border-t border-gray-200" />
                       <Link
                         href="/admin/support"
                         onClick={() => setAccountOpen(false)}
                         className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
                       >
                         {t("admin.navSupport")}
+                      </Link>
+                      <Link
+                        href="/admin/content"
+                        onClick={() => setAccountOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                      >
+                        {t("admin.navContent")}
                       </Link>
                       <Link
                         href="/admin/changelog"
@@ -250,6 +328,13 @@ export default function Header() {
                         className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
                       >
                         {t("admin.navLegal")}
+                      </Link>
+                      <Link
+                        href="/admin/status"
+                        onClick={() => setAccountOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-primary/5 hover:text-primary"
+                      >
+                        {t("admin.navStatus")}
                       </Link>
                     </>
                   ) : null}
@@ -344,14 +429,84 @@ export default function Header() {
                   >
                     {t("common.account")}
                   </Link>
+                  <Link
+                    href="/rankings"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                  >
+                    {t("common.rankings")}
+                  </Link>
+                  <Link
+                    href="/calendar"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                  >
+                    {t("common.calendar")}
+                  </Link>
+                  <Link
+                    href="/referral"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                  >
+                    {t("common.referral")}
+                  </Link>
+                  <Link
+                    href="/developer"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                  >
+                    {t("common.developer")}
+                  </Link>
                   {isAdmin ? (
                     <>
                       <Link
-                        href="/admin/status"
+                        href="/admin"
                         onClick={() => setMobileOpen(false)}
                         className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
                       >
-                        {t("admin.navStatus")}
+                        {t("admin.navDashboard")}
+                      </Link>
+                      <Link
+                        href="/admin/users"
+                        onClick={() => setMobileOpen(false)}
+                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                      >
+                        {t("admin.navUsers")}
+                      </Link>
+                      <Link
+                        href="/admin/billing"
+                        onClick={() => setMobileOpen(false)}
+                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                      >
+                        {t("admin.navBilling")}
+                      </Link>
+                      <Link
+                        href="/admin/monitoring"
+                        onClick={() => setMobileOpen(false)}
+                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                      >
+                        {t("admin.navMonitoring")}
+                      </Link>
+                      <Link
+                        href="/admin/growth"
+                        onClick={() => setMobileOpen(false)}
+                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                      >
+                        {t("admin.navGrowth")}
+                      </Link>
+                      <Link
+                        href="/admin/calendar"
+                        onClick={() => setMobileOpen(false)}
+                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                      >
+                        {t("admin.navCalendar")}
+                      </Link>
+                      <Link
+                        href="/admin/audit"
+                        onClick={() => setMobileOpen(false)}
+                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                      >
+                        {t("admin.navAudit")}
                       </Link>
                       <Link
                         href="/admin/support"
@@ -359,6 +514,13 @@ export default function Header() {
                         className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
                       >
                         {t("admin.navSupport")}
+                      </Link>
+                      <Link
+                        href="/admin/content"
+                        onClick={() => setMobileOpen(false)}
+                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                      >
+                        {t("admin.navContent")}
                       </Link>
                       <Link
                         href="/admin/changelog"
@@ -373,6 +535,13 @@ export default function Header() {
                         className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
                       >
                         {t("admin.navLegal")}
+                      </Link>
+                      <Link
+                        href="/admin/status"
+                        onClick={() => setMobileOpen(false)}
+                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                      >
+                        {t("admin.navStatus")}
                       </Link>
                     </>
                   ) : null}

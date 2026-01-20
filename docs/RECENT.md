@@ -4,6 +4,8 @@
 > 항목 1개는 2~4줄 이내로 압축(무조건).
 
 ## 2026-01-19
+- [week5/frontend] Admin 운영 콘솔 확장(/admin dashboard/users/billing/monitoring/growth/calendar/audit) + Growth/Dev/SEO(/referral,/onboarding,/developer,/rankings,sitemap/robots) 반영
+  - impact: Week5 신규 라우트/헤더 메뉴/i18n(ko/en) 연결 완료(백엔드 Week5 계약 기준)
 - [week4/frontend] Pricing/Status/Changelog/Support/Legal(CookieBanner) + Admin UI(/admin/*) 구현(Week4 설계 반영)
   - impact: `/pricing`, `/status`, `/changelog`, `/support`, `/cookies`, `/disclaimer` 및 `/terms`/`/privacy`가 백엔드 Week4 계약(/api/*,/app/*) 기반으로 동작
 - [ux/auth] Google 로그인 인라인 오류 메시지 i18n(ko/en) 적용 + PROD에서 내부/원문 노출 방지

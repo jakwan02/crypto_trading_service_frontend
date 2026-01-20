@@ -13,8 +13,21 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "CoinDash",
-  description: "실시간 암호화폐 시장 데이터와 차트를 제공하는 트레이딩 대시보드"
+  title: {
+    default: "CoinDash",
+    template: "%s · CoinDash"
+  },
+  description: "실시간 암호화폐 시장 데이터와 차트를 제공하는 트레이딩 대시보드",
+  openGraph: {
+    title: "CoinDash",
+    description: "실시간 암호화폐 시장 데이터와 차트를 제공하는 트레이딩 대시보드",
+    type: "website"
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CoinDash",
+    description: "실시간 암호화폐 시장 데이터와 차트를 제공하는 트레이딩 대시보드"
+  }
 };
 
 export default function RootLayout({

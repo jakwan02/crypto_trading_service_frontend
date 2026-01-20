@@ -10,6 +10,8 @@ const NAV_LINKS = [
   { href: "/pricing", labelKey: "nav.pricing" },
   { href: "/status", labelKey: "nav.status" },
   { href: "/market", labelKey: "nav.market" },
+  { href: "/rankings", labelKey: "nav.rankings" },
+  { href: "/calendar", labelKey: "nav.calendar" },
   { href: "/chart", labelKey: "nav.charts" },
   { href: "/screener", labelKey: "nav.screener" },
   { href: "/portfolio", labelKey: "nav.portfolio" },

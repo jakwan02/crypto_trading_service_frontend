@@ -1319,3 +1319,18 @@ Logs/Artifacts:
 - docs/RECENT.md
 Next:
 - (user run) PROD 빌드에서 Google 로그인 실패 시 상세 원문이 보이지 않는지 확인
+
+2026-01-19 22:20 (local)
+Task: Week5(Day17-20) Admin/Monitoring/Growth/Calendar/Developer/SEO 프론트 적용
+Scope: src/app/admin/{page.tsx,users/*,billing/*,monitoring/*,growth/*,calendar/*,audit/*}, src/app/{referral,onboarding,calendar,developer,rankings}/page.tsx, src/app/{sitemap,robots}.ts, src/app/layout.tsx, src/components/{Header,Navigation}.tsx, src/lib/{adminUsersClient,adminBillingClient,adminAuditClient,adminMonitoringClient,calendarClient,referralClient,onboardingClient,developerClient}.ts, src/i18n/locales/{ko,en}.ts, docs/RECENT.md, codex_log.md
+Why: Week5 설계(운영 콘솔/모니터링 KPI/성장 도구/캘린더/개발자 키/SEO)를 백엔드 Week5 계약에 맞춰 UI/UX+i18n으로 연결하기 위해.
+Key changes:
+- /admin Dashboard/Users/Billing/Monitoring/Growth/Calendar/Audit UI 추가 + Header/Navigation에 신규 진입점 반영
+- /referral, /onboarding, /calendar, /developer, /rankings 페이지 추가 + sitemap/robots 생성 + 기본 OG 메타(openGraph/twitter) 적용
+Commands run (agent):
+- npm run lint (warnings only)
+- npm run build
+Logs/Artifacts:
+- docs/RECENT.md
+Next:
+- (user run) 백엔드 0017 적용 후 관리자 계정으로 `/admin/*` 액션 및 일반 유저 403 확인
