@@ -108,6 +108,7 @@ export default function SignupPage() {
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder={t("auth.emailPlaceholder")}
                 autoComplete="email"
+                data-testid="signup-email"
                 className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
               />
             </div>
@@ -119,6 +120,7 @@ export default function SignupPage() {
                 minLength={PASSWORD_MIN_LENGTH}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                data-testid="signup-password"
                 onBlur={() => {
                   setPasswordTouched(true);
                   setPasswordError(validatePassword(password));
@@ -138,6 +140,7 @@ export default function SignupPage() {
                 minLength={PASSWORD_MIN_LENGTH}
                 value={passwordConfirm}
                 onChange={(event) => setPasswordConfirm(event.target.value)}
+                data-testid="signup-password-confirm"
                 onBlur={() => {
                   setConfirmTouched(true);
                   setConfirmError(validateConfirm(passwordConfirm));
@@ -151,6 +154,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={submitting || !isFormValid}
+              data-testid="signup-submit"
               className="w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70"
             >
               {t("auth.signupButton")}

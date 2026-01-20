@@ -22,7 +22,9 @@ function stripKnownSuffix(value: string): string {
 }
 
 function resolveAppBase(): string {
-  const env = String(process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL).trim();
+  const envRaw = String(process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
+  if (envRaw === "/" || envRaw.startsWith("/")) return "/app";
+  const env = (envRaw || DEFAULT_API_BASE_URL).trim();
   const root = stripKnownSuffix(env);
   return `${root}/app`;
 }
@@ -32,6 +34,16 @@ const APP_BASE_URL = resolveAppBase();
 function withApiToken(headers: Headers): void {
   const token = String(process.env.NEXT_PUBLIC_API_TOKEN || "").trim();
   if (token) headers.set("X-API-Token", token);
+}
+
+function withRequestId(headers: Headers): void {
+  if (headers.has("X-Request-Id")) return;
+  try {
+    const rid = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+    headers.set("X-Request-Id", String(rid));
+  } catch {
+    // ignore
+  }
 }
 
 function parseRetryAfterSec(res: Response): number | undefined {
@@ -129,6 +141,7 @@ async function tryRefreshAccessToken(): Promise<string | null> {
 export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   withApiToken(headers);
+  withRequestId(headers);
   if (init.csrf) {
     const csrf = getCookieValue("csrf");
     if (csrf) headers.set("X-CSRF-Token", csrf);

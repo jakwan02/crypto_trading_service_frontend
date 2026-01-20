@@ -2,11 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell, ChevronDown, Crown, Menu, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Bell, ChevronDown, Crown, Menu, Search, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import Navigation from "./Navigation";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
+import { getTrending } from "@/lib/searchClient";
+import { useOnboarding } from "@/hooks/useOnboarding";
 
 const NOTIFICATIONS = [
   {
@@ -33,10 +37,16 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [noticeOpen, setNoticeOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
   const { user, signOut, isPro, isAdmin, sessionReady } = useAuth();
   const { t } = useTranslation();
+  const router = useRouter();
+  const pathname = usePathname();
+  const onboarding = useOnboarding();
   const accountWrapRef = useRef<HTMLDivElement | null>(null);
   const noticeWrapRef = useRef<HTMLDivElement | null>(null);
+  const searchWrapRef = useRef<HTMLDivElement | null>(null);
   const displayName = useMemo(() => {
     if (!user) return t("common.guest");
     return String(user.name || "").trim() || String(user.email || t("common.user"));
@@ -48,6 +58,7 @@ export default function Header() {
       if (e.key !== "Escape") return;
       setAccountOpen(false);
       setNoticeOpen(false);
+      setSearchOpen(false);
     }
 
     function onPointerDown(e: MouseEvent | TouchEvent) {
@@ -59,6 +70,9 @@ export default function Header() {
       if (noticeOpen && noticeWrapRef.current && !noticeWrapRef.current.contains(target)) {
         setNoticeOpen(false);
       }
+      if (searchOpen && searchWrapRef.current && !searchWrapRef.current.contains(target)) {
+        setSearchOpen(false);
+      }
     }
 
     document.addEventListener("keydown", onKeyDown);
@@ -69,7 +83,24 @@ export default function Header() {
       document.removeEventListener("mousedown", onPointerDown, true);
       document.removeEventListener("touchstart", onPointerDown, true);
     };
-  }, [accountOpen, noticeOpen]);
+  }, [accountOpen, noticeOpen, searchOpen]);
+
+  const trendingQ = useQuery({
+    queryKey: ["search.trending.header"],
+    queryFn: () => getTrending({ range: "24h", limit: 10 }),
+    enabled: searchOpen,
+    staleTime: 60_000
+  });
+
+  const showOnboardingBanner = Boolean(
+    user &&
+      sessionReady &&
+      !onboarding.completed &&
+      pathname &&
+      !pathname.startsWith("/onboarding") &&
+      !pathname.startsWith("/login") &&
+      !pathname.startsWith("/signup")
+  );
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur">
@@ -87,6 +118,59 @@ export default function Header() {
         <Navigation className="hidden items-center gap-2 md:flex" />
 
         <div className="hidden items-center gap-3 md:flex">
+          <div ref={searchWrapRef} className="relative">
+            <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 shadow-sm focus-within:border-primary/30">
+              <Search className="h-4 w-4 text-gray-400" />
+              <input
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                onFocus={() => setSearchOpen(true)}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return;
+                  const q = searchText.trim();
+                  if (!q) return;
+                  setSearchOpen(false);
+                  router.push(`/search?q=${encodeURIComponent(q)}`);
+                }}
+                placeholder={t("search.placeholder")}
+                className="w-56 bg-transparent text-sm text-gray-700 outline-none"
+              />
+            </div>
+            {searchOpen ? (
+              <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-gray-200 bg-white p-3 shadow-lg">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t("search.trending")}</p>
+                {trendingQ.isLoading ? <p className="mt-2 text-xs text-gray-500">{t("common.loading")}</p> : null}
+                {!trendingQ.isLoading && (trendingQ.data?.items ?? []).length ? (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(trendingQ.data?.items ?? []).map((it) => (
+                      <button
+                        key={it.keyword}
+                        type="button"
+                        onClick={() => {
+                          setSearchText(it.keyword);
+                          setSearchOpen(false);
+                          router.push(`/search?q=${encodeURIComponent(it.keyword)}`);
+                        }}
+                        className="rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 hover:border-primary/30 hover:text-primary"
+                      >
+                        {it.keyword}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                <div className="mt-3 border-t border-gray-100 pt-3">
+                  <Link
+                    href={searchText.trim() ? `/search?q=${encodeURIComponent(searchText.trim())}` : "/search"}
+                    onClick={() => setSearchOpen(false)}
+                    className="text-sm font-semibold text-primary hover:underline"
+                  >
+                    {t("search.openPage")}
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
           <LanguageSwitcher />
 
           <div ref={noticeWrapRef} className="relative">
@@ -363,6 +447,25 @@ export default function Header() {
           <Menu className="h-5 w-5" />
         </button>
       </div>
+
+      {showOnboardingBanner ? (
+        <div className="border-t border-gray-100 bg-white/70">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-2">
+            <p className="text-sm text-gray-700">
+              <span className="font-semibold text-gray-900">{t("onboarding.bannerTitle")}</span>{" "}
+              <span className="text-gray-500">
+                ({onboarding.summaryQ.data?.progress?.pct ?? 0}%)
+              </span>
+            </p>
+            <Link
+              href={onboarding.nextAction?.cta_path || "/onboarding"}
+              className="rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary hover:bg-primary/15"
+            >
+              {t("onboarding.bannerCta")}
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       <div
         className={`fixed inset-0 z-50 transition ${

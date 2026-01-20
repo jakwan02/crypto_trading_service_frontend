@@ -184,6 +184,7 @@ export default function WatchlistsPage() {
                       value={createName}
                       onChange={(e) => setCreateName(e.target.value)}
                       placeholder={t("watchlists.createNamePlaceholder")}
+                      data-testid="watchlists-create-name"
                       className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
                       required
                     />
@@ -196,6 +197,7 @@ export default function WatchlistsPage() {
                     <button
                       type="submit"
                       disabled={createMutation.isPending}
+                      data-testid="watchlists-create-submit"
                       className="w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink hover:bg-primary-dark disabled:bg-gray-200 disabled:text-gray-500"
                     >
                       {t("watchlists.createCta")}
@@ -229,6 +231,7 @@ export default function WatchlistsPage() {
                             type="button"
                             onClick={() => shareMutation.mutate()}
                             disabled={shareMutation.isPending}
+                            data-testid="watchlists-share"
                             className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 hover:border-primary/30 hover:text-primary disabled:bg-gray-50 disabled:text-gray-400"
                           >
                             {t("watchlists.share.cta")}
@@ -306,11 +309,13 @@ export default function WatchlistsPage() {
                           value={addSymbol}
                           onChange={(e) => setAddSymbol(e.target.value)}
                           placeholder={t("watchlists.addSymbolPlaceholder")}
+                          data-testid="watchlists-add-symbol"
                           className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
                         />
                         <button
                           type="submit"
                           disabled={addMutation.isPending}
+                          data-testid="watchlists-add-submit"
                           className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink hover:bg-primary-dark disabled:bg-gray-200 disabled:text-gray-500"
                         >
                           {t("watchlists.addSymbol")}

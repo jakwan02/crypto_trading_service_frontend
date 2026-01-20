@@ -181,6 +181,7 @@ export default function LoginPage() {
                 placeholder={t("auth.emailPlaceholder")}
                 autoComplete="email"
                 disabled={isGoogleMfa}
+                data-testid="login-email"
                 className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
               />
             </div>
@@ -194,6 +195,7 @@ export default function LoginPage() {
                 placeholder={t("auth.passwordPlaceholder")}
                 autoComplete="current-password"
                 disabled={isGoogleMfa}
+                data-testid="login-password"
                 className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
               />
             </div>
@@ -206,6 +208,7 @@ export default function LoginPage() {
                   value={otpCode}
                   onChange={(event) => setOtpCode(event.target.value)}
                   placeholder={t("auth.otpPlaceholder")}
+                  data-testid="login-otp"
                   className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
                 />
               </div>
@@ -213,6 +216,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting || isLocked}
+              data-testid="login-submit"
               className="w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70"
             >
               {mfaRequired ? t("auth.otpCta") : t("auth.loginButton")}

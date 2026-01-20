@@ -196,6 +196,8 @@ const ko = {
   research: {
     title: "리서치",
     desc: "브리핑/리포트/가이드를 검색하고 확인합니다.",
+    recommendations: "추천",
+    related: "관련 콘텐츠",
     searchPlaceholder: "검색어",
     categoryPlaceholder: "카테고리 slug(선택)",
     tagPlaceholder: "태그 slug(선택)",
@@ -1285,6 +1287,12 @@ const ko = {
   onboarding: {
     title: "온보딩",
     desc: "첫 방문 설정을 빠르게 완료합니다.",
+    progressTitle: "진행 상황",
+    nextTitle: "다음 할 일",
+    go: "이동",
+    saveSettings: "설정/심볼 저장",
+    bannerTitle: "온보딩을 완료해 주세요",
+    bannerCta: "다음 단계",
     step1: "1) 관심 심볼 선택",
     market: "마켓",
     symbols: "심볼(쉼표로 구분)",
@@ -1298,7 +1306,37 @@ const ko = {
     createAlert: "알림 생성",
     finish: "완료",
     finishDesc: "모든 단계가 완료되면 온보딩을 종료합니다.",
-    complete: "온보딩 완료"
+    complete: "온보딩 완료",
+    tutorialTitle: "튜토리얼",
+    tutorialDesc: "기본 기능을 빠르게 둘러보고 첫 액션을 완료하세요.",
+    tutorial: {
+      marketTitle: "마켓 둘러보기",
+      marketDesc: "심볼을 검색하고 시장 상태를 확인합니다.",
+      chartTitle: "차트 열기",
+      chartDesc: "실시간 차트와 보조지표를 확인합니다."
+    },
+    steps: {
+      settings_done: "기본 설정 완료",
+      symbols_selected: "관심 심볼 선택",
+      watchlist_created: "워치리스트 생성",
+      alert_created: "알림 1개 생성",
+      screener_saved: "스크리너 저장"
+    }
+  },
+  search: {
+    title: "검색",
+    desc: "심볼/콘텐츠/내 스크리너를 빠르게 찾습니다.",
+    placeholder: "검색어를 입력하세요",
+    trending: "트렌딩",
+    openPage: "검색 페이지 열기",
+    tip: "헤더 검색창에서 Enter로 바로 검색할 수 있습니다.",
+    empty: "검색 결과가 없습니다.",
+    open: "열기",
+    tabs: {
+      symbols: "심볼",
+      posts: "콘텐츠",
+      screeners: "내 스크리너"
+    }
   },
   calendar: {
     title: "캘린더",

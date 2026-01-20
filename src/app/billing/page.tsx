@@ -94,6 +94,7 @@ export default function BillingPage() {
                           type="button"
                           onClick={() => cancelMutation.mutate()}
                           disabled={cancelMutation.isPending}
+                          data-testid="billing-cancel"
                           className="rounded-full bg-gray-900 px-4 py-2 text-xs font-semibold text-white disabled:bg-gray-300"
                         >
                           {t("billing.actions.cancel")}
@@ -102,6 +103,7 @@ export default function BillingPage() {
                           type="button"
                           onClick={() => reactivateMutation.mutate()}
                           disabled={reactivateMutation.isPending}
+                          data-testid="billing-reactivate"
                           className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 hover:border-primary/30 hover:text-primary disabled:bg-gray-50 disabled:text-gray-400"
                         >
                           {t("billing.actions.reactivate")}

@@ -103,8 +103,9 @@ function stripApiSuffix(url: string): string {
 }
 
 function toApiBase(): string {
-  const apiEnv = process.env.NEXT_PUBLIC_API_BASE_URL;
-  const base = stripApiSuffix(apiEnv || DEFAULT_API_BASE_URL);
+  const apiEnv = String(process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
+  if (apiEnv === "/" || apiEnv.startsWith("/")) return "/api";
+  const base = stripApiSuffix((apiEnv || DEFAULT_API_BASE_URL).trim());
   return base.endsWith("/api") ? base : `${base}/api`;
 }
 

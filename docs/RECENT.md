@@ -3,6 +3,12 @@
 > 규칙: 최신 30개까지만 유지. 오래된 항목은 아래로 밀고 제거.
 > 항목 1개는 2~4줄 이내로 압축(무조건).
 
+## 2026-01-20
+- [week6/frontend] 온보딩 진행바/배너 + 전역 검색(/search) + OG 이미지 + 콘텐츠 추천/관련 노출 + Trace ID 헤더 + Playwright E2E 추가
+  - impact: Header 검색 드롭다운/온보딩 배너, 신규 라우트 `/search`, `/opengraph-image`, E2E(`playwright.config.ts`, `e2e/*`)
+- [week6/e2e] `NEXT_PUBLIC_API_BASE_URL=/` 정합 + Playwright 풀 플로우(E2E_FULL=1) 추가
+  - impact: MailHog 기반 이메일 인증 + mock upgrade/cancel + watchlists/alerts/portfolio 시나리오를 선택적으로 자동화
+
 ## 2026-01-19
 - [week5/frontend] Admin 운영 콘솔 확장(/admin dashboard/users/billing/monitoring/growth/calendar/audit) + Growth/Dev/SEO(/referral,/onboarding,/developer,/rankings,sitemap/robots) 반영
   - impact: Week5 신규 라우트/헤더 메뉴/i18n(ko/en) 연결 완료(백엔드 Week5 계약 기준)

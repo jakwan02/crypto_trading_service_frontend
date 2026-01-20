@@ -240,6 +240,7 @@ export default function AlertsPage() {
                 type="button"
                 disabled={!channelOk || createM.isPending}
                 onClick={() => createM.mutate()}
+                data-testid="alerts-create"
                 className="mt-4 w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink hover:bg-primary-dark disabled:opacity-60"
               >
                 {t("alerts.create")}
@@ -251,7 +252,7 @@ export default function AlertsPage() {
               <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
                 <h2 className="text-sm font-semibold text-gray-900">{t("alerts.rules")}</h2>
                 {rulesQ.error ? <ApiErrorView error={rulesQ.error} onRetry={() => rulesQ.refetch()} /> : null}
-                <div className="mt-4 space-y-2 text-sm text-gray-700">
+                <div className="mt-4 space-y-2 text-sm text-gray-700" data-testid="alerts-rules">
                   {rules.map((r) => (
                     <div key={r.id} className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
                       <div className="flex items-center justify-between gap-2">

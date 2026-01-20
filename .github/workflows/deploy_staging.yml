@@ -1,0 +1,13 @@
+name: frontend-deploy-staging
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy placeholder
+        run: echo "Deploy frontend via backend tools/deploy_bluegreen.sh (single origin Caddy)."
+

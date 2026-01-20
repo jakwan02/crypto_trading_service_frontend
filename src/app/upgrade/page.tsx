@@ -207,7 +207,7 @@ export default function UpgradePage() {
                 />
               </div>
 
-              <CheckoutButton label={t("upgrade.cta")} onClick={startCheckout} loading={isSubmitting} />
+              <CheckoutButton label={t("upgrade.cta")} onClick={startCheckout} loading={isSubmitting} testId="upgrade-checkout" />
 
               {error ? (
                 <div className="mt-3">

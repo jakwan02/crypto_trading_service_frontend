@@ -1,13 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import RequireAuth from "@/components/auth/RequireAuth";
 import ApiErrorView from "@/components/common/ApiErrorView";
+import OnboardingProgress from "@/components/onboarding/OnboardingProgress";
 import { createAlertRule } from "@/lib/alertsClient";
-import { patchOnboarding, getOnboarding } from "@/lib/onboardingClient";
+import { patchOnboarding, getOnboarding, getOnboardingSummary } from "@/lib/onboardingClient";
 import { addWatchlistItem, createWatchlist } from "@/lib/watchlistsClient";
+import { trackEvent } from "@/lib/analyticsClient";
 
 function parseSymbols(input: string): string[] {
   return input
@@ -21,6 +24,7 @@ export default function OnboardingPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const stateQ = useQuery({ queryKey: ["onboarding"], queryFn: getOnboarding });
+  const summaryQ = useQuery({ queryKey: ["onboardingSummary"], queryFn: getOnboardingSummary });
 
   const [market, setMarket] = useState("spot");
   const [symbolsText, setSymbolsText] = useState("BTCUSDT,ETHUSDT");
@@ -31,6 +35,7 @@ export default function OnboardingPage() {
     mutationFn: async (step: Record<string, unknown>) => await patchOnboarding({ step }),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["onboarding"] });
+      await qc.invalidateQueries({ queryKey: ["onboardingSummary"] });
     }
   });
 
@@ -42,7 +47,15 @@ export default function OnboardingPage() {
       for (const sym of symbols) {
         await addWatchlistItem(wid, { market, symbol: sym });
       }
-      await saveStepM.mutateAsync({ market, symbols, watchlist_id: wid, watchlist_created: true });
+      await saveStepM.mutateAsync({
+        settings_done: true,
+        symbols_selected: true,
+        market,
+        symbols,
+        watchlist_id: wid,
+        watchlist_created: true
+      });
+      void trackEvent("onboarding_step_done", { step: "watchlist_created" });
       return wid;
     }
   });
@@ -63,20 +76,28 @@ export default function OnboardingPage() {
         is_active: true
       });
       await saveStepM.mutateAsync({ alert_created: true, alert_symbol: sym });
+      void trackEvent("onboarding_step_done", { step: "alert_created" });
       return true;
     }
   });
 
   const completeM = useMutation({
-    mutationFn: async () => await patchOnboarding({ completed: true }),
+    mutationFn: async () => {
+      void trackEvent("onboarding_complete_click", {});
+      return await patchOnboarding({ completed: true });
+    },
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["onboarding"] });
+      await qc.invalidateQueries({ queryKey: ["onboardingSummary"] });
+      void trackEvent("onboarding_completed", {});
     }
   });
 
   const step = (stateQ.data?.state?.step ?? {}) as Record<string, unknown>;
   const watchlistCreated = Boolean(step.watchlist_created);
   const alertCreated = Boolean(step.alert_created);
+  const progress = summaryQ.data?.progress ?? { done: 0, total: 5, pct: 0 };
+  const nextActions = summaryQ.data?.next_actions ?? [];
 
   return (
     <RequireAuth>
@@ -88,6 +109,31 @@ export default function OnboardingPage() {
           </header>
 
           {stateQ.isError ? <ApiErrorView error={stateQ.error} onRetry={() => stateQ.refetch()} /> : null}
+          {summaryQ.isError ? <ApiErrorView error={summaryQ.error} onRetry={() => summaryQ.refetch()} /> : null}
+
+          <div className="mb-6">
+            <OnboardingProgress
+              done={progress.done}
+              total={progress.total}
+              pct={progress.pct}
+              label={t("onboarding.progressTitle")}
+            />
+            {nextActions.length ? (
+              <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-700 shadow-sm">
+                <p className="text-xs font-semibold text-gray-500">{t("onboarding.nextTitle")}</p>
+                <ul className="mt-2 space-y-1">
+                  {nextActions.slice(0, 2).map((a) => (
+                    <li key={a.key} className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-medium text-gray-900">{t(`onboarding.steps.${a.key}`, { defaultValue: a.title })}</span>
+                      <Link href={a.cta_path} className="text-sm font-semibold text-primary hover:underline">
+                        {t("onboarding.go")}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
 
           <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="text-sm font-semibold text-gray-900">{t("onboarding.step1")}</h2>
@@ -106,6 +152,19 @@ export default function OnboardingPage() {
               </div>
             </div>
             <p className="mt-3 text-xs text-gray-500">{t("onboarding.symbolHint")}</p>
+            <div className="mt-4">
+              <button
+                type="button"
+                disabled={saveStepM.isPending || symbols.length === 0}
+                onClick={async () => {
+                  await saveStepM.mutateAsync({ settings_done: true, symbols_selected: true, market, symbols });
+                  void trackEvent("onboarding_step_done", { step: "symbols_selected", market, symbols_count: symbols.length });
+                }}
+                className="inline-flex rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:border-primary/30 hover:text-primary disabled:opacity-60"
+              >
+                {t("onboarding.saveSettings")}
+              </button>
+            </div>
           </section>
 
           <section className="mt-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -148,6 +207,21 @@ export default function OnboardingPage() {
             >
               {t("onboarding.complete")}
             </button>
+          </section>
+
+          <section className="mt-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 className="text-sm font-semibold text-gray-900">{t("onboarding.tutorialTitle")}</h2>
+            <p className="mt-1 text-sm text-gray-500">{t("onboarding.tutorialDesc")}</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <Link href="/market" className="rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-700 hover:border-primary/30">
+                <p className="font-semibold text-gray-900">{t("onboarding.tutorial.marketTitle")}</p>
+                <p className="mt-1 text-xs text-gray-500">{t("onboarding.tutorial.marketDesc")}</p>
+              </Link>
+              <Link href="/chart/BTCUSDT" className="rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-700 hover:border-primary/30">
+                <p className="font-semibold text-gray-900">{t("onboarding.tutorial.chartTitle")}</p>
+                <p className="mt-1 text-xs text-gray-500">{t("onboarding.tutorial.chartDesc")}</p>
+              </Link>
+            </div>
           </section>
         </div>
       </main>

@@ -5,7 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import ApiErrorView from "@/components/common/ApiErrorView";
-import { listPosts } from "@/lib/postsClient";
+import { listPosts, listRecommendations } from "@/lib/postsClient";
 
 export default function ResearchPage() {
   const { t } = useTranslation();
@@ -24,6 +24,11 @@ export default function ResearchPage() {
         category: category.trim() || null,
         tag: tag.trim() || null
       })
+  });
+
+  const recoQ = useQuery({
+    queryKey: ["content.recommendations"],
+    queryFn: () => listRecommendations({ limit: 6 })
   });
 
   const onLoadMore = useCallback(() => {
@@ -73,7 +78,27 @@ export default function ResearchPage() {
           />
         </div>
 
+        {recoQ.error ? <ApiErrorView error={recoQ.error} onRetry={() => recoQ.refetch()} /> : null}
         {postsQ.error ? <ApiErrorView error={postsQ.error} onRetry={() => postsQ.refetch()} /> : null}
+
+        {(recoQ.data?.items ?? []).length ? (
+          <section className="mb-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 className="text-sm font-semibold text-gray-900">{t("research.recommendations")}</h2>
+            <div className="mt-4 grid gap-4 md:grid-cols-3">
+              {(recoQ.data?.items ?? []).slice(0, 6).map((p) => (
+                <Link
+                  key={p.slug}
+                  href={`/research/${encodeURIComponent(p.slug)}`}
+                  className="rounded-2xl border border-gray-200 bg-white p-4 hover:border-primary/30"
+                >
+                  <p className="text-xs text-gray-400">{p.published_at ? String(p.published_at).slice(0, 10) : ""}</p>
+                  <p className="mt-1 text-sm font-semibold text-gray-900 line-clamp-2">{p.title || p.slug}</p>
+                  {p.summary ? <p className="mt-1 text-xs text-gray-500 line-clamp-2">{p.summary}</p> : null}
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <div className="grid gap-4 md:grid-cols-2">
           {items.map((p) => (
@@ -108,4 +133,3 @@ export default function ResearchPage() {
     </main>
   );
 }
-

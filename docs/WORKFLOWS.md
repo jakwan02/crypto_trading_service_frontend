@@ -37,3 +37,26 @@
   - Next 서버에서만 `DEV_BILLING_TOKEN`을 헤더로 주입하여 백엔드 dev-only 엔드포인트 호출
 - 주의: dev token을 브라우저에 노출하지 않는다.
 
+## 5) Onboarding (Week6)
+- 페이지: `/onboarding`
+- 호출:
+  - `GET /app/onboarding` (저장된 step/state)
+  - `GET /app/onboarding/summary` (진행률/다음 액션)
+  - `PATCH /app/onboarding` (step merge, completed)
+  - `POST /app/analytics/event` (전환/완료 이벤트, 실패는 무시)
+- UX:
+  - 헤더 배너는 로그인 상태에서 온보딩 미완료 시에만 노출(과도한 팝업 금지)
+
+## 6) Search (Week6)
+- 헤더 검색 드롭다운:
+  - `GET /api/search/trending?range=24h`
+- 검색 페이지: `/search?q=...`
+  - `GET /api/search?q&types=symbols,posts`
+  - (로그인 시) `GET /app/search?type=screeners&q`
+
+## 7) E2E (Week6)
+- Playwright:
+  - 설치: `npx playwright install --with-deps chromium`
+  - 실행(스모크): `npm run test:e2e`
+  - 실행(풀 플로우): `E2E_FULL=1 npm run test:e2e`
+    - 전제: 백엔드(8001) + MailHog(18025) + mock billing(backend BILLING_* dev 설정) 준비

@@ -40,11 +40,18 @@ export default function BillingStatus({ data, onRefresh }: Props) {
       <dl className="mt-4 space-y-2 text-sm text-gray-600">
         <div className="flex items-center justify-between">
           <dt>{t("billing.status.plan")}</dt>
-          <dd className="font-semibold text-gray-900">{plan.toUpperCase()}</dd>
+          <dd className="font-semibold text-gray-900" data-testid="billing-plan">
+            {plan.toUpperCase()}
+          </dd>
         </div>
         <div className="flex items-center justify-between">
           <dt>{t("billing.status.subscription")}</dt>
-          <dd className="text-gray-700">
+          <dd
+            className="text-gray-700"
+            data-testid="billing-subscription"
+            data-sub-status={statusRaw || ""}
+            data-sub-provider={String(sub?.provider || "").trim().toLowerCase()}
+          >
             {sub ? `${fmtProvider(sub.provider)} · ${statusLabel}` : t("billing.status.none")}
           </dd>
         </div>

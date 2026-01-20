@@ -1334,3 +1334,34 @@ Logs/Artifacts:
 - docs/RECENT.md
 Next:
 - (user run) 백엔드 0017 적용 후 관리자 계정으로 `/admin/*` 액션 및 일반 유저 403 확인
+
+2026-01-20 18:20 (local)
+Task: Week6(Day21-30) 품질 개선·배포 준비 프론트 구현
+Scope: src/{app,components,hooks,lib,i18n}/**, playwright.config.ts, e2e/*, vitest.config.ts, next.config.mjs, Dockerfile, docker-compose.yml(backend), .github/workflows/*, docs/{RECENT,WORKFLOWS}.md, codex_log.md
+Why: 온보딩 전환율/검색/공유(OG)·추천 UX를 최소 변경으로 확정하고 E2E를 추가해 회귀를 방지하기 위해.
+Key changes:
+- /onboarding 진행바/튜토리얼 + 헤더 온보딩 배너 + /search(트렌딩/검색 결과/내 스크리너) + 기본 OG 이미지 생성 + 콘텐츠 추천/관련 노출/조회수 트래킹
+- Trace ID 헤더 전파 + Playwright E2E(스모크/라우트) 추가 + Next standalone(Dockerfile/output=standalone)
+Commands run (agent):
+- npm run lint
+- npm test
+- npm run build
+- npx playwright test --reporter=line --workers=1 -> 7 passed, 1 skipped
+Logs/Artifacts:
+- docs/RECENT.md, docs/WORKFLOWS.md
+Next:
+- (user run) `npm run test:e2e` (로컬) 또는 CI에서 headless 확인
+
+2026-01-20 19:05 (local)
+Task: Week6 E2E 풀 플로우(메일+mock upgrade+해지) 추가 + same-origin(/) env 정합
+Scope: e2e/fullflow.spec.ts, src/{app,components,hooks,lib}/** (data-testid, base url "/"), docs/WORKFLOWS.md, .gitignore
+Why: 단일 오리진(NEXT_PUBLIC_API_BASE_URL=/) 구성에서 env 드리프트를 줄이고, Week6 Day28 핵심 플로우를 Playwright로 재현 가능하게 하기 위해.
+Key changes:
+- NEXT_PUBLIC_API_BASE_URL=/ 지원(클라이언트에서 /api,/app 상대경로로 동작)
+- Playwright: `E2E_FULL=1`일 때 signup→메일 인증(MailHog)→login→upgrade(mock)→cancel→watchlists/share→alerts→portfolio 시나리오 추가
+Commands run (agent):
+- N/A (per user policy)
+Logs/Artifacts:
+- frontend/docs/WORKFLOWS.md
+Next:
+- (user run) backend를 8001로 올린 뒤 `E2E_FULL=1 npm run test:e2e` 실행

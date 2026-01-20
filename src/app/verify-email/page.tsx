@@ -33,6 +33,7 @@ export default function VerifyEmailPage() {
     setToken(nextToken);
     setMode(nextToken ? "token" : "email");
     setNextPath(next);
+    if (nextEmail) setEmail(nextEmail);
     if (nextEmail && !nextToken) setStatus(t("auth.signupSuccess"));
   }, []);
 

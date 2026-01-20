@@ -196,6 +196,8 @@ const en = {
   research: {
     title: "Research",
     desc: "Search briefings/reports/guides.",
+    recommendations: "Recommendations",
+    related: "Related content",
     searchPlaceholder: "Search",
     categoryPlaceholder: "Category slug (optional)",
     tagPlaceholder: "Tag slug (optional)",
@@ -1285,6 +1287,12 @@ const en = {
   onboarding: {
     title: "Onboarding",
     desc: "Complete the first-time setup quickly.",
+    progressTitle: "Progress",
+    nextTitle: "Next actions",
+    go: "Go",
+    saveSettings: "Save settings/symbols",
+    bannerTitle: "Finish onboarding",
+    bannerCta: "Next step",
     step1: "1) Pick symbols",
     market: "Market",
     symbols: "Symbols (comma-separated)",
@@ -1298,7 +1306,37 @@ const en = {
     createAlert: "Create alert",
     finish: "Finish",
     finishDesc: "When all steps are done, complete onboarding.",
-    complete: "Complete onboarding"
+    complete: "Complete onboarding",
+    tutorialTitle: "Tutorial",
+    tutorialDesc: "Quickly explore core features and complete your first actions.",
+    tutorial: {
+      marketTitle: "Explore market",
+      marketDesc: "Search symbols and check market status.",
+      chartTitle: "Open a chart",
+      chartDesc: "View real-time charts and indicators."
+    },
+    steps: {
+      settings_done: "Basic settings",
+      symbols_selected: "Pick symbols",
+      watchlist_created: "Create a watchlist",
+      alert_created: "Create an alert",
+      screener_saved: "Save a screener"
+    }
+  },
+  search: {
+    title: "Search",
+    desc: "Find symbols, content, and your screeners.",
+    placeholder: "Search…",
+    trending: "Trending",
+    openPage: "Open search page",
+    tip: "Press Enter in the header search box to search quickly.",
+    empty: "No results.",
+    open: "Open",
+    tabs: {
+      symbols: "Symbols",
+      posts: "Posts",
+      screeners: "My screeners"
+    }
   },
   calendar: {
     title: "Calendar",

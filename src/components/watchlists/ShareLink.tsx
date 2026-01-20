@@ -33,6 +33,7 @@ export default function ShareLink({ token }: Props) {
         <input
           readOnly
           value={url}
+          data-testid="watchlists-share-url"
           className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700"
         />
         <button
@@ -46,4 +47,3 @@ export default function ShareLink({ token }: Props) {
     </div>
   );
 }
-

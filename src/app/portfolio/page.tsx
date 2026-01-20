@@ -274,6 +274,7 @@ export default function PortfolioPage() {
                 <button
                   type="button"
                   onClick={() => createTxM.mutate()}
+                  data-testid="portfolio-create-tx"
                   className="mt-4 w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink hover:bg-primary-dark"
                 >
                   {t("portfolio.submitTx")}
@@ -316,6 +317,7 @@ export default function PortfolioPage() {
                 <button
                   type="button"
                   onClick={() => createCashM.mutate()}
+                  data-testid="portfolio-create-cash"
                   className="mt-4 w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink hover:bg-primary-dark"
                 >
                   {t("portfolio.submitCash")}
@@ -329,7 +331,7 @@ export default function PortfolioPage() {
             <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
               <h2 className="text-sm font-semibold text-gray-900">{t("portfolio.txHistory")}</h2>
               {txQ.error ? <ApiErrorView error={txQ.error} onRetry={() => txQ.refetch()} /> : null}
-              <div className="mt-4 space-y-2">
+              <div className="mt-4 space-y-2" data-testid="portfolio-tx-history">
                 {(txQ.data?.items ?? []).map((tx) => (
                   <div key={tx.id} className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
                     <div className="flex items-center justify-between gap-2">

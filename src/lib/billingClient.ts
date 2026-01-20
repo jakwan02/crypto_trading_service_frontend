@@ -27,7 +27,9 @@ function stripKnownSuffix(value: string): string {
 }
 
 function resolveAppBase(): string {
-  const env = String(process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL).trim();
+  const envRaw = String(process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
+  if (envRaw === "/" || envRaw.startsWith("/")) return "/app";
+  const env = (envRaw || DEFAULT_API_BASE_URL).trim();
   const root = stripKnownSuffix(env);
   return `${root}/app`;
 }
