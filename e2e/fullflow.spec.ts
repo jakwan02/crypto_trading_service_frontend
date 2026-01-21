@@ -3,9 +3,53 @@ import { test, expect, type APIRequestContext } from "@playwright/test";
 const FULL = String(process.env.E2E_FULL || "").trim() === "1";
 const MAILHOG_BASE = String(process.env.E2E_MAILHOG_BASE_URL || "http://127.0.0.1:18025").trim().replace(/\/+$/, "");
 
+type MailHogMessage = {
+  Content?: {
+    Headers?: {
+      To?: string[];
+    };
+    Body?: string;
+  };
+  MIME?: {
+    Parts?: Array<{
+      Headers?: Record<string, string[]>;
+      Body?: string;
+    }>;
+  };
+};
+
+function parseMailHogMessages(payload: unknown): MailHogMessage[] {
+  if (!payload || typeof payload !== "object") return [];
+  const items = (payload as { items?: unknown }).items;
+  if (!Array.isArray(items)) return [];
+  return items.filter((it): it is MailHogMessage => !!it && typeof it === "object");
+}
+
+function decodeMaybeBase64(body: string): string {
+  const compact = body.replace(/\s+/g, "");
+  if (!compact) return "";
+  try {
+    return Buffer.from(compact, "base64").toString("utf8");
+  } catch {
+    return body;
+  }
+}
+
+function extractMailHogText(message: MailHogMessage): string {
+  const parts = message.MIME?.Parts;
+  if (Array.isArray(parts) && parts.length > 0) {
+    const merged = parts
+      .map((p) => (typeof p.Body === "string" ? decodeMaybeBase64(p.Body) : ""))
+      .filter(Boolean)
+      .join("\n");
+    if (merged.trim()) return merged;
+  }
+  return String(message.Content?.Body || "");
+}
+
 function randEmail(): string {
   const stamp = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  return `e2e+${stamp}@example.local`;
+  return `e2e+${stamp}@example.com`;
 }
 
 function strongPassword(): string {
@@ -20,16 +64,16 @@ async function waitForVerificationToken(request: APIRequestContext, toEmail: str
   while (Date.now() < deadline) {
     const res = await request.get(`${MAILHOG_BASE}/api/v2/messages`);
     if (res.ok()) {
-      const payload = (await res.json().catch(() => null)) as any;
-      const items: any[] = Array.isArray(payload?.items) ? payload.items : [];
+      const payload: unknown = await res.json().catch(() => null);
+      const items = parseMailHogMessages(payload);
 
       for (const it of items) {
-        const headers = it?.Content?.Headers || {};
+        const headers = it.Content?.Headers;
         const toList: string[] = Array.isArray(headers?.To) ? headers.To : [];
         const to = toList.map((x) => String(x || "").toLowerCase()).join(",");
         if (!to.includes(target)) continue;
 
-        const body = String(it?.Content?.Body || "");
+        const body = extractMailHogText(it);
         const match =
           body.match(/token=([A-Za-z0-9._-]+)/) ||
           body.match(/인증 토큰:\s*([A-Za-z0-9._-]+)/) ||
@@ -51,6 +95,7 @@ test.describe("week6-e2e-fullflow", () => {
     request
   }) => {
     test.skip(!FULL, "E2E_FULL=1 환경에서만 실행");
+    test.setTimeout(180_000);
 
     const email = randEmail();
     const password = strongPassword();
@@ -105,6 +150,7 @@ test.describe("week6-e2e-fullflow", () => {
     await expect(page.getByTestId("alerts-rules")).toContainText("BTCUSDT", { timeout: 30_000 });
 
     await page.goto("/portfolio");
+    await page.getByTestId("portfolio-tx-price").fill("50000");
     await page.getByTestId("portfolio-create-tx").click();
     await expect(page.getByTestId("portfolio-tx-history")).toContainText("BTCUSDT", { timeout: 30_000 });
   });

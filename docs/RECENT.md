@@ -3,6 +3,12 @@
 > 규칙: 최신 30개까지만 유지. 오래된 항목은 아래로 밀고 제거.
 > 항목 1개는 2~4줄 이내로 압축(무조건).
 
+## 2026-01-21
+- [e2e/frontend] fullflow(E2E_FULL=1) MailHog 토큰 추출(base64 MIME) 보강 + 포트폴리오 입력(testid) 추가로 E2E 안정화
+  - impact: signup→verify→mock upgrade/cancel→watchlists/alerts/portfolio 풀 플로우가 환경 의존 없이 통과
+- [fix/frontend] Next 16에서 `/search`의 `searchParams` Promise 접근 오류를 async/await로 정합화
+  - impact: `/search` 런타임 에러 제거(DEV/PROD), smoke 테스트 노이즈 제거
+
 ## 2026-01-20
 - [week6/frontend] 온보딩 진행바/배너 + 전역 검색(/search) + OG 이미지 + 콘텐츠 추천/관련 노출 + Trace ID 헤더 + Playwright E2E 추가
   - impact: Header 검색 드롭다운/온보딩 배너, 신규 라우트 `/search`, `/opengraph-image`, E2E(`playwright.config.ts`, `e2e/*`)

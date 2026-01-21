@@ -1365,3 +1365,22 @@ Logs/Artifacts:
 - frontend/docs/WORKFLOWS.md
 Next:
 - (user run) backend를 8001로 올린 뒤 `E2E_FULL=1 npm run test:e2e` 실행
+
+2026-01-21 10:05 (local)
+Task: 로컬 E2E(fullflow) 안정화 + /search 런타임 오류 제거 + 포트폴리오 E2E 입력 보강
+Scope: e2e/fullflow.spec.ts, src/app/{search,portfolio}/page.tsx, .env, .env.local, docs/RECENT.md
+Why: Windows Node 환경(WSL)에서 Playwright E2E_FULL 풀 플로우가 MailHog/Mock billing과 정합하게 통과하도록 하고, /search 런타임 오류로 인한 운영 리스크를 제거하기 위해.
+Key changes:
+- MailHog MIME(base64) 본문을 디코드해 verify 토큰 추출 안정화 + fullflow timeout 상향
+- /search의 searchParams(Promise) 접근을 async/await로 정합화(Next 16)
+- /portfolio 트랜잭션 입력(price) testid 추가 + fullflow에서 price 입력 후 생성하도록 보강
+- 로컬 기본값을 direct ports(8001/8002)로 정합(.env/.env.local)
+Commands run (agent):
+- npm run lint
+- npm test
+- npm run build
+- WSLENV=E2E_FULL E2E_FULL=1 npx playwright test --reporter=line --workers=1 -> 8 passed, 1 skipped
+Logs/Artifacts:
+- docs/RECENT.md
+Next:
+- (user run) 필요 시 `WSLENV=E2E_FULL E2E_FULL=1 npm run test:e2e`

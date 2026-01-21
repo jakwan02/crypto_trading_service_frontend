@@ -59,4 +59,5 @@
   - 설치: `npx playwright install --with-deps chromium`
   - 실행(스모크): `npm run test:e2e`
   - 실행(풀 플로우): `E2E_FULL=1 npm run test:e2e`
+    - WSL에서 Windows Node/npm을 사용하는 경우: `WSLENV=E2E_FULL E2E_FULL=1 npm run test:e2e`
     - 전제: 백엔드(8001) + MailHog(18025) + mock billing(backend BILLING_* dev 설정) 준비

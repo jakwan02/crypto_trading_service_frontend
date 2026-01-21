@@ -232,6 +232,7 @@ export default function PortfolioPage() {
                       type="number"
                       value={String(txForm.qty)}
                       onChange={(e) => setTxForm((p) => ({ ...p, qty: asNum(e.target.value) }))}
+                      data-testid="portfolio-tx-qty"
                       className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
                     />
                   </div>
@@ -241,6 +242,7 @@ export default function PortfolioPage() {
                       type="number"
                       value={String(txForm.price)}
                       onChange={(e) => setTxForm((p) => ({ ...p, price: asNum(e.target.value) }))}
+                      data-testid="portfolio-tx-price"
                       className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
                     />
                   </div>
