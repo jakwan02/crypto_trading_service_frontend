@@ -47,6 +47,8 @@ export default function Header() {
   const accountWrapRef = useRef<HTMLDivElement | null>(null);
   const noticeWrapRef = useRef<HTMLDivElement | null>(null);
   const searchWrapRef = useRef<HTMLDivElement | null>(null);
+  const searchInlineInputRef = useRef<HTMLInputElement | null>(null);
+  const searchPanelInputRef = useRef<HTMLInputElement | null>(null);
   const displayName = useMemo(() => {
     if (!user) return t("common.guest");
     return String(user.name || "").trim() || String(user.email || t("common.user"));
@@ -88,9 +90,33 @@ export default function Header() {
   const trendingQ = useQuery({
     queryKey: ["search.trending.header"],
     queryFn: () => getTrending({ range: "24h", limit: 10 }),
-    enabled: searchOpen,
+    enabled: searchOpen || mobileOpen,
     staleTime: 60_000
   });
+
+  // 변경 이유: 모바일 드로어가 열린 동안 바디 스크롤이 남아 UX가 어색해지는 문제를 방지
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
+
+  // 변경 이유: 검색(아이콘/패널) 오픈 시 즉시 입력 포커스를 제공해 지연이 덜 느껴지도록 개선
+  useEffect(() => {
+    if (!searchOpen) return;
+    window.setTimeout(() => {
+      if (searchInlineInputRef.current) {
+        searchInlineInputRef.current.focus();
+        return;
+      }
+      if (searchPanelInputRef.current) {
+        searchPanelInputRef.current.focus();
+      }
+    }, 0);
+  }, [searchOpen]);
 
   const showOnboardingBanner = Boolean(
     user &&
@@ -104,7 +130,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
+      <div className="mx-auto grid w-full max-w-6xl grid-cols-[auto,minmax(0,1fr),auto] items-center gap-3 px-4 py-3">
         <Link href="/" className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-2xl bg-primary text-sm font-semibold text-ink shadow-sm">
             CD
@@ -115,72 +141,112 @@ export default function Header() {
           </div>
         </Link>
 
-        <Navigation className="hidden items-center gap-2 md:flex" />
+        <div className="min-w-0">
+          <Navigation key={`nav-${pathname || ""}`} variant="desktop" className="hidden min-w-0 items-center gap-2 md:flex" />
+        </div>
 
-        <div className="hidden items-center gap-3 md:flex">
-          <div ref={searchWrapRef} className="relative">
-            <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 shadow-sm focus-within:border-primary/30">
-              <Search className="h-4 w-4 text-gray-400" />
-              <input
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                onFocus={() => setSearchOpen(true)}
-                onKeyDown={(e) => {
-                  if (e.key !== "Enter") return;
-                  const q = searchText.trim();
-                  if (!q) return;
-                  setSearchOpen(false);
-                  router.push(`/search?q=${encodeURIComponent(q)}`);
-                }}
-                placeholder={t("search.placeholder")}
-                className="w-56 bg-transparent text-sm text-gray-700 outline-none"
-              />
-            </div>
-            {searchOpen ? (
-              <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-gray-200 bg-white p-3 shadow-lg">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t("search.trending")}</p>
-                {trendingQ.isLoading ? <p className="mt-2 text-xs text-gray-500">{t("common.loading")}</p> : null}
-                {!trendingQ.isLoading && (trendingQ.data?.items ?? []).length ? (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {(trendingQ.data?.items ?? []).map((it) => (
-                      <button
-                        key={it.keyword}
-                        type="button"
-                        onClick={() => {
-                          setSearchText(it.keyword);
-                          setSearchOpen(false);
-                          router.push(`/search?q=${encodeURIComponent(it.keyword)}`);
-                        }}
-                        className="rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 hover:border-primary/30 hover:text-primary"
-                      >
-                        {it.keyword}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-                <div className="mt-3 border-t border-gray-100 pt-3">
-                  <Link
-                    href={searchText.trim() ? `/search?q=${encodeURIComponent(searchText.trim())}` : "/search"}
-                    onClick={() => setSearchOpen(false)}
-                    className="text-sm font-semibold text-primary hover:underline"
-                  >
-                    {t("search.openPage")}
-                  </Link>
-                </div>
+        <div className="flex items-center justify-end gap-3">
+          <div className="hidden items-center gap-3 md:flex">
+            <div ref={searchWrapRef} className="relative">
+              <div className="hidden items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 shadow-sm focus-within:border-primary/30 xl:flex">
+                <Search className="h-4 w-4 text-gray-400" />
+                <input
+                  ref={searchInlineInputRef}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  onFocus={() => setSearchOpen(true)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    const q = searchText.trim();
+                    if (!q) return;
+                    setSearchOpen(false);
+                    router.push(`/search?q=${encodeURIComponent(q)}`);
+                  }}
+                  placeholder={t("search.placeholder")}
+                  className="w-56 bg-transparent text-sm text-gray-700 outline-none"
+                />
               </div>
-            ) : null}
-          </div>
 
-          <LanguageSwitcher />
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchOpen((prev) => !prev);
+                  setAccountOpen(false);
+                  setNoticeOpen(false);
+                }}
+                className="rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 xl:hidden"
+                aria-label={t("search.openPage")}
+                aria-expanded={searchOpen}
+              >
+                <Search className="h-4 w-4" />
+              </button>
 
-          <div ref={noticeWrapRef} className="relative">
+              {searchOpen ? (
+                <div className="fade-up absolute right-0 mt-2 w-80 rounded-2xl border border-gray-200 bg-white p-3 shadow-lg">
+                  <div className="xl:hidden">
+                    <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm focus-within:border-primary/30">
+                      <Search className="h-4 w-4 text-gray-400" />
+                      <input
+                        ref={searchPanelInputRef}
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key !== "Enter") return;
+                          const q = searchText.trim();
+                          if (!q) return;
+                          setSearchOpen(false);
+                          router.push(`/search?q=${encodeURIComponent(q)}`);
+                        }}
+                        placeholder={t("search.placeholder")}
+                        className="w-full bg-transparent text-sm text-gray-700 outline-none"
+                      />
+                    </div>
+                    <div className="mt-3 border-t border-gray-100 pt-3" />
+                  </div>
+
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t("search.trending")}</p>
+                  {trendingQ.isLoading ? <p className="mt-2 text-xs text-gray-500">{t("common.loading")}</p> : null}
+                  {!trendingQ.isLoading && (trendingQ.data?.items ?? []).length ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {(trendingQ.data?.items ?? []).map((it) => (
+                        <button
+                          key={it.keyword}
+                          type="button"
+                          onClick={() => {
+                            setSearchText(it.keyword);
+                            setSearchOpen(false);
+                            router.push(`/search?q=${encodeURIComponent(it.keyword)}`);
+                          }}
+                          className="rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        >
+                          {it.keyword}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                  <div className="mt-3 border-t border-gray-100 pt-3">
+                    <Link
+                      href={searchText.trim() ? `/search?q=${encodeURIComponent(searchText.trim())}` : "/search"}
+                      onClick={() => setSearchOpen(false)}
+                      className="text-sm font-semibold text-primary-dark hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    >
+                      {t("search.openPage")}
+                    </Link>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <LanguageSwitcher />
+
+            <div ref={noticeWrapRef} className="relative">
             <button
               type="button"
               onClick={() => {
                 setNoticeOpen((prev) => !prev);
                 setAccountOpen(false);
               }}
-              className="relative rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary"
+              className="relative rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               aria-label={t("common.notifications.label")}
             >
               <Bell className="h-4 w-4" />
@@ -238,7 +304,7 @@ export default function Header() {
                   setAccountOpen((prev) => !prev);
                   setNoticeOpen(false);
                 }}
-                className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 {displayName}
                 <ChevronDown className="h-4 w-4" />
@@ -442,11 +508,12 @@ export default function Header() {
           type="button"
           aria-label="Open menu"
           onClick={() => setMobileOpen(true)}
-          className="rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary md:hidden"
+          className="rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 md:hidden"
         >
           <Menu className="h-5 w-5" />
         </button>
       </div>
+    </div>
 
       {showOnboardingBanner ? (
         <div className="border-t border-gray-100 bg-white/70">
@@ -479,7 +546,7 @@ export default function Header() {
           onClick={() => setMobileOpen(false)}
         />
         <aside
-          className={`absolute left-0 top-0 h-full w-80 transform bg-white shadow-xl transition ${
+          className={`absolute left-0 top-0 h-full w-[86vw] max-w-sm transform bg-white shadow-xl transition duration-200 ease-out sm:max-w-md ${
             mobileOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -495,7 +562,48 @@ export default function Header() {
             </button>
           </div>
           <div className="flex flex-col gap-4 px-4 py-6">
-            <Navigation className="flex flex-col items-start gap-2" onNavigate={() => setMobileOpen(false)} />
+            <div className="rounded-2xl border border-gray-200 bg-white p-3">
+              <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm focus-within:border-primary/30">
+                <Search className="h-4 w-4 text-gray-400" />
+                <input
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    const q = searchText.trim();
+                    if (!q) return;
+                    setMobileOpen(false);
+                    router.push(`/search?q=${encodeURIComponent(q)}`);
+                  }}
+                  placeholder={t("search.placeholder")}
+                  className="w-full bg-transparent text-sm text-gray-700 outline-none"
+                />
+              </div>
+              <div className="mt-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t("search.trending")}</p>
+                {trendingQ.isLoading ? <p className="mt-2 text-xs text-gray-500">{t("common.loading")}</p> : null}
+                {!trendingQ.isLoading && (trendingQ.data?.items ?? []).length ? (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(trendingQ.data?.items ?? []).slice(0, 8).map((it) => (
+                      <button
+                        key={it.keyword}
+                        type="button"
+                        onClick={() => {
+                          setSearchText(it.keyword);
+                          setMobileOpen(false);
+                          router.push(`/search?q=${encodeURIComponent(it.keyword)}`);
+                        }}
+                        className="rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                      >
+                        {it.keyword}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <Navigation key={`nav-mobile-${pathname || ""}`} variant="mobile" className="" onNavigate={() => setMobileOpen(false)} />
             <div className="flex flex-col gap-4 border-t border-gray-200 pt-4">
               <LanguageSwitcher />
               {!isPro ? (

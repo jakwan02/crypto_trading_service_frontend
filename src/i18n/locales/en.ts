@@ -50,6 +50,8 @@ const en = {
   },
   nav: {
     home: "Home",
+    work: "Work",
+    more: "More",
     pricing: "Pricing",
     status: "Status",
     market: "Market",
