@@ -8,6 +8,8 @@
   - impact: signup→verify→mock upgrade/cancel→watchlists/alerts/portfolio 풀 플로우가 환경 의존 없이 통과
 - [fix/frontend] Next 16에서 `/search`의 `searchParams` Promise 접근 오류를 async/await로 정합화
   - impact: `/search` 런타임 에러 제거(DEV/PROD), smoke 테스트 노이즈 제거
+- [ux/frontend] 헤더 네비를 Primary/기능/더보기로 재구성 + 헤더 컨트롤 높이(h-10) 표준화로 정렬/반응형/대비 개선
+  - impact: 상단 메뉴 줄바꿈/세로 텍스트 방지, 모바일 드로어 검색 포함, hover/active 대비 및 포커스 접근성 향상
 
 ## 2026-01-20
 - [week6/frontend] 온보딩 진행바/배너 + 전역 검색(/search) + OG 이미지 + 콘텐츠 추천/관련 노출 + Trace ID 헤더 + Playwright E2E 추가

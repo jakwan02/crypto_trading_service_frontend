@@ -95,7 +95,7 @@ export default function Navigation({ className = "", onNavigate, variant = "desk
   }, [workOpen, moreOpen]);
 
   const baseLink =
-    "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold transition whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
+    "inline-flex h-10 items-center gap-2 rounded-full px-3 text-sm font-semibold transition whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
   const activeLink = "bg-primary/15 text-primary-dark ring-1 ring-primary/25";
   const idleLink = "text-gray-700 hover:bg-primary/10 hover:text-primary-dark hover:ring-1 hover:ring-primary/15";
 
@@ -104,7 +104,7 @@ export default function Navigation({ className = "", onNavigate, variant = "desk
     const href = getHref(link.href);
     const showLock = !user && isAuthRequired(link.href);
     const base = dense
-      ? "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      ? "flex h-10 w-full items-center justify-between gap-3 rounded-xl px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       : baseLink;
     const active = dense ? "bg-primary/10 text-primary-dark" : activeLink;
     const idle = dense ? "text-gray-700 hover:bg-primary/5 hover:text-primary-dark" : idleLink;
@@ -139,7 +139,7 @@ export default function Navigation({ className = "", onNavigate, variant = "desk
   };
 
   const dropdownButtonBase =
-    "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold transition whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
+    "inline-flex h-10 items-center gap-2 rounded-full px-3 text-sm font-semibold transition whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
   const dropdownButtonActive = "bg-primary/15 text-primary-dark ring-1 ring-primary/25";
   const dropdownButtonIdle = "text-gray-700 hover:bg-primary/10 hover:text-primary-dark hover:ring-1 hover:ring-primary/15";
 

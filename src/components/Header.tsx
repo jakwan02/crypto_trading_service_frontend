@@ -135,9 +135,9 @@ export default function Header() {
           <span className="grid h-10 w-10 place-items-center rounded-2xl bg-primary text-sm font-semibold text-ink shadow-sm">
             CD
           </span>
-          <div className="leading-tight">
-            <span className="block text-base font-semibold text-gray-900">{t("common.appName")}</span>
-            <span className="block text-xs text-secondary">{t("common.tagline")}</span>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-base font-semibold text-gray-900">{t("common.appName")}</span>
+            <span className="hidden truncate text-xs text-secondary lg:block">{t("common.tagline")}</span>
           </div>
         </Link>
 
@@ -148,7 +148,7 @@ export default function Header() {
         <div className="flex items-center justify-end gap-3">
           <div className="hidden items-center gap-3 md:flex">
             <div ref={searchWrapRef} className="relative">
-              <div className="hidden items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 shadow-sm focus-within:border-primary/30 xl:flex">
+              <div className="hidden h-10 items-center gap-2 rounded-full border border-gray-200 bg-white px-3 shadow-sm focus-within:border-primary/30 xl:flex">
                 <Search className="h-4 w-4 text-gray-400" />
                 <input
                   ref={searchInlineInputRef}
@@ -163,7 +163,7 @@ export default function Header() {
                     router.push(`/search?q=${encodeURIComponent(q)}`);
                   }}
                   placeholder={t("search.placeholder")}
-                  className="w-56 bg-transparent text-sm text-gray-700 outline-none"
+                  className="h-full w-56 bg-transparent text-sm text-gray-700 outline-none"
                 />
               </div>
 
@@ -174,7 +174,7 @@ export default function Header() {
                   setAccountOpen(false);
                   setNoticeOpen(false);
                 }}
-                className="rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 xl:hidden"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 xl:hidden"
                 aria-label={t("search.openPage")}
                 aria-expanded={searchOpen}
               >
@@ -246,7 +246,7 @@ export default function Header() {
                 setNoticeOpen((prev) => !prev);
                 setAccountOpen(false);
               }}
-              className="relative rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               aria-label={t("common.notifications.label")}
             >
               <Bell className="h-4 w-4" />
@@ -275,24 +275,24 @@ export default function Header() {
           {!isPro ? (
             <Link
               href="/upgrade"
-              className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary/20"
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-primary/10 px-4 text-xs font-semibold text-primary-dark transition hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               <Crown className="h-4 w-4" />
               {t("common.proUpgrade")}
             </Link>
           ) : (
-            <span className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-ink">
+            <span className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-3 text-xs font-semibold text-ink">
               <Crown className="h-4 w-4" />
               {t("common.pro")}
             </span>
           )}
 
           {!sessionReady ? (
-            <div className="h-9 w-24 animate-pulse rounded-full bg-gray-200" />
+            <div className="h-10 w-24 animate-pulse rounded-full bg-gray-200" />
           ) : !user ? (
             <Link
               href="/login"
-              className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-primary-dark"
+              className="inline-flex h-10 items-center rounded-full bg-primary px-4 text-sm font-semibold text-ink shadow-sm transition hover:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               {t("common.login")}
             </Link>
@@ -304,7 +304,7 @@ export default function Header() {
                   setAccountOpen((prev) => !prev);
                   setNoticeOpen(false);
                 }}
-                className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                className="flex h-10 items-center gap-2 rounded-full border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 {displayName}
                 <ChevronDown className="h-4 w-4" />
@@ -508,7 +508,7 @@ export default function Header() {
           type="button"
           aria-label="Open menu"
           onClick={() => setMobileOpen(true)}
-          className="rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 md:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 md:hidden"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -556,14 +556,14 @@ export default function Header() {
               type="button"
               aria-label="Close menu"
               onClick={() => setMobileOpen(false)}
-              className="rounded-full border border-gray-200 p-2 text-gray-600 transition hover:border-primary/30 hover:text-primary"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
           <div className="flex flex-col gap-4 px-4 py-6">
             <div className="rounded-2xl border border-gray-200 bg-white p-3">
-              <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm focus-within:border-primary/30">
+              <div className="flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 shadow-sm focus-within:border-primary/30">
                 <Search className="h-4 w-4 text-gray-400" />
                 <input
                   value={searchText}
@@ -576,7 +576,7 @@ export default function Header() {
                     router.push(`/search?q=${encodeURIComponent(q)}`);
                   }}
                   placeholder={t("search.placeholder")}
-                  className="w-full bg-transparent text-sm text-gray-700 outline-none"
+                  className="h-full w-full bg-transparent text-sm text-gray-700 outline-none"
                 />
               </div>
               <div className="mt-3">

@@ -1384,3 +1384,20 @@ Logs/Artifacts:
 - docs/RECENT.md
 Next:
 - (user run) 필요 시 `WSLENV=E2E_FULL E2E_FULL=1 npm run test:e2e`
+
+## 2026-01-21 22:55 (local)
+- Task: 헤더 상단 네비/액션 정렬 개선(기업급 반응형)
+- Scope: src/components/{Header,Navigation,LanguageSwitcher}.tsx, src/i18n/locales/{ko,en}.ts, docs/RECENT.md, codex_log.md
+- Why: 상단 네비/로고/액션 버튼의 높이/라인이 달라 보이는 문제를 해결하고, 좁은 뷰포트에서도 텍스트가 세로처럼 깨지지 않도록 하기 위해.
+- Key changes:
+  - 네비를 Primary + 기능 + 더보기로 그룹화하고, 텍스트 nowrap/ellipsis로 줄바꿈을 방지
+  - 헤더 컨트롤 높이를 h-10으로 표준화(검색/언어/알림/PRO/로그인/계정/햄버거)해 수직 정렬을 통일
+  - i18n nav 그룹 라벨(work/more) ko/en 추가
+- Commands run:
+  - npm run lint (warnings only)
+  - npm run build
+  - npm test
+- Logs/Artifacts:
+  - docs/RECENT.md
+- Next:
+  - (user run) `npm run dev`로 다양한 브라우저 폭(모바일/태블릿/데스크톱)에서 헤더 정렬 확인
