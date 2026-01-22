@@ -36,6 +36,7 @@ const NOTIFICATIONS = [
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [noticeOpen, setNoticeOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -112,13 +113,25 @@ export default function Header() {
     staleTime: 60_000
   });
 
+  // 변경 이유: Portal 기반 드로어는 hydration 직후에만 mount되어야 하므로, 첫 렌더(SSR/CSR) 결과를 동일하게 유지
+  useEffect(() => {
+    const timer = window.setTimeout(() => setPortalReady(true), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   // 변경 이유: 모바일 드로어가 열린 동안 바디 스크롤이 남아 UX가 어색해지는 문제를 방지
   useEffect(() => {
     if (!mobileOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const body = document.body;
+    const prevOverflow = body.style.overflow;
+    const prevPadRight = body.style.paddingRight;
+    const sbw = window.innerWidth - document.documentElement.clientWidth;
+
+    body.style.overflow = "hidden";
+    if (sbw > 0) body.style.paddingRight = `${sbw}px`;
     return () => {
-      document.body.style.overflow = prev;
+      body.style.overflow = prevOverflow;
+      body.style.paddingRight = prevPadRight;
     };
   }, [mobileOpen]);
 
@@ -201,10 +214,8 @@ export default function Header() {
   const moreActive = NAV_MORE.some((link) => (link.href === "/" ? normalizedPath === "/" : normalizedPath.startsWith(link.href)));
   const mobileTopLinks = useMemo(() => [{ href: "/", labelKey: "nav.home" }, ...NAV_PRIMARY], []);
 
-  const mobileDrawerPortal =
-    typeof document === "undefined"
-      ? null
-      : createPortal(
+  const mobileDrawerPortal = portalReady
+    ? createPortal(
           <div
             className={`fixed inset-0 z-[120] transition ${mobileOpen ? "pointer-events-auto" : "pointer-events-none"}`}
             aria-hidden={!mobileOpen}
@@ -499,7 +510,8 @@ export default function Header() {
             </aside>
           </div>,
           document.body
-        );
+        )
+    : null;
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur">

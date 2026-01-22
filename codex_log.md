@@ -1420,3 +1420,19 @@ Next:
   - docs/RECENT.md
 - Next:
   - (user run) `npm run dev` 후 1024~1280 폭/모바일에서 드로어 오버레이·스크롤·ESC·바깥 클릭 닫힘 확인
+
+## 2026-01-22 14:13 (local)
+- Task: 드로어 포탈 렌더링 hydration mismatch 수정 + scroll-lock 시 scrollbar 폭 보정
+- Scope: src/components/Header.tsx, docs/RECENT.md, codex_log.md
+- Why: DEV에서 “Hydration failed because the server rendered HTML didn't match the client” 오류가 발생해 개발/운영 신뢰성을 훼손하기 때문에.
+- Key changes:
+  - 포탈 드로어를 hydration 이후에만 mount되도록 `portalReady` 게이트 추가(SSR/CSR 첫 렌더 결과 동일)
+  - body scroll-lock 시 `padding-right`를 scrollbar 폭만큼 보정하고 close 시 원복
+- Commands run:
+  - npm run lint (warnings only)
+  - npm test
+  - npm run build
+- Logs/Artifacts:
+  - docs/RECENT.md
+- Next:
+  - (user run) `npm run dev`에서 헤더가 보이는 모든 페이지에서 새로고침 시 hydration 경고가 더 이상 나오지 않는지 확인

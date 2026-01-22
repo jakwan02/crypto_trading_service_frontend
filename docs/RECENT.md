@@ -6,6 +6,8 @@
 ## 2026-01-22
 - [ux/frontend] 헤더 1줄 그리드 고정(h-16) + Desktop 네비(Primary/기능/더보기) 드롭다운 분리 + 모바일 드로어(overlay/scroll/ESC/focus/scroll-lock) 표준화
   - impact: 데스크탑/모바일에서 헤더 레이아웃 붕괴 방지, 모바일 메뉴 오버레이/스크롤/닫기 동작 일관화
+- [fix/frontend] 모바일 드로어 포탈 렌더링이 hydration mismatch를 유발하던 문제를 hydration 이후 mount로 정합화 + body scroll-lock 시 scrollbar 폭 보정(padding-right) 적용
+  - impact: DEV에서 Hydration failed 오류 제거, 드로어 오픈/클로즈 시 레이아웃 흔들림 완화
 
 ## 2026-01-21
 - [e2e/frontend] fullflow(E2E_FULL=1) MailHog 토큰 추출(base64 MIME) 보강 + 포트폴리오 입력(testid) 추가로 E2E 안정화
