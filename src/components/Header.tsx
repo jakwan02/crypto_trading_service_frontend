@@ -515,91 +515,20 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur">
-      <div className="mx-auto grid h-16 w-full max-w-6xl grid-cols-[auto,minmax(0,1fr),auto] items-center gap-3 px-4">
+      {/* 변경 이유: 상단(로고+우측 액션) 1줄 고정 + 데스크탑 네비 2줄 분리로 줄바꿈/겹침/세로 정렬 문제를 근본적으로 방지 */}
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4">
         <Link href="/" className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-2xl bg-primary text-sm font-semibold text-ink shadow-sm">
             CD
           </span>
           <div className="flex min-w-0 items-center gap-2">
             <span className="truncate text-base font-semibold text-gray-900">{t("common.appName")}</span>
-            <span className="hidden truncate text-xs text-secondary lg:block">{t("common.tagline")}</span>
+            <span className="hidden truncate text-xs text-secondary xl:block">{t("common.tagline")}</span>
           </div>
         </Link>
 
-        <div className="min-w-0">
-          <nav className="hidden min-w-0 items-center justify-center gap-2 md:flex" aria-label="Main navigation">
-            <NavigationList as="div" links={NAV_PRIMARY} />
-
-            <div ref={featuresWrapRef} className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setFeaturesOpen((prev) => !prev);
-                  setMoreOpen(false);
-                }}
-                className={`inline-flex h-10 items-center gap-2 rounded-full px-3 text-sm font-semibold transition whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
-                  featuresActive || featuresOpen
-                    ? "bg-primary/15 text-primary-dark ring-1 ring-primary/25"
-                    : "text-gray-700 hover:bg-primary/10 hover:text-primary-dark hover:ring-1 hover:ring-primary/15"
-                }`}
-                aria-expanded={featuresOpen}
-                aria-haspopup="menu"
-              >
-	                {t("nav.features")}
-                <ChevronDown className="h-4 w-4" aria-hidden />
-              </button>
-
-              {featuresOpen ? (
-                <div className="fade-up absolute left-0 top-full mt-2 w-72 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg">
-	                  <div role="menu" aria-label={t("nav.features")} className="flex flex-col gap-1">
-                    <NavigationList as="div" dense links={NAV_FEATURES} onNavigate={() => setFeaturesOpen(false)} />
-                  </div>
-                  {!user ? (
-                    <div className="mt-2 border-t border-gray-100 pt-2">
-                      <Link
-                        href={`/login?next=${encodeURIComponent(normalizedPath)}`}
-                        className="block rounded-xl bg-primary/10 px-3 py-2 text-sm font-semibold text-primary-dark hover:bg-primary/15"
-                      >
-                        {t("common.login")}
-                      </Link>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-
-            <div ref={moreWrapRef} className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setMoreOpen((prev) => !prev);
-                  setFeaturesOpen(false);
-                }}
-                className={`inline-flex h-10 items-center gap-2 rounded-full px-3 text-sm font-semibold transition whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
-                  moreActive || moreOpen
-                    ? "bg-primary/15 text-primary-dark ring-1 ring-primary/25"
-                    : "text-gray-700 hover:bg-primary/10 hover:text-primary-dark hover:ring-1 hover:ring-primary/15"
-                }`}
-                aria-expanded={moreOpen}
-                aria-haspopup="menu"
-              >
-                {t("nav.more")}
-                <ChevronDown className="h-4 w-4" aria-hidden />
-              </button>
-
-              {moreOpen ? (
-                <div className="fade-up absolute left-0 top-full mt-2 w-64 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg">
-                  <div role="menu" aria-label={t("nav.more")} className="flex flex-col gap-1">
-                    <NavigationList as="div" dense links={NAV_MORE} onNavigate={() => setMoreOpen(false)} />
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </nav>
-        </div>
-
-        <div className="flex items-center justify-end gap-3">
-          <div className="hidden items-center gap-3 md:flex">
+        <div className="flex items-center gap-3">
+          <div className="hidden items-center gap-3 lg:flex">
             <div ref={searchWrapRef} className="relative">
               <div className="hidden h-10 items-center gap-2 rounded-full border border-gray-200 bg-white px-3 shadow-sm focus-within:border-primary/30 xl:flex">
                 <Search className="h-4 w-4 text-gray-400" />
@@ -955,8 +884,7 @@ export default function Header() {
               ) : null}
             </div>
           )}
-        </div>
-
+          </div>
           <button
             ref={mobileMenuButtonRef}
             type="button"
@@ -969,12 +897,86 @@ export default function Header() {
               setFeaturesOpen(false);
               setMoreOpen(false);
             }}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 md:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 lg:hidden"
           >
             <Menu className="h-5 w-5" />
           </button>
-	        </div>
-	      </div>
+        </div>
+      </div>
+
+      <div className="hidden border-t border-gray-100 bg-white/70 lg:block">
+        <div className="mx-auto flex h-12 w-full max-w-6xl items-center px-4">
+          <nav className="flex w-full min-w-0 items-center justify-start gap-2" aria-label="Main navigation">
+            <NavigationList as="div" links={NAV_PRIMARY} />
+
+            <div ref={featuresWrapRef} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setFeaturesOpen((prev) => !prev);
+                  setMoreOpen(false);
+                }}
+                className={`inline-flex h-10 items-center gap-2 rounded-full px-3 text-sm font-semibold transition whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                  featuresActive || featuresOpen
+                    ? "bg-primary/15 text-primary-dark ring-1 ring-primary/25"
+                    : "text-gray-700 hover:bg-primary/10 hover:text-primary-dark hover:ring-1 hover:ring-primary/15"
+                }`}
+                aria-expanded={featuresOpen}
+                aria-haspopup="menu"
+              >
+                {t("nav.features")}
+                <ChevronDown className="h-4 w-4" aria-hidden />
+              </button>
+
+              {featuresOpen ? (
+                <div className="fade-up absolute left-0 top-full mt-2 w-72 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg">
+                  <div role="menu" aria-label={t("nav.features")} className="flex flex-col gap-1">
+                    <NavigationList as="div" dense links={NAV_FEATURES} onNavigate={() => setFeaturesOpen(false)} />
+                  </div>
+                  {!user ? (
+                    <div className="mt-2 border-t border-gray-100 pt-2">
+                      <Link
+                        href={`/login?next=${encodeURIComponent(normalizedPath)}`}
+                        className="block rounded-xl bg-primary/10 px-3 py-2 text-sm font-semibold text-primary-dark hover:bg-primary/15"
+                      >
+                        {t("common.login")}
+                      </Link>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
+            <div ref={moreWrapRef} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setMoreOpen((prev) => !prev);
+                  setFeaturesOpen(false);
+                }}
+                className={`inline-flex h-10 items-center gap-2 rounded-full px-3 text-sm font-semibold transition whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                  moreActive || moreOpen
+                    ? "bg-primary/15 text-primary-dark ring-1 ring-primary/25"
+                    : "text-gray-700 hover:bg-primary/10 hover:text-primary-dark hover:ring-1 hover:ring-primary/15"
+                }`}
+                aria-expanded={moreOpen}
+                aria-haspopup="menu"
+              >
+                {t("nav.more")}
+                <ChevronDown className="h-4 w-4" aria-hidden />
+              </button>
+
+              {moreOpen ? (
+                <div className="fade-up absolute left-0 top-full mt-2 w-64 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg">
+                  <div role="menu" aria-label={t("nav.more")} className="flex flex-col gap-1">
+                    <NavigationList as="div" dense links={NAV_MORE} onNavigate={() => setMoreOpen(false)} />
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </nav>
+        </div>
+      </div>
 
 	      {showOnboardingBanner ? (
 	        <div className="border-t border-gray-100 bg-white/70">
