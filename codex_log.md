@@ -1401,3 +1401,22 @@ Next:
   - docs/RECENT.md
 - Next:
   - (user run) `npm run dev`로 다양한 브라우저 폭(모바일/태블릿/데스크톱)에서 헤더 정렬 확인
+
+## 2026-01-22 14:04 (local)
+- Task: 상단 네비 레이아웃 붕괴 + 모바일 드로어 오버레이/스크롤/닫기 동작 표준화(기업급)
+- Scope: src/components/{Header,Navigation}.tsx, docs/RECENT.md, codex_log.md
+- Why: 데스크탑에서 헤더가 2줄로 깨지고, 모바일 메뉴가 뷰포트를 완전히 덮지 못하며 스크롤/닫기 UX가 불안정한 문제를 기업급 표준으로 해소하기 위해.
+- Key changes:
+  - 헤더 프레임을 `h-16` + `grid-cols-[auto_1fr_auto]`로 고정해 어떤 폭에서도 1줄 레이아웃을 보장
+  - 데스크탑 네비를 Primary + 기능(nav.work) + 더보기(nav.more) 드롭다운으로 분리(줄바꿈/밀림 방지)
+  - 모바일 드로어를 `fixed inset-0` 오버레이/높은 z-index로 격상 + body scroll-lock + 내부 `overflow-y-auto` 스크롤 적용
+  - 닫기 UX: 오버레이 클릭/ESC/메뉴 클릭 닫기 + 포커스 이동(열림: 닫기 버튼, 닫힘: 햄버거) + 최소 포커스 트랩
+  - SSR 빌드 안정화를 위해 `createPortal(document.body)` 사용 시 `typeof document` 가드 추가
+- Commands run:
+  - npm run lint (warnings only)
+  - npm test
+  - npm run build
+- Logs/Artifacts:
+  - docs/RECENT.md
+- Next:
+  - (user run) `npm run dev` 후 1024~1280 폭/모바일에서 드로어 오버레이·스크롤·ESC·바깥 클릭 닫힘 확인

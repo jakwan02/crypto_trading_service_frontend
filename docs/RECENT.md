@@ -3,6 +3,10 @@
 > 규칙: 최신 30개까지만 유지. 오래된 항목은 아래로 밀고 제거.
 > 항목 1개는 2~4줄 이내로 압축(무조건).
 
+## 2026-01-22
+- [ux/frontend] 헤더 1줄 그리드 고정(h-16) + Desktop 네비(Primary/기능/더보기) 드롭다운 분리 + 모바일 드로어(overlay/scroll/ESC/focus/scroll-lock) 표준화
+  - impact: 데스크탑/모바일에서 헤더 레이아웃 붕괴 방지, 모바일 메뉴 오버레이/스크롤/닫기 동작 일관화
+
 ## 2026-01-21
 - [e2e/frontend] fullflow(E2E_FULL=1) MailHog 토큰 추출(base64 MIME) 보강 + 포트폴리오 입력(testid) 추가로 E2E 안정화
   - impact: signup→verify→mock upgrade/cancel→watchlists/alerts/portfolio 풀 플로우가 환경 의존 없이 통과
