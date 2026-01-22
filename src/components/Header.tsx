@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Bell, ChevronDown, Crown, Menu, Search, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import Navigation from "./Navigation";
+import { NAV_FEATURES, NAV_MORE, NAV_PRIMARY, NavigationList } from "./Navigation";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
 import { getTrending } from "@/lib/searchClient";
@@ -38,6 +39,8 @@ export default function Header() {
   const [accountOpen, setAccountOpen] = useState(false);
   const [noticeOpen, setNoticeOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [featuresOpen, setFeaturesOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const { user, signOut, isPro, isAdmin, sessionReady } = useAuth();
   const { t } = useTranslation();
@@ -47,6 +50,12 @@ export default function Header() {
   const accountWrapRef = useRef<HTMLDivElement | null>(null);
   const noticeWrapRef = useRef<HTMLDivElement | null>(null);
   const searchWrapRef = useRef<HTMLDivElement | null>(null);
+  const featuresWrapRef = useRef<HTMLDivElement | null>(null);
+  const moreWrapRef = useRef<HTMLDivElement | null>(null);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const mobileCloseButtonRef = useRef<HTMLButtonElement | null>(null);
+  const mobilePanelRef = useRef<HTMLElement | null>(null);
+  const prevMobileOpenRef = useRef(false);
   const searchInlineInputRef = useRef<HTMLInputElement | null>(null);
   const searchPanelInputRef = useRef<HTMLInputElement | null>(null);
   const displayName = useMemo(() => {
@@ -61,6 +70,9 @@ export default function Header() {
       setAccountOpen(false);
       setNoticeOpen(false);
       setSearchOpen(false);
+      setFeaturesOpen(false);
+      setMoreOpen(false);
+      setMobileOpen(false);
     }
 
     function onPointerDown(e: MouseEvent | TouchEvent) {
@@ -75,6 +87,12 @@ export default function Header() {
       if (searchOpen && searchWrapRef.current && !searchWrapRef.current.contains(target)) {
         setSearchOpen(false);
       }
+      if (featuresOpen && featuresWrapRef.current && !featuresWrapRef.current.contains(target)) {
+        setFeaturesOpen(false);
+      }
+      if (moreOpen && moreWrapRef.current && !moreWrapRef.current.contains(target)) {
+        setMoreOpen(false);
+      }
     }
 
     document.addEventListener("keydown", onKeyDown);
@@ -85,7 +103,7 @@ export default function Header() {
       document.removeEventListener("mousedown", onPointerDown, true);
       document.removeEventListener("touchstart", onPointerDown, true);
     };
-  }, [accountOpen, noticeOpen, searchOpen]);
+  }, [accountOpen, noticeOpen, searchOpen, featuresOpen, moreOpen]);
 
   const trendingQ = useQuery({
     queryKey: ["search.trending.header"],
@@ -102,6 +120,56 @@ export default function Header() {
     return () => {
       document.body.style.overflow = prev;
     };
+  }, [mobileOpen]);
+
+  // 변경 이유: 모바일 드로어 열림/닫힘 시 포커스 이동(열림: 닫기 버튼, 닫힘: 햄버거 버튼)으로 접근성/UX를 개선
+  useEffect(() => {
+    const wasOpen = prevMobileOpenRef.current;
+    prevMobileOpenRef.current = mobileOpen;
+    if (mobileOpen) {
+      window.setTimeout(() => mobileCloseButtonRef.current?.focus(), 0);
+      return;
+    }
+    if (wasOpen) {
+      window.setTimeout(() => mobileMenuButtonRef.current?.focus(), 0);
+    }
+  }, [mobileOpen]);
+
+  // 변경 이유: 모바일 드로어에서 ESC 닫기 + 최소 포커스 트랩으로 dialog 밖으로 포커스가 새지 않도록 보장
+  useEffect(() => {
+    if (!mobileOpen) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setMobileOpen(false);
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const container = mobilePanelRef.current;
+      if (!container) return;
+      const focusables = Array.from(
+        container.querySelectorAll<HTMLElement>(
+          'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((el) => el.tabIndex !== -1 && el.offsetParent !== null);
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey) {
+        if (!active || active === first || !container.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+        return;
+      }
+      if (active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [mobileOpen]);
 
   // 변경 이유: 검색(아이콘/패널) 오픈 시 즉시 입력 포커스를 제공해 지연이 덜 느껴지도록 개선
@@ -128,9 +196,314 @@ export default function Header() {
       !pathname.startsWith("/signup")
   );
 
+  const normalizedPath = pathname || "/";
+  const featuresActive = NAV_FEATURES.some((link) => (link.href === "/" ? normalizedPath === "/" : normalizedPath.startsWith(link.href)));
+  const moreActive = NAV_MORE.some((link) => (link.href === "/" ? normalizedPath === "/" : normalizedPath.startsWith(link.href)));
+  const mobileTopLinks = useMemo(() => [{ href: "/", labelKey: "nav.home" }, ...NAV_PRIMARY], []);
+
+  const mobileDrawerPortal =
+    typeof document === "undefined"
+      ? null
+      : createPortal(
+          <div
+            className={`fixed inset-0 z-[120] transition ${mobileOpen ? "pointer-events-auto" : "pointer-events-none"}`}
+            aria-hidden={!mobileOpen}
+          >
+            <div
+              className={`absolute inset-0 bg-black/40 transition-opacity ${mobileOpen ? "opacity-100" : "opacity-0"}`}
+              onClick={() => setMobileOpen(false)}
+            />
+            <aside
+              ref={mobilePanelRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={t("common.navigation")}
+              className={`fixed left-0 top-0 h-[100dvh] w-[86vw] max-w-sm transform bg-white shadow-xl transition-transform duration-200 ease-out sm:max-w-md ${
+                mobileOpen ? "translate-x-0" : "-translate-x-full"
+              }`}
+            >
+              <div className="flex h-full flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+                <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4">
+                  <span className="text-sm font-semibold text-gray-900">{t("common.navigation")}</span>
+                  <button
+                    ref={mobileCloseButtonRef}
+                    type="button"
+                    aria-label="Close menu"
+                    onClick={() => setMobileOpen(false)}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+                  <div className="flex flex-col gap-4">
+                    <div className="rounded-2xl border border-gray-200 bg-white p-3">
+                      <div className="flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 shadow-sm focus-within:border-primary/30">
+                        <Search className="h-4 w-4 text-gray-400" />
+                        <input
+                          value={searchText}
+                          onChange={(e) => setSearchText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key !== "Enter") return;
+                            const q = searchText.trim();
+                            if (!q) return;
+                            setMobileOpen(false);
+                            router.push(`/search?q=${encodeURIComponent(q)}`);
+                          }}
+                          placeholder={t("search.placeholder")}
+                          className="h-full w-full bg-transparent text-sm text-gray-700 outline-none"
+                        />
+                      </div>
+                      <div className="mt-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t("search.trending")}</p>
+                        {trendingQ.isLoading ? <p className="mt-2 text-xs text-gray-500">{t("common.loading")}</p> : null}
+                        {!trendingQ.isLoading && (trendingQ.data?.items ?? []).length ? (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {(trendingQ.data?.items ?? []).slice(0, 8).map((it) => (
+                              <button
+                                key={it.keyword}
+                                type="button"
+                                onClick={() => {
+                                  setSearchText(it.keyword);
+                                  setMobileOpen(false);
+                                  router.push(`/search?q=${encodeURIComponent(it.keyword)}`);
+                                }}
+                                className="rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                              >
+                                {it.keyword}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <nav aria-label="Main navigation">
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-2">
+                          <NavigationList as="div" dense links={mobileTopLinks} onNavigate={() => setMobileOpen(false)} />
+                        </div>
+
+                        <details className="rounded-2xl border border-gray-200 bg-white">
+                          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+                            <span>{t("nav.work")}</span>
+                            <ChevronDown className="h-4 w-4 text-gray-500" aria-hidden />
+                          </summary>
+                          <div className="flex flex-col gap-1 border-t border-gray-100 p-2">
+                            <NavigationList as="div" dense links={NAV_FEATURES} onNavigate={() => setMobileOpen(false)} />
+                          </div>
+                        </details>
+
+                        <details className="rounded-2xl border border-gray-200 bg-white">
+                          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+                            <span>{t("nav.more")}</span>
+                            <ChevronDown className="h-4 w-4 text-gray-500" aria-hidden />
+                          </summary>
+                          <div className="flex flex-col gap-1 border-t border-gray-100 p-2">
+                            <NavigationList as="div" dense links={NAV_MORE} onNavigate={() => setMobileOpen(false)} />
+                          </div>
+                        </details>
+                      </div>
+                    </nav>
+
+                    <div className="flex flex-col gap-4 border-t border-gray-200 pt-4">
+                      <LanguageSwitcher />
+                      {!isPro ? (
+                        <Link
+                          href="/upgrade"
+                          onClick={() => setMobileOpen(false)}
+                          className="rounded-full bg-primary/10 px-4 py-2 text-xs font-semibold text-primary"
+                        >
+                          {t("common.proUpgrade")}
+                        </Link>
+                      ) : (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-ink">
+                          <Crown className="h-4 w-4" />
+                          {t("common.pro")}
+                        </span>
+                      )}
+
+                      {!sessionReady ? (
+                        <div className="h-10 w-full animate-pulse rounded-full bg-gray-200" />
+                      ) : !user ? (
+                        <Link
+                          href="/login"
+                          onClick={() => setMobileOpen(false)}
+                          className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink"
+                        >
+                          {t("common.login")}
+                        </Link>
+                      ) : (
+                        <div className="flex flex-col gap-2">
+                          <Link
+                            href="/account"
+                            onClick={() => setMobileOpen(false)}
+                            className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                          >
+                            {t("common.account")}
+                          </Link>
+                          <Link
+                            href="/rankings"
+                            onClick={() => setMobileOpen(false)}
+                            className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                          >
+                            {t("common.rankings")}
+                          </Link>
+                          <Link
+                            href="/calendar"
+                            onClick={() => setMobileOpen(false)}
+                            className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                          >
+                            {t("common.calendar")}
+                          </Link>
+                          <Link
+                            href="/referral"
+                            onClick={() => setMobileOpen(false)}
+                            className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                          >
+                            {t("common.referral")}
+                          </Link>
+                          <Link
+                            href="/developer"
+                            onClick={() => setMobileOpen(false)}
+                            className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                          >
+                            {t("common.developer")}
+                          </Link>
+                          {isAdmin ? (
+                            <>
+                              <Link
+                                href="/admin"
+                                onClick={() => setMobileOpen(false)}
+                                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                              >
+                                {t("admin.navDashboard")}
+                              </Link>
+                              <Link
+                                href="/admin/users"
+                                onClick={() => setMobileOpen(false)}
+                                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                              >
+                                {t("admin.navUsers")}
+                              </Link>
+                              <Link
+                                href="/admin/billing"
+                                onClick={() => setMobileOpen(false)}
+                                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                              >
+                                {t("admin.navBilling")}
+                              </Link>
+                              <Link
+                                href="/admin/monitoring"
+                                onClick={() => setMobileOpen(false)}
+                                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                              >
+                                {t("admin.navMonitoring")}
+                              </Link>
+                              <Link
+                                href="/admin/growth"
+                                onClick={() => setMobileOpen(false)}
+                                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                              >
+                                {t("admin.navGrowth")}
+                              </Link>
+                              <Link
+                                href="/admin/calendar"
+                                onClick={() => setMobileOpen(false)}
+                                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                              >
+                                {t("admin.navCalendar")}
+                              </Link>
+                              <Link
+                                href="/admin/audit"
+                                onClick={() => setMobileOpen(false)}
+                                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                              >
+                                {t("admin.navAudit")}
+                              </Link>
+                              <Link
+                                href="/admin/support"
+                                onClick={() => setMobileOpen(false)}
+                                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                              >
+                                {t("admin.navSupport")}
+                              </Link>
+                              <Link
+                                href="/admin/content"
+                                onClick={() => setMobileOpen(false)}
+                                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                              >
+                                {t("admin.navContent")}
+                              </Link>
+                              <Link
+                                href="/admin/changelog"
+                                onClick={() => setMobileOpen(false)}
+                                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                              >
+                                {t("admin.navChangelog")}
+                              </Link>
+                              <Link
+                                href="/admin/legal"
+                                onClick={() => setMobileOpen(false)}
+                                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                              >
+                                {t("admin.navLegal")}
+                              </Link>
+                              <Link
+                                href="/admin/status"
+                                onClick={() => setMobileOpen(false)}
+                                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                              >
+                                {t("admin.navStatus")}
+                              </Link>
+                            </>
+                          ) : null}
+                          <Link
+                            href="/billing"
+                            onClick={() => setMobileOpen(false)}
+                            className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                          >
+                            {t("common.billing")}
+                          </Link>
+                          <Link
+                            href="/usage"
+                            onClick={() => setMobileOpen(false)}
+                            className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                          >
+                            {t("common.usage")}
+                          </Link>
+                          <Link
+                            href="/watchlists"
+                            onClick={() => setMobileOpen(false)}
+                            className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                          >
+                            {t("common.watchlists")}
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMobileOpen(false);
+                              signOut();
+                            }}
+                            className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
+                          >
+                            {t("common.logout")}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </div>,
+          document.body
+        );
+
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur">
-      <div className="mx-auto grid w-full max-w-6xl grid-cols-[auto,minmax(0,1fr),auto] items-center gap-3 px-4 py-3">
+      <div className="mx-auto grid h-16 w-full max-w-6xl grid-cols-[auto,minmax(0,1fr),auto] items-center gap-3 px-4">
         <Link href="/" className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-2xl bg-primary text-sm font-semibold text-ink shadow-sm">
             CD
@@ -142,7 +515,75 @@ export default function Header() {
         </Link>
 
         <div className="min-w-0">
-          <Navigation key={`nav-${pathname || ""}`} variant="desktop" className="hidden min-w-0 items-center gap-2 md:flex" />
+          <nav className="hidden min-w-0 items-center justify-center gap-2 md:flex" aria-label="Main navigation">
+            <NavigationList as="div" links={NAV_PRIMARY} />
+
+            <div ref={featuresWrapRef} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setFeaturesOpen((prev) => !prev);
+                  setMoreOpen(false);
+                }}
+                className={`inline-flex h-10 items-center gap-2 rounded-full px-3 text-sm font-semibold transition whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                  featuresActive || featuresOpen
+                    ? "bg-primary/15 text-primary-dark ring-1 ring-primary/25"
+                    : "text-gray-700 hover:bg-primary/10 hover:text-primary-dark hover:ring-1 hover:ring-primary/15"
+                }`}
+                aria-expanded={featuresOpen}
+                aria-haspopup="menu"
+              >
+                {t("nav.work")}
+                <ChevronDown className="h-4 w-4" aria-hidden />
+              </button>
+
+              {featuresOpen ? (
+                <div className="fade-up absolute left-0 top-full mt-2 w-72 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg">
+                  <div role="menu" aria-label={t("nav.work")} className="flex flex-col gap-1">
+                    <NavigationList as="div" dense links={NAV_FEATURES} onNavigate={() => setFeaturesOpen(false)} />
+                  </div>
+                  {!user ? (
+                    <div className="mt-2 border-t border-gray-100 pt-2">
+                      <Link
+                        href={`/login?next=${encodeURIComponent(normalizedPath)}`}
+                        className="block rounded-xl bg-primary/10 px-3 py-2 text-sm font-semibold text-primary-dark hover:bg-primary/15"
+                      >
+                        {t("common.login")}
+                      </Link>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
+            <div ref={moreWrapRef} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setMoreOpen((prev) => !prev);
+                  setFeaturesOpen(false);
+                }}
+                className={`inline-flex h-10 items-center gap-2 rounded-full px-3 text-sm font-semibold transition whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                  moreActive || moreOpen
+                    ? "bg-primary/15 text-primary-dark ring-1 ring-primary/25"
+                    : "text-gray-700 hover:bg-primary/10 hover:text-primary-dark hover:ring-1 hover:ring-primary/15"
+                }`}
+                aria-expanded={moreOpen}
+                aria-haspopup="menu"
+              >
+                {t("nav.more")}
+                <ChevronDown className="h-4 w-4" aria-hidden />
+              </button>
+
+              {moreOpen ? (
+                <div className="fade-up absolute left-0 top-full mt-2 w-64 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg">
+                  <div role="menu" aria-label={t("nav.more")} className="flex flex-col gap-1">
+                    <NavigationList as="div" dense links={NAV_MORE} onNavigate={() => setMoreOpen(false)} />
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </nav>
         </div>
 
         <div className="flex items-center justify-end gap-3">
@@ -298,17 +739,17 @@ export default function Header() {
             </Link>
           ) : (
             <div ref={accountWrapRef} className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setAccountOpen((prev) => !prev);
-                  setNoticeOpen(false);
-                }}
-                className="flex h-10 items-center gap-2 rounded-full border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-              >
-                {displayName}
-                <ChevronDown className="h-4 w-4" />
-              </button>
+	              <button
+	                type="button"
+	                onClick={() => {
+	                  setAccountOpen((prev) => !prev);
+	                  setNoticeOpen(false);
+	                }}
+	                className="flex h-10 max-w-56 min-w-0 items-center gap-2 rounded-full border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+	              >
+	                <span className="min-w-0 truncate">{displayName}</span>
+	                <ChevronDown className="h-4 w-4" />
+	              </button>
               {accountOpen ? (
                 <div className="absolute right-0 mt-2 w-44 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg">
                   <Link
@@ -504,19 +945,27 @@ export default function Header() {
           )}
         </div>
 
-        <button
-          type="button"
-          aria-label="Open menu"
-          onClick={() => setMobileOpen(true)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 md:hidden"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-      </div>
-    </div>
+          <button
+            ref={mobileMenuButtonRef}
+            type="button"
+            aria-label="Open menu"
+            onClick={() => {
+              setMobileOpen(true);
+              setAccountOpen(false);
+              setNoticeOpen(false);
+              setSearchOpen(false);
+              setFeaturesOpen(false);
+              setMoreOpen(false);
+            }}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 md:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+	        </div>
+	      </div>
 
-      {showOnboardingBanner ? (
-        <div className="border-t border-gray-100 bg-white/70">
+	      {showOnboardingBanner ? (
+	        <div className="border-t border-gray-100 bg-white/70">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-2">
             <p className="text-sm text-gray-700">
               <span className="font-semibold text-gray-900">{t("onboarding.bannerTitle")}</span>{" "}
@@ -534,265 +983,7 @@ export default function Header() {
         </div>
       ) : null}
 
-      <div
-        className={`fixed inset-0 z-50 transition ${
-          mobileOpen ? "pointer-events-auto" : "pointer-events-none"
-        }`}
-      >
-        <div
-          className={`absolute inset-0 bg-black/30 transition ${
-            mobileOpen ? "opacity-100" : "opacity-0"
-          }`}
-          onClick={() => setMobileOpen(false)}
-        />
-        <aside
-          className={`absolute left-0 top-0 h-full w-[86vw] max-w-sm transform bg-white shadow-xl transition duration-200 ease-out sm:max-w-md ${
-            mobileOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-        >
-          <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4">
-            <span className="text-sm font-semibold text-gray-900">{t("common.navigation")}</span>
-            <button
-              type="button"
-              aria-label="Close menu"
-              onClick={() => setMobileOpen(false)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="flex flex-col gap-4 px-4 py-6">
-            <div className="rounded-2xl border border-gray-200 bg-white p-3">
-              <div className="flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 shadow-sm focus-within:border-primary/30">
-                <Search className="h-4 w-4 text-gray-400" />
-                <input
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key !== "Enter") return;
-                    const q = searchText.trim();
-                    if (!q) return;
-                    setMobileOpen(false);
-                    router.push(`/search?q=${encodeURIComponent(q)}`);
-                  }}
-                  placeholder={t("search.placeholder")}
-                  className="h-full w-full bg-transparent text-sm text-gray-700 outline-none"
-                />
-              </div>
-              <div className="mt-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t("search.trending")}</p>
-                {trendingQ.isLoading ? <p className="mt-2 text-xs text-gray-500">{t("common.loading")}</p> : null}
-                {!trendingQ.isLoading && (trendingQ.data?.items ?? []).length ? (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {(trendingQ.data?.items ?? []).slice(0, 8).map((it) => (
-                      <button
-                        key={it.keyword}
-                        type="button"
-                        onClick={() => {
-                          setSearchText(it.keyword);
-                          setMobileOpen(false);
-                          router.push(`/search?q=${encodeURIComponent(it.keyword)}`);
-                        }}
-                        className="rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                      >
-                        {it.keyword}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-
-            <Navigation key={`nav-mobile-${pathname || ""}`} variant="mobile" className="" onNavigate={() => setMobileOpen(false)} />
-            <div className="flex flex-col gap-4 border-t border-gray-200 pt-4">
-              <LanguageSwitcher />
-              {!isPro ? (
-                <Link
-                  href="/upgrade"
-                  onClick={() => setMobileOpen(false)}
-                  className="rounded-full bg-primary/10 px-4 py-2 text-xs font-semibold text-primary"
-                >
-                  {t("common.proUpgrade")}
-                </Link>
-              ) : (
-                <span className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-ink">
-                  <Crown className="h-4 w-4" />
-                  {t("common.pro")}
-                </span>
-              )}
-
-              {!sessionReady ? (
-                <div className="h-10 w-full animate-pulse rounded-full bg-gray-200" />
-              ) : !user ? (
-                <Link
-                  href="/login"
-                  onClick={() => setMobileOpen(false)}
-                  className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink"
-                >
-                  {t("common.login")}
-                </Link>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <Link
-                    href="/account"
-                    onClick={() => setMobileOpen(false)}
-                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                  >
-                    {t("common.account")}
-                  </Link>
-                  <Link
-                    href="/rankings"
-                    onClick={() => setMobileOpen(false)}
-                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                  >
-                    {t("common.rankings")}
-                  </Link>
-                  <Link
-                    href="/calendar"
-                    onClick={() => setMobileOpen(false)}
-                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                  >
-                    {t("common.calendar")}
-                  </Link>
-                  <Link
-                    href="/referral"
-                    onClick={() => setMobileOpen(false)}
-                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                  >
-                    {t("common.referral")}
-                  </Link>
-                  <Link
-                    href="/developer"
-                    onClick={() => setMobileOpen(false)}
-                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                  >
-                    {t("common.developer")}
-                  </Link>
-                  {isAdmin ? (
-                    <>
-                      <Link
-                        href="/admin"
-                        onClick={() => setMobileOpen(false)}
-                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                      >
-                        {t("admin.navDashboard")}
-                      </Link>
-                      <Link
-                        href="/admin/users"
-                        onClick={() => setMobileOpen(false)}
-                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                      >
-                        {t("admin.navUsers")}
-                      </Link>
-                      <Link
-                        href="/admin/billing"
-                        onClick={() => setMobileOpen(false)}
-                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                      >
-                        {t("admin.navBilling")}
-                      </Link>
-                      <Link
-                        href="/admin/monitoring"
-                        onClick={() => setMobileOpen(false)}
-                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                      >
-                        {t("admin.navMonitoring")}
-                      </Link>
-                      <Link
-                        href="/admin/growth"
-                        onClick={() => setMobileOpen(false)}
-                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                      >
-                        {t("admin.navGrowth")}
-                      </Link>
-                      <Link
-                        href="/admin/calendar"
-                        onClick={() => setMobileOpen(false)}
-                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                      >
-                        {t("admin.navCalendar")}
-                      </Link>
-                      <Link
-                        href="/admin/audit"
-                        onClick={() => setMobileOpen(false)}
-                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                      >
-                        {t("admin.navAudit")}
-                      </Link>
-                      <Link
-                        href="/admin/support"
-                        onClick={() => setMobileOpen(false)}
-                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                      >
-                        {t("admin.navSupport")}
-                      </Link>
-                      <Link
-                        href="/admin/content"
-                        onClick={() => setMobileOpen(false)}
-                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                      >
-                        {t("admin.navContent")}
-                      </Link>
-                      <Link
-                        href="/admin/changelog"
-                        onClick={() => setMobileOpen(false)}
-                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                      >
-                        {t("admin.navChangelog")}
-                      </Link>
-                      <Link
-                        href="/admin/legal"
-                        onClick={() => setMobileOpen(false)}
-                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                      >
-                        {t("admin.navLegal")}
-                      </Link>
-                      <Link
-                        href="/admin/status"
-                        onClick={() => setMobileOpen(false)}
-                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                      >
-                        {t("admin.navStatus")}
-                      </Link>
-                    </>
-                  ) : null}
-                  <Link
-                    href="/billing"
-                    onClick={() => setMobileOpen(false)}
-                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                  >
-                    {t("common.billing")}
-                  </Link>
-                  <Link
-                    href="/usage"
-                    onClick={() => setMobileOpen(false)}
-                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                  >
-                    {t("common.usage")}
-                  </Link>
-                  <Link
-                    href="/watchlists"
-                    onClick={() => setMobileOpen(false)}
-                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                  >
-                    {t("common.watchlists")}
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileOpen(false);
-                      signOut();
-                    }}
-                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
-                  >
-                    {t("common.logout")}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </aside>
-      </div>
+      {mobileDrawerPortal}
     </header>
   );
 }

@@ -7,30 +7,43 @@ import { ChevronDown, Lock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 
-const NAV_LINKS = [
-  { href: "/", labelKey: "nav.home" },
-  { href: "/pricing", labelKey: "nav.pricing" },
-  { href: "/status", labelKey: "nav.status" },
+export type NavLink = {
+  href: string;
+  labelKey: string;
+  pro?: boolean;
+};
+
+export const NAV_PRIMARY: NavLink[] = [
   { href: "/market", labelKey: "nav.market" },
+  { href: "/chart", labelKey: "nav.charts" },
   { href: "/rankings", labelKey: "nav.rankings" },
   { href: "/calendar", labelKey: "nav.calendar" },
-  { href: "/chart", labelKey: "nav.charts" },
+  { href: "/news", labelKey: "nav.news" }
+];
+
+export const NAV_FEATURES: NavLink[] = [
   { href: "/screener", labelKey: "nav.screener" },
   { href: "/portfolio", labelKey: "nav.portfolio" },
   { href: "/research", labelKey: "nav.research" },
   { href: "/watchlists", labelKey: "nav.watchlists" },
+  { href: "/alerts", labelKey: "nav.alerts" },
   { href: "/usage", labelKey: "nav.usage" },
   { href: "/billing", labelKey: "nav.billing" },
-  { href: "/indicators", labelKey: "nav.ai", pro: true },
-  { href: "/news", labelKey: "nav.news" },
-  { href: "/alerts", labelKey: "nav.alerts" },
+  { href: "/indicators", labelKey: "nav.ai", pro: true }
+];
+
+export const NAV_MORE: NavLink[] = [
+  { href: "/pricing", labelKey: "nav.pricing" },
+  { href: "/status", labelKey: "nav.status" },
   { href: "/changelog", labelKey: "nav.changelog" },
   { href: "/support", labelKey: "nav.support" }
 ];
 
-const PRIMARY_HREFS = ["/market", "/chart", "/rankings", "/calendar", "/news"];
-const WORK_HREFS = ["/screener", "/portfolio", "/research", "/watchlists", "/alerts", "/usage", "/billing", "/indicators"];
-const MORE_HREFS = ["/pricing", "/status", "/changelog", "/support"];
+const NAV_LINKS: NavLink[] = [{ href: "/", labelKey: "nav.home" }, ...NAV_PRIMARY, ...NAV_FEATURES, ...NAV_MORE];
+
+const PRIMARY_HREFS = NAV_PRIMARY.map((it) => it.href);
+const WORK_HREFS = NAV_FEATURES.map((it) => it.href);
+const MORE_HREFS = NAV_MORE.map((it) => it.href);
 
 const AUTH_REQUIRED_PREFIXES = ["/watchlists", "/alerts", "/portfolio", "/research", "/screener", "/usage", "/billing", "/indicators"];
 
@@ -39,6 +52,87 @@ type Props = {
   onNavigate?: () => void;
   variant?: "desktop" | "mobile";
 };
+
+export function NavigationList({
+  links,
+  className = "",
+  dense = false,
+  onNavigate,
+  as = "nav"
+}: {
+  links: NavLink[];
+  className?: string;
+  dense?: boolean;
+  onNavigate?: () => void;
+  as?: "nav" | "div";
+}) {
+  const pathname = usePathname() || "/";
+  const { isPro, user } = useAuth();
+  const { t } = useTranslation();
+
+  const isAuthRequired = (href: string) => AUTH_REQUIRED_PREFIXES.some((prefix) => href.startsWith(prefix));
+  const getHref = (href: string) => {
+    if (user) return href;
+    if (!isAuthRequired(href)) return href;
+    return `/login?next=${encodeURIComponent(href)}`;
+  };
+
+  const baseLink =
+    "inline-flex h-10 items-center gap-2 rounded-full px-3 text-sm font-semibold transition whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
+  const activeLink = "bg-primary/15 text-primary-dark ring-1 ring-primary/25";
+  const idleLink = "text-gray-700 hover:bg-primary/10 hover:text-primary-dark hover:ring-1 hover:ring-primary/15";
+
+  const renderLink = (link: NavLink) => {
+    const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+    const href = getHref(link.href);
+    const showLock = !user && isAuthRequired(link.href);
+    const classNameValue = dense
+      ? `flex h-10 w-full items-center justify-between gap-3 rounded-xl px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+          isActive ? "bg-primary/10 text-primary-dark" : "text-gray-700 hover:bg-primary/5 hover:text-primary"
+        }`
+      : `${baseLink} ${isActive ? activeLink : idleLink}`;
+
+    return (
+      <Link
+        key={link.href}
+        href={href}
+        onClick={() => onNavigate?.()}
+        className={classNameValue}
+        aria-current={isActive ? "page" : undefined}
+      >
+        <span className="min-w-0 truncate">{t(link.labelKey)}</span>
+        <span className="flex items-center gap-2">
+          {showLock ? <Lock className="h-3.5 w-3.5 text-gray-400" aria-hidden /> : null}
+          {link.pro ? (
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide ${
+                isPro ? "bg-primary/15 text-primary-dark" : "bg-gray-100 text-gray-500"
+              }`}
+            >
+              PRO
+            </span>
+          ) : null}
+        </span>
+      </Link>
+    );
+  };
+
+  const content = dense ? (
+    <div className="flex flex-col gap-1">{links.map(renderLink)}</div>
+  ) : (
+    <div className="flex min-w-0 items-center gap-2">{links.map(renderLink)}</div>
+  );
+
+  if (as === "div") {
+    return <div className={className}>{content}</div>;
+  }
+
+  return (
+    <nav className={className} aria-label="Main navigation">
+      {content}
+    </nav>
+  );
+}
 
 export default function Navigation({ className = "", onNavigate, variant = "desktop" }: Props) {
   const pathname = usePathname() || "/";
