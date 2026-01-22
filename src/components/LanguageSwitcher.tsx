@@ -21,65 +21,78 @@ export default function LanguageSwitcher({ variant = "default" }: Props) {
   const locale = i18n.language.split("-")[0];
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const detailsRef = useRef<HTMLDetailsElement | null>(null);
   const current = useMemo(
     () => LOCALES.find((item) => item.code === locale) ?? LOCALES[0],
     [locale]
   );
 
   useEffect(() => {
-    if (variant === "drawer") return;
     if (!open) return;
-    const onClick = (event: MouseEvent) => {
+    const onPointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
       if (!rootRef.current) return;
-      if (!rootRef.current.contains(event.target as Node)) setOpen(false);
+      if (!rootRef.current.contains(target)) setOpen(false);
     };
-    const onKey = (event: KeyboardEvent) => {
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
-    document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onPointerDown, true);
+    document.addEventListener("touchstart", onPointerDown, true);
+    document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onPointerDown, true);
+      document.removeEventListener("touchstart", onPointerDown, true);
+      document.removeEventListener("keydown", onKeyDown);
     };
   }, [open, variant]);
 
+  const shortCode = locale === "ko" ? "KR" : locale.toUpperCase();
+
   if (variant === "drawer") {
     return (
-      <details ref={detailsRef} className="rounded-2xl border border-gray-200 bg-white">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+      <div ref={rootRef} className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          className="flex w-full items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          aria-label="언어 선택"
+          aria-expanded={open}
+        >
           <span className="flex items-center gap-2">
             <span className="text-base leading-none">{current.flag}</span>
-            <span className="text-sm font-semibold text-gray-900">{current.code.toUpperCase()}</span>
+            <span>{shortCode}</span>
           </span>
-          <ChevronDown className="h-4 w-4 text-gray-500" aria-hidden />
-        </summary>
-        <div className="border-t border-gray-100 p-2">
-          <div className="grid grid-cols-2 gap-2">
-            {LOCALES.map((item) => (
-              <button
-                key={item.code}
-                type="button"
-                onClick={async () => {
-                  await ensureLocaleResources(item.code);
-                  i18n.changeLanguage(item.code);
-                  detailsRef.current?.removeAttribute("open");
-                }}
-                className={`flex items-center justify-center rounded-xl border px-3 py-2 text-lg transition ${
-                  item.code === locale
-                    ? "border-primary/30 bg-primary/10 text-primary"
-                    : "border-transparent text-gray-700 hover:border-primary/20 hover:bg-primary/5 hover:text-primary"
-                }`}
-                aria-label={item.label}
-                title={item.label}
-              >
-                {item.flag}
-              </button>
-            ))}
+          <ChevronDown className={`h-4 w-4 text-gray-500 transition ${open ? "rotate-180" : ""}`} aria-hidden />
+        </button>
+
+        {open ? (
+          <div className="mt-2 rounded-2xl border border-gray-200 bg-white p-2">
+            <div className="grid grid-cols-2 gap-2">
+              {LOCALES.map((item) => (
+                <button
+                  key={item.code}
+                  type="button"
+                  onClick={async () => {
+                    await ensureLocaleResources(item.code);
+                    i18n.changeLanguage(item.code);
+                    setOpen(false);
+                  }}
+                  className={`flex items-center justify-center rounded-xl border px-3 py-2 text-lg transition ${
+                    item.code === locale
+                      ? "border-primary/30 bg-primary/10 text-primary"
+                      : "border-transparent text-gray-700 hover:border-primary/20 hover:bg-primary/5 hover:text-primary"
+                  }`}
+                  aria-label={item.label}
+                  title={item.label}
+                >
+                  {item.flag}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      </details>
+        ) : null}
+      </div>
     );
   }
 
@@ -90,14 +103,16 @@ export default function LanguageSwitcher({ variant = "default" }: Props) {
         onClick={() => setOpen((prev) => !prev)}
         className="flex h-10 items-center gap-2 rounded-full border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-700 shadow-sm transition hover:border-primary/30 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         aria-label="언어 선택"
+        aria-expanded={open}
       >
         <span className="text-base leading-none">{current.flag}</span>
+        <span className="text-[11px] font-semibold text-gray-700">{shortCode}</span>
         <span className="sr-only">{current.label}</span>
-        <ChevronDown className="h-4 w-4 text-gray-500" />
+        <ChevronDown className={`h-4 w-4 text-gray-500 transition ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-[220] mt-2 w-36 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg">
+        <div className="absolute right-0 top-full z-[220] mt-2 w-36 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg">
           <div className="grid grid-cols-2 gap-2">
             {LOCALES.map((item) => (
               <button
