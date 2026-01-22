@@ -319,7 +319,7 @@ export default function Header() {
                     </nav>
 
                     <div className="flex flex-col gap-4 border-t border-gray-200 pt-4">
-                      <LanguageSwitcher />
+	            <LanguageSwitcher />
                       {!isPro ? (
                         <Link
                           href="/upgrade"
@@ -563,8 +563,8 @@ export default function Header() {
                 <Search className="h-4 w-4" />
               </button>
 
-              {searchOpen ? (
-                <div className="fade-up absolute right-0 mt-2 w-80 rounded-2xl border border-gray-200 bg-white p-3 shadow-lg">
+	              {searchOpen ? (
+	                <div className="fade-up absolute right-0 z-[210] mt-2 w-80 rounded-2xl border border-gray-200 bg-white p-3 shadow-lg">
                   <div className="xl:hidden">
                     <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm focus-within:border-primary/30">
                       <Search className="h-4 w-4 text-gray-400" />
@@ -619,7 +619,7 @@ export default function Header() {
               ) : null}
             </div>
 
-            <LanguageSwitcher />
+                      <LanguageSwitcher variant="drawer" />
 
             <div ref={noticeWrapRef} className="relative">
             <button
@@ -635,7 +635,7 @@ export default function Header() {
               <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
             </button>
             {noticeOpen ? (
-              <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-gray-200 bg-white p-3 shadow-lg">
+              <div className="absolute right-0 z-[210] mt-2 w-72 rounded-2xl border border-gray-200 bg-white p-3 shadow-lg">
                 <p className="text-xs font-semibold text-gray-500">{t("common.recentAlerts")}</p>
                 <div className="mt-3 space-y-2">
                   {NOTIFICATIONS.map((item) => (
@@ -692,7 +692,7 @@ export default function Header() {
 	                <ChevronDown className="h-4 w-4" />
 	              </button>
               {accountOpen ? (
-                <div className="absolute right-0 mt-2 w-44 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg">
+                <div className="absolute right-0 z-[210] mt-2 w-44 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg">
                   <Link
                     href="/account"
                     onClick={() => setAccountOpen(false)}
@@ -929,7 +929,7 @@ export default function Header() {
               </button>
 
               {featuresOpen ? (
-                <div className="fade-up absolute left-0 top-full mt-2 w-72 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg">
+                <div className="fade-up absolute left-0 top-full z-[210] mt-2 w-72 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg">
                   <div role="menu" aria-label={t("nav.features")} className="flex flex-col gap-1">
                     <NavigationList as="div" dense links={NAV_FEATURES} onNavigate={() => setFeaturesOpen(false)} />
                   </div>
@@ -967,7 +967,7 @@ export default function Header() {
               </button>
 
               {moreOpen ? (
-                <div className="fade-up absolute left-0 top-full mt-2 w-64 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg">
+                <div className="fade-up absolute left-0 top-full z-[210] mt-2 w-64 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg">
                   <div role="menu" aria-label={t("nav.more")} className="flex flex-col gap-1">
                     <NavigationList as="div" dense links={NAV_MORE} onNavigate={() => setMoreOpen(false)} />
                   </div>
