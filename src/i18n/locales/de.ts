@@ -36,15 +36,28 @@ const de = {
       }
     },
     payment: "Zahlung",
-    paymentDesc: "Schnelles Aufladen bei niedrigem Guthaben."
+    paymentDesc: "Schnelles Aufladen bei niedrigem Guthaben.",
+    developer: "Entwickler"
   },
   nav: {
     home: "Start",
+    features: "Funktionen",
+    more: "Mehr",
     market: "Markt",
     charts: "Charts",
+    rankings: "Rankings",
+    calendar: "Kalender",
     ai: "KI-Insights",
     news: "News",
     alerts: "Alarme",
+    watchlists: "Watchlists",
+    screener: "Screener",
+    portfolio: "Portfolio",
+    research: "Research",
+    pricing: "Preise",
+    status: "Status",
+    changelog: "Changelog",
+    support: "Support",
     payment: "Zahlung"
   },
   home: {

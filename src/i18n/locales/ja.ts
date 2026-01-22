@@ -36,15 +36,28 @@ const ja = {
       }
     },
     payment: "支払い",
-    paymentDesc: "残高が少ないときにすばやくチャージできます。"
+    paymentDesc: "残高が少ないときにすばやくチャージできます。",
+    developer: "開発者"
   },
   nav: {
     home: "ホーム",
+    features: "機能",
+    more: "その他",
     market: "マーケット",
     charts: "チャート",
+    rankings: "ランキング",
+    calendar: "カレンダー",
     ai: "AIインサイト",
     news: "ニュース",
     alerts: "アラート",
+    watchlists: "ウォッチリスト",
+    screener: "スクリーナー",
+    portfolio: "ポートフォリオ",
+    research: "リサーチ",
+    pricing: "料金",
+    status: "ステータス",
+    changelog: "変更履歴",
+    support: "サポート",
     payment: "支払い"
   },
   home: {

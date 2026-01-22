@@ -51,6 +51,7 @@ const en = {
   nav: {
     home: "Home",
     work: "Work",
+    features: "Features",
     more: "More",
     pricing: "Pricing",
     status: "Status",

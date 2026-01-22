@@ -211,8 +211,8 @@ export default function Header() {
 
   const normalizedPath = pathname || "/";
   const featuresActive = NAV_FEATURES.some((link) => (link.href === "/" ? normalizedPath === "/" : normalizedPath.startsWith(link.href)));
-  const moreActive = NAV_MORE.some((link) => (link.href === "/" ? normalizedPath === "/" : normalizedPath.startsWith(link.href)));
-  const mobileTopLinks = useMemo(() => [{ href: "/", labelKey: "nav.home" }, ...NAV_PRIMARY], []);
+  const moreActive = NAV_MORE.some((link) => link.href !== "/" && (link.href === "/" ? normalizedPath === "/" : normalizedPath.startsWith(link.href)));
+  const mobileTopLinks = useMemo(() => [...NAV_PRIMARY], []);
 
   const mobileDrawerPortal = portalReady
     ? createPortal(
@@ -298,7 +298,7 @@ export default function Header() {
 
                         <details className="rounded-2xl border border-gray-200 bg-white">
                           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
-                            <span>{t("nav.work")}</span>
+                            <span>{t("nav.features")}</span>
                             <ChevronDown className="h-4 w-4 text-gray-500" aria-hidden />
                           </summary>
                           <div className="flex flex-col gap-1 border-t border-gray-100 p-2">
@@ -545,13 +545,13 @@ export default function Header() {
                 aria-expanded={featuresOpen}
                 aria-haspopup="menu"
               >
-                {t("nav.work")}
+	                {t("nav.features")}
                 <ChevronDown className="h-4 w-4" aria-hidden />
               </button>
 
               {featuresOpen ? (
                 <div className="fade-up absolute left-0 top-full mt-2 w-72 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg">
-                  <div role="menu" aria-label={t("nav.work")} className="flex flex-col gap-1">
+	                  <div role="menu" aria-label={t("nav.features")} className="flex flex-col gap-1">
                     <NavigationList as="div" dense links={NAV_FEATURES} onNavigate={() => setFeaturesOpen(false)} />
                   </div>
                   {!user ? (

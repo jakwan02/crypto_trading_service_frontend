@@ -22,24 +22,24 @@ export const NAV_PRIMARY: NavLink[] = [
 ];
 
 export const NAV_FEATURES: NavLink[] = [
+  { href: "/watchlists", labelKey: "nav.watchlists" },
+  { href: "/alerts", labelKey: "nav.alerts" },
   { href: "/screener", labelKey: "nav.screener" },
   { href: "/portfolio", labelKey: "nav.portfolio" },
   { href: "/research", labelKey: "nav.research" },
-  { href: "/watchlists", labelKey: "nav.watchlists" },
-  { href: "/alerts", labelKey: "nav.alerts" },
-  { href: "/usage", labelKey: "nav.usage" },
-  { href: "/billing", labelKey: "nav.billing" },
   { href: "/indicators", labelKey: "nav.ai", pro: true }
 ];
 
 export const NAV_MORE: NavLink[] = [
+  { href: "/", labelKey: "nav.home" },
   { href: "/pricing", labelKey: "nav.pricing" },
   { href: "/status", labelKey: "nav.status" },
   { href: "/changelog", labelKey: "nav.changelog" },
-  { href: "/support", labelKey: "nav.support" }
+  { href: "/support", labelKey: "nav.support" },
+  { href: "/developer", labelKey: "common.developer" }
 ];
 
-const NAV_LINKS: NavLink[] = [{ href: "/", labelKey: "nav.home" }, ...NAV_PRIMARY, ...NAV_FEATURES, ...NAV_MORE];
+const NAV_LINKS: NavLink[] = [...NAV_PRIMARY, ...NAV_FEATURES, ...NAV_MORE];
 
 const PRIMARY_HREFS = NAV_PRIMARY.map((it) => it.href);
 const WORK_HREFS = NAV_FEATURES.map((it) => it.href);
@@ -156,7 +156,7 @@ export default function Navigation({ className = "", onNavigate, variant = "desk
   }, []);
 
   const workActive = groups.work.some((link) => (link.href === "/" ? pathname === "/" : pathname.startsWith(link.href)));
-  const moreActive = groups.more.some((link) => (link.href === "/" ? pathname === "/" : pathname.startsWith(link.href)));
+const moreActive = groups.more.some((link) => link.href !== "/" && (link.href === "/" ? pathname === "/" : pathname.startsWith(link.href)));
 
   const isAuthRequired = (href: string) => AUTH_REQUIRED_PREFIXES.some((prefix) => href.startsWith(prefix));
   const getHref = (href: string) => {
@@ -242,12 +242,12 @@ export default function Navigation({ className = "", onNavigate, variant = "desk
       <nav className={className} aria-label="Main navigation">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-2">
-            {([NAV_LINKS[0], ...groups.primary] as typeof NAV_LINKS).map((link) => renderLink(link, { dense: true }))}
+            {groups.primary.map((link) => renderLink(link, { dense: true }))}
           </div>
 
           <details className="rounded-2xl border border-gray-200 bg-white">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
-              <span>{t("nav.work")}</span>
+              <span>{t("nav.features")}</span>
               <ChevronDown className="h-4 w-4 text-gray-500" aria-hidden />
             </summary>
             <div className="flex flex-col gap-1 border-t border-gray-100 p-2">{groups.work.map((link) => renderLink(link, { dense: true }))}</div>
@@ -281,7 +281,7 @@ export default function Navigation({ className = "", onNavigate, variant = "desk
             aria-expanded={workOpen}
             aria-haspopup="menu"
           >
-            {t("nav.work")}
+            {t("nav.features")}
             <ChevronDown className="h-4 w-4" aria-hidden />
           </button>
           {workOpen ? (

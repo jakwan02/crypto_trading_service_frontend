@@ -1436,3 +1436,20 @@ Next:
   - docs/RECENT.md
 - Next:
   - (user run) `npm run dev`에서 헤더가 보이는 모든 페이지에서 새로고침 시 hydration 경고가 더 이상 나오지 않는지 확인
+
+## 2026-01-22 16:33 (local)
+- Task: 헤더 IA 확정(Primary/Features/More) + Billing/Usage를 상단 네비에서 제거 + i18n(nav.features) 보강
+- Scope: src/components/{Header,Navigation}.tsx, src/i18n/locales/{ko,en,ja,de}.ts, docs/RECENT.md, codex_log.md
+- Why: 상단 네비의 정보량으로 인한 줄바꿈/혼잡을 방지하고, 다국어에서 nav 라벨 키 노출(i18n 누락)을 차단하기 위해.
+- Key changes:
+  - Features(Watchlists/Alerts/Screener/Portfolio/Research/AI) + More(Home/Pricing/Status/Changelog/Support/Developer)로 IA 고정
+  - Billing/Usage는 상단 네비에서 제거하고(기존 계정/모바일 계정 섹션 링크 유지) 헤더 혼잡을 완화
+  - `nav.features` 및 `common.developer`(ja/de) 등 헤더 라벨 누락 키를 ko/en/ja/de에 보강
+- Commands run:
+  - npm run lint (warnings only)
+  - npm test
+  - npm run build
+- Logs/Artifacts:
+  - docs/RECENT.md
+- Next:
+  - (user run) 언어를 ja/de로 바꾼 뒤 헤더/모바일 드로어에서 라벨 키가 그대로 노출되지 않는지 확인

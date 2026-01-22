@@ -51,6 +51,7 @@ const ko = {
   nav: {
     home: "Home",
     work: "기능",
+    features: "기능",
     more: "더보기",
     pricing: "가격",
     status: "상태",
