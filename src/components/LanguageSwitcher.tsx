@@ -48,6 +48,7 @@ export default function LanguageSwitcher({ variant = "default" }: Props) {
   }, [open, variant]);
 
   const shortCode = locale === "ko" ? "KR" : locale.toUpperCase();
+  const showFlagInTrigger = locale !== "ko";
 
   if (variant === "drawer") {
     return (
@@ -60,7 +61,7 @@ export default function LanguageSwitcher({ variant = "default" }: Props) {
           aria-expanded={open}
         >
           <span className="flex items-center gap-2">
-            <span className="text-base leading-none">{current.flag}</span>
+            {showFlagInTrigger ? <span className="text-base leading-none">{current.flag}</span> : null}
             <span>{shortCode}</span>
           </span>
           <ChevronDown className={`h-4 w-4 text-gray-500 transition ${open ? "rotate-180" : ""}`} aria-hidden />
@@ -105,7 +106,7 @@ export default function LanguageSwitcher({ variant = "default" }: Props) {
         aria-label="언어 선택"
         aria-expanded={open}
       >
-        <span className="text-base leading-none">{current.flag}</span>
+        {showFlagInTrigger ? <span className="text-base leading-none">{current.flag}</span> : null}
         <span className="text-[11px] font-semibold text-gray-700">{shortCode}</span>
         <span className="sr-only">{current.label}</span>
         <ChevronDown className={`h-4 w-4 text-gray-500 transition ${open ? "rotate-180" : ""}`} />
