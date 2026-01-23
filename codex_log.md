@@ -1453,3 +1453,18 @@ Next:
   - docs/RECENT.md
 - Next:
   - (user run) 언어를 ja/de로 바꾼 뒤 헤더/모바일 드로어에서 라벨 키가 그대로 노출되지 않는지 확인
+
+## 2026-01-23 03:09 (local)
+- Task: 로컬/배포 env 분리 + HTTPS OFF 기준 URL 정합(WS/robots/sitemap) + 도커 빌드 드리프트 방지
+- Scope: .dockerignore, .env.production, .env.example, docs/{ENV.md,RECENT.md}, src/app/{robots.ts,sitemap.ts}, codex_log.md
+- Why: VPS 도커 빌드에서 `.env.local`(localhost) 값이 번들에 섞이고, HTTPS 미구성 상태에서 robots/sitemap이 https로 생성되는 문제를 방지하기 위해.
+- Key changes:
+  - 배포용 `.env.production` 추가 + `.dockerignore`에 `.env.local` 추가로 도커 빌드 시 local env 제외
+  - 운영(HTTPS OFF) 기준 `NEXT_PUBLIC_WS_BASE_URL=http://<host>` 예시로 정합
+  - robots/sitemap 기본 proto를 http로 변경(프록시 헤더 없을 때도 https 강제 방지)
+- Commands run:
+  - N/A
+- Logs/Artifacts:
+  - docs/RECENT.md
+- Next:
+  - (user run) `docker compose build frontend` 후 브라우저에서 API 호출이 `/<api|app>`로 나가고 WS가 `ws://<host>/ws_*`로 연결되는지 확인

@@ -3,6 +3,12 @@
 > 규칙: 최신 30개까지만 유지. 오래된 항목은 아래로 밀고 제거.
 > 항목 1개는 2~4줄 이내로 압축(무조건).
 
+## 2026-01-23
+- [ops/env] 배포용 `.env.production.example` 추가(+ `.env.production`은 VPS에서 생성) + 도커 빌드에서 `.env.local` 제외(.dockerignore)로 로컬/배포 env 드리프트 방지(HTTPS OFF 전제)
+  - impact: VPS 도커 빌드에서 local env(localhost)가 섞여 배포 번들이 잘못되는 문제 차단, 운영 WS base는 `http://<host>`로 통일
+- [seo] sitemap/robots의 기본 proto를 http로 정합화(프록시 헤더 없을 때도 HTTPS 강제 출력 방지)
+  - impact: HTTPS 미구성 시에도 robots/sitemap URL이 http로 생성
+
 ## 2026-01-22
 - [ux/frontend] 헤더 1줄 그리드 고정(h-16) + Desktop 네비(Primary/기능/더보기) 드롭다운 분리 + 모바일 드로어(overlay/scroll/ESC/focus/scroll-lock) 표준화
   - impact: 데스크탑/모바일에서 헤더 레이아웃 붕괴 방지, 모바일 메뉴 오버레이/스크롤/닫기 동작 일관화
