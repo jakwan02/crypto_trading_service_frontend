@@ -97,6 +97,43 @@ function getTfStepMs(tf: string): number {
   return TF_STEP_MS[key] ?? 60_000;
 }
 
+function _dedupSortCandles(items: Candle[]): Candle[] {
+  const m = new Map<number, Candle>();
+  for (const c of items || []) {
+    if (!c || !Number.isFinite(c.time) || c.time <= 0) continue;
+    m.set(c.time, c);
+  }
+  return Array.from(m.values()).sort((a, b) => a.time - b.time);
+}
+
+function _trimToContiguousSuffix(items: Candle[], stepMs: number, minKeep: number = 2): Candle[] {
+  if (!items || items.length < 2) return items || [];
+  const step = Number(stepMs || 0);
+  if (!Number.isFinite(step) || step <= 0) return items;
+
+  // 변경 이유: 마지막 1개만 고립된(outlier) 바가 남으면(예: 20→30으로 점프) 차트가 “건너뛴” 것처럼 보여 치명적이므로,
+  //           연속 구간 길이가 minKeep 미만이면 outlier를 버리고 다시 계산한다.
+  let cur = items;
+  while (cur.length >= 2) {
+    let start = cur.length - 1;
+    while (start > 0) {
+      if (cur[start].time - cur[start - 1].time !== step) break;
+      start -= 1;
+    }
+    const suffixLen = cur.length - start;
+    if (suffixLen >= Math.max(1, Math.trunc(minKeep))) return cur.slice(start);
+    cur = cur.slice(0, cur.length - 1);
+  }
+  return cur;
+}
+
+function _canAppendNoGap(lastTimeMs: number, nextTimeMs: number, stepMs: number): boolean {
+  if (!lastTimeMs) return true;
+  const step = Number(stepMs || 0);
+  if (!Number.isFinite(step) || step <= 0) return true;
+  return nextTimeMs === lastTimeMs || nextTimeMs === lastTimeMs + step;
+}
+
 function stripApiSuffix(url: string): string {
   const u = String(url || "").trim().replace(/\/+$/, "");
   return u.replace(/\/api$/i, "");
@@ -288,26 +325,30 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
 
   // 변경 이유: 번들/캐시에서 TF별 limit를 정확히 적용
   const buildSnapshot = useCallback(
-    (raw: unknown[], tempRaw?: unknown | null, limitOverride?: number): Candle[] => {
-      const out: Candle[] = [];
-      const seen = new Set<number>();
+    (raw: unknown[], tempRaw?: unknown | null, limitOverride?: number, tfOverride?: string): Candle[] => {
       const limit = limitOverride ?? paramsRef.current.limit;
+      const tfKey = tfOverride ?? paramsRef.current.tf;
+      const step = getTfStepMs(tfKey);
 
-    for (const x of raw) {
-      const c = parseCandle(x);
-      if (!c) continue;
-      if (seen.has(c.time)) continue;
-      seen.add(c.time);
-      out.push(c);
-    }
+      const parsed: Candle[] = [];
+      for (const x of raw || []) {
+        const c = parseCandle(x);
+        if (!c) continue;
+        parsed.push(c);
+      }
 
-    out.sort((a, b) => a.time - b.time);
+      let out = _dedupSortCandles(parsed);
+      if (limit > 0 && out.length > limit) out = out.slice(out.length - limit);
+      out = _trimToContiguousSuffix(out, step);
 
-    const temp = parseCandle(tempRaw);
-    if (temp) {
-      const lastTime = out.length ? out[out.length - 1].time : 0;
-      if (!lastTime || temp.time > lastTime) return upsert(out, temp, Math.max(limit, 1));
-    }
+      const temp = parseCandle(tempRaw);
+      if (temp) {
+        const lastTime = out.length ? out[out.length - 1].time : 0;
+        // 변경 이유: temp가 gap을 만들면(예: 스냅샷이 suffix로 트림됨) 차트에 빈 구간이 생기므로, 연속일 때만 반영한다.
+        if (_canAppendNoGap(lastTime, temp.time, step)) {
+          return upsert(out, temp, Math.max(limit, 1));
+        }
+      }
       return out;
     },
     []
@@ -325,13 +366,23 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
       const prev = getMemoryBundle(cacheKey);
       const nextSavedAt = savedAt ?? prev?.savedAt ?? Date.now();
       const nextTempByTf = tempByTf ?? prev?.tempByTf;
+      const step = getTfStepMs(t);
 
       // 변경 이유: 캐시 미리보기 동안 WS 델타를 즉시 붙이지 않아 "잠깐 생겼다 사라지는" 마지막 캔들(현재 티커) 플리커를 제거
       const pending = source === "server" ? pendingDeltaRef.current : null;
-      const merged = pending ? upsert(next, pending, 1200) : next;
+      // 변경 이유: 스냅샷/WS 델타 결합이 gap을 만들면 차트에 빈 구간이 생기므로, 연속일 때만 결합한다.
+      const base = _trimToContiguousSuffix(_dedupSortCandles(next || []), step);
+      const baseLast = base.length ? base[base.length - 1].time : 0;
+      const merged = pending && _canAppendNoGap(baseLast, pending.time, step) ? upsert(base, pending, 1200) : base;
 
       if (source === "server") {
-        pendingDeltaRef.current = null;
+        if (!pending) {
+          pendingDeltaRef.current = null;
+        } else if (baseLast && pending.time <= baseLast) {
+          pendingDeltaRef.current = null;
+        } else if (_canAppendNoGap(baseLast, pending.time, step)) {
+          pendingDeltaRef.current = null;
+        }
         restReadyRef.current = true;
       }
 
@@ -358,7 +409,7 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         if (!Array.isArray(raw)) continue;
         const tempRaw = (tfKey in temps ? temps[tfKey] : bundle.temp?.[tfKey]) ?? null;
         tempByTf[tfKey] = tempRaw ? parseCandle(tempRaw) : null;
-        dataByTf[tfKey] = buildSnapshot(raw, tempRaw, getTfLimit(tfKey));
+        dataByTf[tfKey] = buildSnapshot(raw, tempRaw, getTfLimit(tfKey), tfKey);
       }
       return { dataByTf, tempByTf };
     },
@@ -538,12 +589,28 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
 
         const lastTime = lastCandleTimeRef.current;
         const step = getTfStepMs(t);
-        if (lastTime > 0 && c.time - lastTime > step * 2) {
+        // 변경 이유: 1개라도 누락되면 차트/지표가 뒤틀리므로, gap이 감지되면 해당 델타를 적용하지 않고 서버 스냅샷으로 재동기화한다.
+        if (lastTime > 0 && c.time > lastTime + step) {
+          const p = pendingDeltaRef.current;
+          if (!p || (p.time > 0 && c.time < p.time)) pendingDeltaRef.current = c;
           triggerHardRefresh("gap");
+          return;
         }
+        if (lastTime > 0 && c.time < lastTime) return;
 
         setData((prev) => {
-          const nextList = upsert(prev, c as Candle, 1200);
+          let nextList = upsert(prev, c as Candle, 1200);
+          // 변경 이유: gap으로 인해 미리 도착한 “미래” 캔들은 보류했다가, 누락 캔들이 채워진 시점에 즉시 반영한다.
+          const pending = pendingDeltaRef.current;
+          if (pending) {
+            const last2 = nextList.length ? nextList[nextList.length - 1].time : 0;
+            if (last2 && pending.time <= last2) {
+              pendingDeltaRef.current = null;
+            } else if (_canAppendNoGap(last2, pending.time, step)) {
+              nextList = upsert(nextList, pending, 1200);
+              pendingDeltaRef.current = null;
+            }
+          }
           const cacheKey = `${m}:${s}`;
           const prevBundle = getMemoryBundle(cacheKey);
           if (prevBundle) {
@@ -709,20 +776,21 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
       }
 
       if (older.length > 0) {
-        const merged = [...older, ...data];
-        const out: Candle[] = [];
-        const seen = new Set<number>();
-        for (const c of merged) {
-          if (seen.has(c.time)) continue;
-          seen.add(c.time);
-          out.push(c);
+        const step = getTfStepMs(tfNorm);
+        const olderSorted = _trimToContiguousSuffix(_dedupSortCandles(older), step);
+        const olderLast = olderSorted.length ? olderSorted[olderSorted.length - 1].time : 0;
+        // 변경 이유: 과거 데이터를 prepend할 때도 gap이 생기면 차트에 빈 구간이 생기므로, 경계가 연속일 때만 병합한다.
+        if (olderLast && oldest && olderLast !== oldest - step) {
+          pushNotice("error", "과거 데이터에 빈 구간이 있어 복구 중입니다. 잠시 후 다시 시도해주세요.");
+          triggerHardRefresh("gap");
+          return;
         }
-        out.sort((a, b) => a.time - b.time);
-        setData(out);
+        const merged = _dedupSortCandles([...olderSorted, ...(data || [])]);
+        setData(merged);
         const cacheKey = `${m}:${sym}`;
         const prev = getMemoryBundle(cacheKey);
         const savedAt = prev?.savedAt ?? Date.now();
-        setMemoryBundle(cacheKey, { ...(prev?.dataByTf || {}), [tfNorm]: out }, prev?.tempByTf, savedAt);
+        setMemoryBundle(cacheKey, { ...(prev?.dataByTf || {}), [tfNorm]: merged }, prev?.tempByTf, savedAt);
       } else {
         pushNotice("end", "과거 데이터가 더 없습니다.");
       }

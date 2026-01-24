@@ -1498,3 +1498,18 @@ Next:
   - docs/RECENT.md
 - Next:
   - (user run) `docker compose build frontend` 후 `https://<host>`에서 WS가 `wss://<host>/ws_*`로 연결되는지 확인
+
+## 2026-01-24 17:10 (local)
+- Task: 차트 “빈 구간/캔들 건너뜀” 및 MACD/패널 정렬 뒤틀림 방지(프론트 갭-세이프)
+- Scope: src/hooks/useChart.ts, docs/RECENT.md, codex_log.md
+- Why: WS 델타/스냅샷/히스토리 prepend가 gap을 포함하면(예: 5m에서 20→30) 차트에 빈 구간이 생기고 지표/패널이 뒤틀릴 수 있기 때문에.
+- Key changes:
+  - WS 델타 적용 전에 연속성(1 step) 검증: gap이면 델타를 적용하지 않고 서버 번들로 재동기화
+  - “미래” 캔들이 먼저 도착하면 pending으로 보류했다가, 누락 캔들이 채워진 시점에 즉시 반영
+  - 스냅샷/캐시/히스토리 merge 시 연속성 강제(연속 suffix 유지, 고립된 outlier drop)
+- Commands run:
+  - N/A
+- Logs/Artifacts:
+  - docs/RECENT.md
+- Next:
+  - (user run) 차트에서 5m 캔들 “건너뜀”이 더 이상 보이지 않는지 확인(WS/재연결/Load more 포함)

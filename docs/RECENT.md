@@ -14,6 +14,8 @@
   - impact: Caddy HTTPS 환경에서 WS가 mixed content 없이 `wss://<host>/ws_*`로 연결
 - [ux/mobile] Market/Overview(SymbolTable) 모바일 3컬럼 요약 뷰로 전환(가로 스크롤 제거) + chart 제스처 충돌 완화 + dvh 보정
   - impact: 모바일에서 심볼/가격/변동/거래량 정보를 한 화면에 표시, pinch/브라우저 줌 충돌 완화, 주소창 변화로 인한 화면 흔들림 감소
+- [chart] WS/캐시 스냅샷 갭 방지(연속성 강제) + 갭 발생 시 서버 스냅샷 재동기화
+  - impact: 5m 등에서 “20→30”처럼 캔들이 건너뛰어 빈 구간이 보이는 현상 방지, 누락 캔들이 늦게 와도 보류→즉시 반영으로 지표 뒤틀림 완화
 
 ## 2026-01-22
 - [ux/frontend] 헤더 1줄 그리드 고정(h-16) + Desktop 네비(Primary/기능/더보기) 드롭다운 분리 + 모바일 드로어(overlay/scroll/ESC/focus/scroll-lock) 표준화
