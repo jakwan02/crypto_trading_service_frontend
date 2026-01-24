@@ -91,6 +91,19 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
   const { data: candles, error, loadMore, loadingMore, historyNotice } = useChart(symbol, timeframe, market);
 
   useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    // 변경 이유: 데스크톱 트랙패드 pinch(대개 ctrlKey+wheel)에서 브라우저 줌과 차트 줌이 겹치는 문제를 줄이기 위해,
+    //           차트 영역에서는 브라우저 기본 확대를 막고 차트 제스처를 우선한다.
+    const onWheel = (ev: WheelEvent) => {
+      if (!ev.ctrlKey) return;
+      ev.preventDefault();
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  useEffect(() => {
     // 변경 이유: 차트 실시간 가격을 상단 지표와 동기화
     if (!onLastCandle) return;
     const last = candles && candles.length > 0 ? candles[candles.length - 1] : null;
@@ -604,11 +617,13 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
           {loadingMore ? t("chart.loadingMore") : t("chart.loadMore")}
         </button>
       </div>
-      <div ref={containerRef} className="w-full space-y-3">
-        <div ref={priceRef} className="w-full" />
-        {cfg.panes.volume.enabled ? <div ref={volumeRef} className="w-full" /> : null}
-        {cfg.panes.rsi.enabled ? <div ref={rsiRef} className="w-full" /> : null}
-        {cfg.panes.macd.enabled ? <div ref={macdRef} className="w-full" /> : null}
+      <div ref={containerRef} className="w-full space-y-3 overscroll-contain">
+        {/* 변경 이유: 모바일에서 브라우저 pinch-zoom/스크롤과 차트 제스처가 충돌하는 문제를 줄이기 위해,
+            차트 렌더 엘리먼트에 touch-action을 차트 우선으로 고정한다. */}
+        <div ref={priceRef} className="w-full touch-none select-none" />
+        {cfg.panes.volume.enabled ? <div ref={volumeRef} className="w-full touch-none select-none" /> : null}
+        {cfg.panes.rsi.enabled ? <div ref={rsiRef} className="w-full touch-none select-none" /> : null}
+        {cfg.panes.macd.enabled ? <div ref={macdRef} className="w-full touch-none select-none" /> : null}
       </div>
     </div>
   );

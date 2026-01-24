@@ -1468,3 +1468,33 @@ Next:
   - docs/RECENT.md
 - Next:
   - (user run) `docker compose build frontend` 후 브라우저에서 API 호출이 `/<api|app>`로 나가고 WS가 `ws://<host>/ws_*`로 연결되는지 확인
+
+## 2026-01-24 16:36 (local)
+- Task: 모바일 UX 개선(SymbolTable 가로 잘림/차트 제스처 충돌/화면 흔들림)
+- Scope: src/components/{SymbolTable,ChartContainer}.tsx, src/hooks/useMediaQuery.ts, src/app/globals.css, docs/RECENT.md, codex_log.md
+- Why: 모바일에서 Market Overview 정보가 가로로 잘려 스크롤이 강제되고, 차트 pinch/브라우저 줌이 겹치며, 100vh 기반 레이아웃이 주소창 변화로 흔들릴 수 있기 때문에.
+- Key changes:
+  - SymbolTable을 모바일 3컬럼 요약 레이아웃(심볼/가격/변동)으로 전환해 가로 스크롤 제거(기존 데스크톱 테이블 유지)
+  - 차트 영역에 `touch-action` 고정 + ctrlKey(wheel) 기본 줌 차단으로 브라우저 확대/차트 확대 충돌 완화
+  - `min-h-screen/h-screen`을 `100dvh`로 보정해 모바일 주소창 변화에 따른 화면 흔들림 완화
+- Commands run:
+  - N/A
+- Logs/Artifacts:
+  - docs/RECENT.md
+- Next:
+  - (user run) 모바일에서 `/market`과 `/chart/BTCUSDT`에서 가로 스크롤/핀치 줌/화면 흔들림 재현 여부 확인
+
+## 2026-01-24 16:40 (local)
+- Task: 운영 HTTPS(wss) 기준 프론트 env 정합
+- Scope: .env.production, .env.production.example, .env.local.example, docs/{ENV.md,RECENT.md}, codex_log.md
+- Why: Caddy HTTPS 환경에서 WS가 mixed content 없이 `wss://`로 연결되도록 base URL을 정합화하기 위해.
+- Key changes:
+  - `NEXT_PUBLIC_WS_BASE_URL`을 `https://...`로 전환(코드에서 `wss://`로 변환)
+  - `API_PROXY_TARGET`을 `https://...`로 정합
+  - env/docs 예시를 HTTPS 기준으로 갱신
+- Commands run:
+  - N/A
+- Logs/Artifacts:
+  - docs/RECENT.md
+- Next:
+  - (user run) `docker compose build frontend` 후 `https://<host>`에서 WS가 `wss://<host>/ws_*`로 연결되는지 확인

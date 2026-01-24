@@ -14,6 +14,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useMarketSymbols, type MarketRow } from "@/hooks/useMarketSymbols";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { formatCompactNumber } from "@/lib/format";
 import { useSymbolsStore, type SortKey, type MetricWindow } from "@/store/useSymbolStore";
 import FavoriteStar from "@/components/watchlists/FavoriteStar";
@@ -40,10 +41,15 @@ const BLINK_MS = 180;
 const VIRTUAL_OVERSCAN = 20;
 // 변경 이유: 가상 스크롤 row height 추정치가 실제 렌더 높이와 어긋나면 "위/아래 여백이 틀어져 보이는" 현상이 발생할 수 있어 고정 높이로 정합화
 const ROW_HEIGHT = 44;
+// 변경 이유: 모바일은 단일 행에 2줄(메타 포함)을 담아야 하므로 row height를 분리한다.
+const ROW_HEIGHT_MOBILE = 68;
 const SKELETON_ROWS = 12;
 // 변경 이유: 헤더/바디에 동일한 grid 템플릿을 적용해 컬럼 정렬을 고정
-const GRID_TEMPLATE =
+const GRID_TEMPLATE_DESKTOP =
   "minmax(140px, 18%) minmax(120px, 15%) minmax(150px, 17%) minmax(180px, 20%) minmax(120px, 12%) minmax(120px, 18%)";
+// 변경 이유: 모바일에서 가로 스크롤 없이 핵심 정보(심볼/가격/변동)를 한 화면에 정렬한다.
+const GRID_TEMPLATE_MOBILE =
+  "minmax(160px, 1.3fr) minmax(110px, 0.85fr) minmax(100px, 0.8fr)";
 
 const LS_METRICS_WINDOW_KEY = "market.metrics_window";
 
@@ -94,6 +100,9 @@ export default function SymbolTable({
   const searchParams = useSearchParams();
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
+  const isMobile = useMediaQuery("(max-width: 639px)");
+  const gridTemplate = isMobile ? GRID_TEMPLATE_MOBILE : GRID_TEMPLATE_DESKTOP;
+  const rowHeight = isMobile ? ROW_HEIGHT_MOBILE : ROW_HEIGHT;
   const market = useSymbolsStore((s) => s.market);
   const setMarket = useSymbolsStore((s) => s.setMarket);
   const win = useSymbolsStore((s) => s.metricWindow);
@@ -302,7 +311,7 @@ export default function SymbolTable({
         setFlashTick((v) => v + 1);
       }, delay + 20);
     }
-  }, [isSyncing, order, rowMap]);
+  }, [isSyncing, order, rowMap, locale]);
 
   const query = typeof searchTerm === "string" ? searchTerm : localQuery;
   const handleQueryChange = (value: string) => {
@@ -361,6 +370,100 @@ export default function SymbolTable({
 
   const columns = useMemo(() => {
     const wl = winLabel(win);
+
+    if (isMobile) {
+      return [
+        columnHelper.accessor("symbol", {
+          id: "symbol",
+          header: () => t("table.symbol"),
+          cell: (info) => {
+            const value = String(info.getValue() ?? "");
+            if (value.startsWith("__loading__")) return <LoadingBar />;
+            const onboard = info.row.original.onboardDate as number | null;
+            const onboardText =
+              onboard && onboard > 0 ? new Date(onboard).toLocaleDateString(locale) : "-";
+            const base = (info.row.original.baseAsset || "").toUpperCase();
+            const quote = (info.row.original.quoteAsset || "").toUpperCase();
+            const pair = base && quote ? `${base}/${quote}` : "";
+            const meta = [pair, onboardText].filter(Boolean).join(" · ");
+
+            return (
+              <div className="flex min-w-0 items-center gap-2">
+                <FavoriteStar market={info.row.original.market} symbol={value} />
+                <div className="min-w-0">
+                  <div className="truncate font-medium text-gray-900">{value}</div>
+                  <div className="mt-0.5 truncate text-[11px] text-gray-500">{meta}</div>
+                </div>
+              </div>
+            );
+          }
+        }),
+
+        columnHelper.accessor("price", {
+          id: "price",
+          header: () => t("table.price"),
+          cell: (info) => {
+            if (isSkeleton(info.row.original)) return <LoadingBar />;
+            const value = info.getValue() as number | null;
+            const sym = info.row.original.symbol;
+            const flash = flashRef.current[sym];
+            const now = Date.now();
+
+            let cls = "tabular-nums text-gray-900";
+            if (flash?.priceUntil && flash.priceUntil > now) {
+              cls += flash.priceDir && flash.priceDir > 0 ? " flash-price-up" : " flash-price-down";
+            }
+
+            const qv = info.row.original.quoteVolume as number | null;
+            const qvUnit = (info.row.original.quoteAsset || "USDT").toUpperCase();
+            const qvCls =
+              flash?.volumeUntil && flash.volumeUntil > now ? "tabular-nums text-[11px] text-gray-500 flash-blink" : "tabular-nums text-[11px] text-gray-500";
+
+            return (
+              <div className="flex flex-col items-end">
+                <span className={cls}>{value === null || value === undefined ? "-" : fmtPrice(value, locale)}</span>
+                <span className={qvCls}>
+                  {qv === null || qv === undefined ? "-" : fmtWithUnit(qv, qvUnit, locale)}
+                </span>
+              </div>
+            );
+          }
+        }),
+
+        columnHelper.accessor("change24h", {
+          id: "change24h",
+          header: () => t("table.change", { tf: wl }),
+          cell: (info) => {
+            if (isSkeleton(info.row.original)) return <LoadingBar />;
+            const value = info.getValue() as number | null;
+            const sym = info.row.original.symbol;
+            const flash = flashRef.current[sym];
+            const now = Date.now();
+            const blink = flash?.changeUntil && flash.changeUntil > now ? " flash-blink" : "";
+
+            const vol = info.row.original.volume as number | null;
+            const volUnit = (info.row.original.baseAsset || "").toUpperCase();
+            const volCls =
+              flash?.volumeUntil && flash.volumeUntil > now ? "tabular-nums text-[11px] text-gray-500 flash-blink" : "tabular-nums text-[11px] text-gray-500";
+
+            return (
+              <div className="flex flex-col items-end">
+                {value === null || value === undefined ? (
+                  <span className="text-xs text-gray-400">-</span>
+                ) : (
+                  <span className={`tabular-nums${blink} ${value >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                    {value.toFixed(2)}%
+                  </span>
+                )}
+                <span className={volCls}>
+                  {vol === null || vol === undefined ? "-" : fmtWithUnit(vol, volUnit, locale)}
+                </span>
+              </div>
+            );
+          }
+        })
+      ];
+    }
 
     return [
       columnHelper.accessor("symbol", {
@@ -471,7 +574,7 @@ export default function SymbolTable({
         }
       })
     ];
-  }, [isSkeleton, win, t, locale]);
+  }, [isMobile, isSkeleton, win, t, locale]);
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
@@ -485,11 +588,15 @@ export default function SymbolTable({
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => ROW_HEIGHT,
+    estimateSize: () => rowHeight,
     observeElementOffset: observeOffsetNoSync,
     overscan: VIRTUAL_OVERSCAN
   });
   const virtualRows = rowVirtualizer.getVirtualItems();
+
+  useEffect(() => {
+    rowVirtualizer.measure();
+  }, [isMobile, rowVirtualizer]);
 
   useEffect(() => {
     if (!displayData.length) return;
@@ -658,16 +765,22 @@ export default function SymbolTable({
 
       <div
         ref={parentRef}
-        className="scrollbar-gutter-stable max-h-[560px] overflow-auto rounded-xl border border-gray-100"
+        className={`scrollbar-gutter-stable max-h-[70dvh] rounded-xl border border-gray-100 sm:max-h-[560px] ${
+          isMobile ? "overflow-y-auto overflow-x-hidden" : "overflow-auto"
+        }`}
         style={{ overscrollBehavior: "contain" }}
       >
-        <table className="min-w-[1000px] w-full table-fixed border-collapse border-spacing-0 text-left text-gray-900">
+        <table
+          className={`w-full table-fixed border-collapse border-spacing-0 text-left text-gray-900 ${
+            isMobile ? "min-w-full" : "min-w-[1000px]"
+          }`}
+        >
           <thead className="sticky top-0 z-10 bg-white">
             {table.getHeaderGroups().map((hg) => (
               <tr
                 key={hg.id}
                 className="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500"
-                style={{ display: "grid", gridTemplateColumns: GRID_TEMPLATE }}
+                style={{ display: "grid", gridTemplateColumns: gridTemplate }}
               >
                 {hg.headers.map((header) => {
                   const id = header.column.id;
@@ -711,8 +824,8 @@ export default function SymbolTable({
                   top: 0,
                   transform: `translateY(${virtualRow.start}px)`,
                   display: "grid",
-                  gridTemplateColumns: GRID_TEMPLATE,
-                  height: `${ROW_HEIGHT}px`,
+                  gridTemplateColumns: gridTemplate,
+                  height: `${rowHeight}px`,
                   width: "100%"
                 }}
                 onClick={() => {
@@ -728,7 +841,7 @@ export default function SymbolTable({
                   }}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-3 py-1.5 truncate">
+                    <td key={cell.id} className={isMobile ? "px-3 py-2" : "px-3 py-1.5 truncate"}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

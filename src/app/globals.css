@@ -19,6 +19,8 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  /* 변경 이유: 모바일 브라우저 주소창 show/hide로 100vh가 흔들리며 레이아웃 점프가 발생할 수 있어 dvh 우선 적용 */
+  min-height: 100dvh;
 }
 
 body {
@@ -58,6 +60,16 @@ td {
 
 ::-webkit-scrollbar-track {
   background-color: #f3f4f6;
+}
+
+/* 변경 이유: tailwind의 min-h-screen/h-screen(=100vh)이 모바일에서 화면 흔들림(주소창 높이 변화)을 유발할 수 있어 dvh로 보정 */
+@supports (height: 100dvh) {
+  .min-h-screen {
+    min-height: 100dvh;
+  }
+  .h-screen {
+    height: 100dvh;
+  }
 }
 
 @keyframes fadeUp {

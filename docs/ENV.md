@@ -36,7 +36,7 @@ NEXT_PUBLIC_WS_BASE_URL=ws://localhost:8002
 ### 로컬 개발(백엔드 Caddy 단일 오리진)
 ```bash
 NEXT_PUBLIC_API_BASE_URL=/
-NEXT_PUBLIC_WS_BASE_URL=http://localhost
+NEXT_PUBLIC_WS_BASE_URL=https://localhost
 ```
 
 관련 백엔드 문서:
@@ -45,7 +45,7 @@ NEXT_PUBLIC_WS_BASE_URL=http://localhost
 ### 운영(리버스프록시 단일 오리진)
 ```bash
 NEXT_PUBLIC_API_BASE_URL=/
-NEXT_PUBLIC_WS_BASE_URL=http://<your-domain>
+NEXT_PUBLIC_WS_BASE_URL=https://<your-domain>
 ```
 
 ## 주의(재발 방지)

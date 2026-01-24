@@ -9,6 +9,12 @@
 - [seo] sitemap/robots의 기본 proto를 http로 정합화(프록시 헤더 없을 때도 HTTPS 강제 출력 방지)
   - impact: HTTPS 미구성 시에도 robots/sitemap URL이 http로 생성
 
+## 2026-01-24
+- [ops/http] 운영 WS base를 `https://<host>`로 정합(프론트는 `wss://`로 변환) + env 예시 갱신
+  - impact: Caddy HTTPS 환경에서 WS가 mixed content 없이 `wss://<host>/ws_*`로 연결
+- [ux/mobile] Market/Overview(SymbolTable) 모바일 3컬럼 요약 뷰로 전환(가로 스크롤 제거) + chart 제스처 충돌 완화 + dvh 보정
+  - impact: 모바일에서 심볼/가격/변동/거래량 정보를 한 화면에 표시, pinch/브라우저 줌 충돌 완화, 주소창 변화로 인한 화면 흔들림 감소
+
 ## 2026-01-22
 - [ux/frontend] 헤더 1줄 그리드 고정(h-16) + Desktop 네비(Primary/기능/더보기) 드롭다운 분리 + 모바일 드로어(overlay/scroll/ESC/focus/scroll-lock) 표준화
   - impact: 데스크탑/모바일에서 헤더 레이아웃 붕괴 방지, 모바일 메뉴 오버레이/스크롤/닫기 동작 일관화
