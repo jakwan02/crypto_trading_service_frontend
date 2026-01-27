@@ -160,6 +160,8 @@ const ja = {
     hubDesc: "シンボルを選んで詳細チャートと分析を表示。",
     chartTitle: "{{symbol}} チャート",
     chartDesc: "リアルタイムチャートとAIサマリーを確認。",
+    navPrev: "前のシンボル",
+    navNext: "次のシンボル",
     invalidSymbol: "無効なシンボルです。",
     alertCta: "アラート設定",
     aiCta: "AIインサイト",

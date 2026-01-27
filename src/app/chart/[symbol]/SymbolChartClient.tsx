@@ -3,8 +3,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Bell, Sparkles } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Bell, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import ChartContainer from "@/components/ChartContainer";
 import FavoriteStar from "@/components/watchlists/FavoriteStar";
@@ -12,6 +12,9 @@ import { useSymbols, type MetricWindow } from "@/hooks/useSymbols";
 import type { Candle } from "@/hooks/useChart";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSymbolsStore } from "@/store/useSymbolStore";
+import { useMarketOrder } from "@/hooks/useMarketOrder";
+import { fetchChartBundle } from "@/lib/chartBundle";
+import { putIdbBundleBytes } from "@/lib/chartCache";
 import { formatCompactNumber } from "@/lib/format";
 import type { TechIndicators } from "@/lib/indicators";
 import type { ChartIndicatorConfigV1 } from "@/lib/chartIndicatorConfig";
@@ -26,13 +29,42 @@ const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
 const FLASH_MS = 800;
 const BLINK_MS = 300;
 
+const DEFAULT_API_BASE_URL = "http://localhost:8001";
+
+function stripApiSuffix(url: string): string {
+  const u = String(url || "").trim().replace(/\/+$/, "");
+  return u.replace(/\/api$/i, "");
+}
+
+function toApiBase(): string {
+  const apiEnv = String(process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
+  if (apiEnv === "/" || apiEnv.startsWith("/")) return "/api";
+  const base = stripApiSuffix((apiEnv || DEFAULT_API_BASE_URL).trim());
+  return base.endsWith("/api") ? base : `${base}/api`;
+}
+
+function getApiToken(): string {
+  return String(process.env.NEXT_PUBLIC_API_TOKEN || "").trim();
+}
+
+function withApiToken(headers?: HeadersInit): HeadersInit | undefined {
+  const token = getApiToken();
+  if (!token) return headers;
+  return { ...(headers || {}), "X-API-Token": token };
+}
+
 type Props = {
   symbol: string;
 };
 
 export default function SymbolChartClient({ symbol }: Props) {
+  const router = useRouter();
   const defaultTf = useSymbolsStore((s) => s.chartTf);
   const searchParams = useSearchParams();
+  const storeMarket = useSymbolsStore((s) => s.market);
+  const sortKey = useSymbolsStore((s) => s.sortKey);
+  const sortOrder = useSymbolsStore((s) => s.sortOrder);
+  const metricWindow = useSymbolsStore((s) => s.metricWindow);
   const setMarket = useSymbolsStore((s) => s.setMarket);
   const touchedRef = useRef(false);
   const tfParam = useMemo(() => {
@@ -188,6 +220,71 @@ export default function SymbolChartClient({ symbol }: Props) {
 
   const priceValue = Number.isFinite(livePrice ?? NaN) ? Number(livePrice) : info?.price ?? NaN;
   const favMarket = marketParam || info?.market || "spot";
+  const orderMarket = marketParam || info?.market || storeMarket || "spot";
+
+  const { order: orderedSymbols, isLoading: orderLoading } = useMarketOrder(
+    {
+      market: orderMarket,
+      window: metricWindow,
+      sortKey,
+      sortOrder,
+      scope: "managed",
+      query: ""
+    },
+    { enabled: Boolean(sym) }
+  );
+
+  const nav = useMemo(() => {
+    const list = orderedSymbols || [];
+    const n = list.length;
+    if (!sym || n <= 0) return { ready: false, prev: "", next: "", idx: -1, total: n };
+    const idx = list.indexOf(sym);
+    if (idx < 0) return { ready: false, prev: "", next: "", idx, total: n };
+    const prev = list[(idx - 1 + n) % n] || "";
+    const next = list[(idx + 1) % n] || "";
+    return { ready: true, prev, next, idx, total: n };
+  }, [orderedSymbols, sym]);
+
+  const navDisabled = orderLoading || !nav.ready;
+  const prefetchRef = useRef<{ key: string; inFlight: boolean }>({ key: "", inFlight: false });
+
+  useEffect(() => {
+    // 변경 이유: 좌/우 이동의 체감 지연을 줄이기 위해 인접 심볼(2개)의 스냅샷 번들을 백그라운드로 prefetch 한다.
+    if (!nav.ready) return;
+    const tfNorm = String(tf || "").trim().toLowerCase();
+    if (!TIMEFRAMES.includes(tfNorm)) return;
+    const prev = nav.prev;
+    const next = nav.next;
+    if (!prev || !next) return;
+    const key = `${orderMarket}:${tfNorm}:${prev}:${next}`;
+    if (prefetchRef.current.key === key) return;
+    if (prefetchRef.current.inFlight) return;
+    prefetchRef.current = { key, inFlight: true };
+    const apiBase = toApiBase();
+    const headers = withApiToken();
+
+    void (async () => {
+      try {
+        const tfs = [tfNorm];
+        const jobs = [prev, next].map(async (s) => {
+          const cacheKey = `${orderMarket}:${s}`;
+          const res = await fetchChartBundle({
+            apiBase,
+            market: orderMarket,
+            symbol: s,
+            tf: tfNorm,
+            tfs,
+            headers
+          });
+          const savedAt = Number(res.bundle?.now || 0) || Date.now();
+          await putIdbBundleBytes(cacheKey, res.bytes, savedAt);
+        });
+        await Promise.allSettled(jobs);
+      } finally {
+        prefetchRef.current.inFlight = false;
+      }
+    })();
+  }, [nav.next, nav.prev, nav.ready, orderMarket, tf]);
 
   useEffect(() => {
     if (!info) return;
@@ -319,11 +416,49 @@ export default function SymbolChartClient({ symbol }: Props) {
         <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  if (navDisabled || !nav.prev) return;
+                  router.push(
+                    `/chart/${nav.prev}?market=${encodeURIComponent(orderMarket)}&tf=${encodeURIComponent(tf)}`
+                  );
+                }}
+                disabled={navDisabled}
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-gray-700 shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                  navDisabled
+                    ? "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-300"
+                    : "border-gray-200 bg-white hover:border-primary/30 hover:text-primary-dark"
+                }`}
+                aria-label={t("chart.navPrev")}
+                title={t("chart.navPrev")}
+              >
+                <ChevronLeft className="h-4 w-4" aria-hidden />
+              </button>
               <FavoriteStar market={favMarket} symbol={sym} />
               <h1 className="text-2xl font-semibold text-gray-900">{sym}</h1>
               <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">
                 {t("common.live")}
               </span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (navDisabled || !nav.next) return;
+                  router.push(
+                    `/chart/${nav.next}?market=${encodeURIComponent(orderMarket)}&tf=${encodeURIComponent(tf)}`
+                  );
+                }}
+                disabled={navDisabled}
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-gray-700 shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                  navDisabled
+                    ? "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-300"
+                    : "border-gray-200 bg-white hover:border-primary/30 hover:text-primary-dark"
+                }`}
+                aria-label={t("chart.navNext")}
+                title={t("chart.navNext")}
+              >
+                <ChevronRight className="h-4 w-4" aria-hidden />
+              </button>
             </div>
             <p className="mt-2 text-sm text-gray-500">
               {t("chart.chartDesc")}

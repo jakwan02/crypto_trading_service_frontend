@@ -432,6 +432,8 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
           market: m,
           symbol: s,
           tf: t,
+          // 변경 이유: 차트 초기 진입 지연 편차(모든 TF 번들 다운로드/파싱)를 줄이기 위해 현재 TF만 요청한다.
+          tfs: [t],
           headers: withApiToken()
         });
         if (rid !== bundleReqIdRef.current) return;
@@ -440,7 +442,14 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         const savedAt = Number(res.bundle?.now || 0) || Date.now();
         const { dataByTf, tempByTf } = buildBundleCache(res.bundle);
         lastBundleAtRef.current = savedAt;
-        setMemoryBundle(cacheKey, dataByTf, tempByTf, savedAt);
+        // 변경 이유: 번들을 현재 TF만 요청하더라도, 기존에 캐시된 다른 TF 스냅샷은 유지해 TF 전환 UX를 보존한다.
+        const prev = getMemoryBundle(cacheKey);
+        setMemoryBundle(
+          cacheKey,
+          { ...(prev?.dataByTf || {}), ...dataByTf },
+          { ...(prev?.tempByTf || {}), ...tempByTf },
+          savedAt
+        );
         if (res.bytes?.length) {
           await putIdbBundleBytes(cacheKey, res.bytes, savedAt);
           broadcastBundleReady(cacheKey, savedAt);
@@ -674,6 +683,8 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
     const tfNorm = normTf(tf);
     const limit = getTfLimit(tfNorm);
     paramsRef.current = { market: m, symbol: sym, tf: tfNorm, limit };
+    // 변경 이유: 심볼/TF 전환 시 이전 lastBundleAt(다른 심볼 기준)이 남아 있으면 IDB 캐시가 불필요하게 스킵되어 초기 렌더 지연 편차가 커질 수 있어 reset한다.
+    lastBundleAtRef.current = 0;
     restReadyRef.current = false;
     pendingDeltaRef.current = null;
     lastCandleTimeRef.current = 0;

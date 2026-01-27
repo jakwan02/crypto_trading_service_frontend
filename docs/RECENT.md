@@ -26,6 +26,10 @@
   - impact: 온보딩 CTA "다음 단계" 404 제거, 탈퇴 계정과 비활성 계정 구분 가능
 - [ops/ux] cm(coin-m) 마켓의 메뉴/기능 제거 + 모니터링/워치리스트/캘린더에서 cm 노출 차단
   - impact: 관리 심볼이 아닌 cm이 UI에 나타나거나 선택/필터되는 경로 제거(spot/um만 유지)
+- [chart/perf] 차트 초기 번들을 현재 TF만 요청(tfs) + per-symbol lastBundleAt reset으로 IDB 스냅샷 즉시 렌더 안정화
+  - impact: 초기 로딩 payload/파싱량↓, 심볼 전환/재방문 시 로딩 편차↓
+- [chart/nav] 차트 헤더에 이전/다음 심볼(순환) 네비 + 인접 심볼 번들 prefetch
+  - impact: 마켓 오버뷰 정렬 기준으로 좌/우 이동, 연속 탐색 지연↓
 
 ## 2026-01-22
 - [ux/frontend] 헤더 1줄 그리드 고정(h-16) + Desktop 네비(Primary/기능/더보기) 드롭다운 분리 + 모바일 드로어(overlay/scroll/ESC/focus/scroll-lock) 표준화

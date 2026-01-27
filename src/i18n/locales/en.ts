@@ -316,6 +316,8 @@ const en = {
     hubDesc: "Pick a symbol to view detailed charts and analysis.",
     chartTitle: "{{symbol}} Chart",
     chartDesc: "View real-time chart with AI summary.",
+    navPrev: "Prev symbol",
+    navNext: "Next symbol",
     invalidSymbol: "Invalid symbol.",
     alertCta: "Set Alert",
     aiCta: "AI Insights",

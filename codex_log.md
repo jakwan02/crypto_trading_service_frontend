@@ -1578,3 +1578,19 @@ Next:
   - npm run build
 - Logs/Artifacts:
   - eslint warnings(existing): 13 warnings, 0 errors
+
+## 2026-01-27 13:34 (local)
+- Task: 차트 초기 로딩 무지연/일관성 + 좌/우 심볼 네비(순환)
+- Scope: src/{lib/chartBundle.ts,lib/marketOrderCache.ts,hooks/useChart.ts,hooks/useMarketOrder.ts,app/chart/[symbol]/SymbolChartClient.tsx,i18n/locales/{ko.ts,en.ts,ja.ts,de.ts}}, docs/RECENT.md, codex_log.md
+- Why: 차트 진입 시 모든 TF 번들 다운로드/파싱과 캐시 스킵 조건으로 인해 체감 속도가 들쭉날쭉했고, 마켓 오버뷰 정렬 순서 기준의 심볼 이동(순환)이 필요했다.
+- Key changes:
+  - 차트 번들 요청에 `tfs`를 추가해 초기 진입은 현재 TF만 요청(캐시 merge로 TF 전환 UX 유지)
+  - 심볼/TF 전환 시 `lastBundleAt`을 reset해 IDB 스냅샷이 즉시 렌더되도록 안정화
+  - `/api/market/order`(order-only) 기반으로 전체 심볼 정렬 리스트를 캐시하고, 차트 헤더 좌/우 이동(첫↔마지막 순환) 추가
+  - 인접(이전/다음) 심볼 번들을 백그라운드 prefetch해 연속 이동 지연 감소
+- Commands run:
+  - none
+- Logs/Artifacts:
+  - none
+- Next:
+  - (user run) `npm run lint && npm run build`

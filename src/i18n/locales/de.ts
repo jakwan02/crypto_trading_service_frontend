@@ -160,6 +160,8 @@ const de = {
     hubDesc: "Symbol wählen, um Charts und Analyse zu sehen.",
     chartTitle: "{{symbol}} Chart",
     chartDesc: "Echtzeit-Chart mit KI-Zusammenfassung.",
+    navPrev: "Vorheriges Symbol",
+    navNext: "Nächstes Symbol",
     invalidSymbol: "Ungültiges Symbol.",
     alertCta: "Alarm setzen",
     aiCta: "KI-Insights",

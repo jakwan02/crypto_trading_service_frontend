@@ -316,6 +316,8 @@ const ko = {
     hubDesc: "심볼을 선택해 상세 차트와 분석을 확인하세요.",
     chartTitle: "{{symbol}} Chart",
     chartDesc: "실시간 차트와 AI 분석 요약을 함께 확인할 수 있습니다.",
+    navPrev: "이전 심볼",
+    navNext: "다음 심볼",
     invalidSymbol: "심볼이 올바르지 않습니다.",
     alertCta: "알림 설정",
     aiCta: "AI 인사이트",
