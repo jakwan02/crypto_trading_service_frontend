@@ -17,6 +17,10 @@
 - [chart] WS/캐시 스냅샷 갭 방지(연속성 강제) + 갭 발생 시 서버 스냅샷 재동기화
   - impact: 5m 등에서 “20→30”처럼 캔들이 건너뛰어 빈 구간이 보이는 현상 방지, 누락 캔들이 늦게 와도 보류→즉시 반영으로 지표 뒤틀림 완화
 
+## 2026-01-27
+- [ops/http] 운영 호스트를 `159.195.28.57.nip.io`로 고정(공인 HTTPS 호스트 정합)
+  - impact: `NEXT_PUBLIC_WS_BASE_URL`/`API_PROXY_TARGET`가 공인 HTTPS 호스트로 일치해 mixed content/인증서 경고 리스크 감소
+
 ## 2026-01-22
 - [ux/frontend] 헤더 1줄 그리드 고정(h-16) + Desktop 네비(Primary/기능/더보기) 드롭다운 분리 + 모바일 드로어(overlay/scroll/ESC/focus/scroll-lock) 표준화
   - impact: 데스크탑/모바일에서 헤더 레이아웃 붕괴 방지, 모바일 메뉴 오버레이/스크롤/닫기 동작 일관화

@@ -1513,3 +1513,17 @@ Next:
   - docs/RECENT.md
 - Next:
   - (user run) 차트에서 5m 캔들 “건너뜀”이 더 이상 보이지 않는지 확인(WS/재연결/Load more 포함)
+
+## 2026-01-27 01:57 (local)
+- Task: nip.io 공인 HTTPS 호스트로 env 정합
+- Scope: .env.production, .env.production.example, docs/RECENT.md, codex_log.md
+- Why: 운영 호스트가 바뀌었는데 WS/API 프록시 타겟이 IP로 남으면 mixed content/인증서 경고/차단이 발생할 수 있다.
+- Key changes:
+  - `NEXT_PUBLIC_WS_BASE_URL`/`API_PROXY_TARGET`를 `https://159.195.28.57.nip.io`로 변경
+  - env 예시도 동일 호스트로 정합
+- Commands run:
+  - N/A
+- Logs/Artifacts:
+  - None
+- Next:
+  - (user run) 백엔드 레포에서 `docker compose up -d --build frontend frontend_green`로 프론트 재빌드/재기동
