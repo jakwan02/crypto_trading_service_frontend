@@ -20,6 +20,8 @@
 ## 2026-01-27
 - [ops/http] 운영 호스트를 `159.195.28.57.nip.io`로 고정(공인 HTTPS 호스트 정합)
   - impact: `NEXT_PUBLIC_WS_BASE_URL`/`API_PROXY_TARGET`가 공인 HTTPS 호스트로 일치해 mixed content/인증서 경고 리스크 감소
+- [fix/ux] LanguageSwitcher를 KR/US/JP/DE 단일 텍스트로 통일 + 선택/드롭다운 텍스트 굵기 정합화
+  - impact: KR에서 US/JP/DE 중복 표시(얇음+굵음 겹침) 제거, 선택된 텍스트도 굵게 표시
 
 ## 2026-01-22
 - [ux/frontend] 헤더 1줄 그리드 고정(h-16) + Desktop 네비(Primary/기능/더보기) 드롭다운 분리 + 모바일 드로어(overlay/scroll/ESC/focus/scroll-lock) 표준화

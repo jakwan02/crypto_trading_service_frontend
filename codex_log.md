@@ -1527,3 +1527,17 @@ Next:
   - None
 - Next:
   - (user run) 백엔드 레포에서 `docker compose up -d --build frontend frontend_green`로 프론트 재빌드/재기동
+
+## 2026-01-27 02:19 (local)
+- Task: 언어 스위처 중복 텍스트/굵기 정합화
+- Scope: src/components/LanguageSwitcher.tsx, docs/RECENT.md, codex_log.md
+- Why: KR 클릭 시 US/JP/DE가 얇은 텍스트+굵은 텍스트로 중복 렌더되고, 선택 텍스트가 얇게 보이던 UX를 제거
+- Key changes:
+  - 플래그(🇺🇸 등) 대신 KR/US/JP/DE 단일 텍스트로 표시 통일
+  - 선택/드롭다운 모두 `font-bold`로 굵기 일관화
+- Commands run:
+  - none
+- Logs/Artifacts:
+  - none
+- Next:
+  - 브라우저에서 KR/US/JP/DE 표시/굵기 확인
