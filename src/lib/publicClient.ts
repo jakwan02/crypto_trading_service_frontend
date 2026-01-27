@@ -108,15 +108,16 @@ function normalizeShared(payload: PublicSharedWatchlistResponse | unknown): Norm
   const itemsRaw = Array.isArray((obj as { items?: unknown[] }).items) ? (obj as { items?: unknown[] }).items ?? [] : [];
   const symbolsRaw = Array.isArray((obj as { symbols?: unknown[] }).symbols) ? (obj as { symbols?: unknown[] }).symbols ?? [] : [];
 
-  const items: Array<{ market: "spot" | "um" | "cm"; symbol: string }> = [];
+  const items: Array<{ market: "spot" | "um"; symbol: string }> = [];
   for (const it of itemsRaw) {
     if (!it || typeof it !== "object") continue;
     const rec = it as Record<string, unknown>;
     const symbol = String(rec.symbol || "").trim().toUpperCase();
     if (!symbol) continue;
     const market = String(rec.market || "spot").trim().toLowerCase();
-    const m = market === "um" || market === "cm" || market === "spot" ? market : "spot";
-    items.push({ market: m, symbol });
+    // 변경 이유: cm 마켓은 관리 심볼이 아니므로(프론트 지원 제외) 공유 워치리스트에서도 노출/처리하지 않는다.
+    if (market !== "spot" && market !== "um") continue;
+    items.push({ market, symbol });
   }
   for (const sym of symbolsRaw) {
     const s = String(sym || "").trim().toUpperCase();

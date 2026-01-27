@@ -82,8 +82,6 @@ export default function LanguageSwitcher({ variant = "default" }: Props) {
                       ? "border-primary/30 bg-primary/10 text-primary"
                       : "border-transparent text-gray-700 hover:border-primary/20 hover:bg-primary/5 hover:text-primary"
                   }`}
-                  aria-label={item.label}
-                  title={item.label}
                 >
                   {item.display}
                 </button>
@@ -126,8 +124,6 @@ export default function LanguageSwitcher({ variant = "default" }: Props) {
                     ? "border-primary/30 bg-primary/10 text-primary"
                     : "border-transparent text-gray-700 hover:border-primary/20 hover:bg-primary/5 hover:text-primary"
                 }`}
-                aria-label={item.label}
-                title={item.label}
               >
                 {item.display}
               </button>

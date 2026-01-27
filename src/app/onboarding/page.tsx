@@ -143,7 +143,6 @@ export default function OnboardingPage() {
                 <select value={market} onChange={(e) => setMarket(e.target.value)} className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700">
                   <option value="spot">spot</option>
                   <option value="um">um</option>
-                  <option value="cm">cm</option>
                 </select>
               </div>
               <div>

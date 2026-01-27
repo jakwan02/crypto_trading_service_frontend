@@ -15,7 +15,6 @@ export default function SharedWatchlistClient({ token }: Props) {
     if (!v) return "-";
     if (v === "spot") return t("watchlists.market.spot");
     if (v === "um") return t("watchlists.market.um");
-    if (v === "cm") return t("watchlists.market.cm");
     return String(raw || "").toUpperCase();
   };
   const query = useQuery({
@@ -23,7 +22,8 @@ export default function SharedWatchlistClient({ token }: Props) {
     queryFn: () => getSharedWatchlist(token),
     enabled: Boolean(token)
   });
-  const items = query.data?.items ?? [];
+  // 변경 이유: cm 마켓은 관리 심볼이 아니므로 공유 워치리스트에서도 노출하지 않는다.
+  const items = (query.data?.items ?? []).filter((it) => String(it.market || "").trim().toLowerCase() !== "cm");
 
   return (
     <main className="min-h-screen bg-transparent">

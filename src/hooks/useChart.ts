@@ -83,7 +83,7 @@ function normTf(tf: string): string {
 
 function normMarket(value: string): string {
   const m = String(value || "").trim().toLowerCase();
-  if (m === "spot" || m === "um" || m === "cm") return m;
+  if (m === "spot" || m === "um") return m;
   return "spot";
 }
 

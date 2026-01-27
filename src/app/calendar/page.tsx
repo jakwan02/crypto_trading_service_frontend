@@ -81,7 +81,16 @@ export default function CalendarPage() {
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-600">{t("calendar.market")}</label>
-              <input value={market} onChange={(e) => setMarket(e.target.value)} className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700" placeholder="spot|um|cm" />
+              <input
+                value={market}
+                onChange={(e) => {
+                  const v = String(e.target.value || "").trim().toLowerCase();
+                  // 변경 이유: cm 마켓은 관리 심볼이 아니므로 필터로도 입력되지 않게 한다.
+                  setMarket(v === "cm" ? "" : v);
+                }}
+                className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+                placeholder="spot|um"
+              />
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-600">{t("calendar.symbol")}</label>

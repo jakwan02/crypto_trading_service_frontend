@@ -22,6 +22,10 @@
   - impact: `NEXT_PUBLIC_WS_BASE_URL`/`API_PROXY_TARGET`가 공인 HTTPS 호스트로 일치해 mixed content/인증서 경고 리스크 감소
 - [fix/ux] LanguageSwitcher를 KR/US/JP/DE 단일 텍스트로 통일 + 선택/드롭다운 텍스트 굵기 정합화
   - impact: KR에서 US/JP/DE 중복 표시(얇음+굵음 겹침) 제거, 선택된 텍스트도 굵게 표시
+- [fix/ux] /settings 404 호환 리다이렉트(/account/settings) 추가 + Admin Users에 active/inactive/deleted 상태 탭/컬럼 추가
+  - impact: 온보딩 CTA "다음 단계" 404 제거, 탈퇴 계정과 비활성 계정 구분 가능
+- [ops/ux] cm(coin-m) 마켓의 메뉴/기능 제거 + 모니터링/워치리스트/캘린더에서 cm 노출 차단
+  - impact: 관리 심볼이 아닌 cm이 UI에 나타나거나 선택/필터되는 경로 제거(spot/um만 유지)
 
 ## 2026-01-22
 - [ux/frontend] 헤더 1줄 그리드 고정(h-16) + Desktop 네비(Primary/기능/더보기) 드롭다운 분리 + 모바일 드로어(overlay/scroll/ESC/focus/scroll-lock) 표준화

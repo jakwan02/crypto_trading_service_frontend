@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import RequireAdmin from "@/components/auth/RequireAdmin";
 import ApiErrorView from "@/components/common/ApiErrorView";
@@ -34,6 +34,14 @@ export default function AdminUsersPage() {
     return out;
   }, [usersQ.data]);
 
+  const statusText = useCallback(
+    (u: { deleted_at?: string | null; is_active: boolean }) => {
+      if (u.deleted_at) return t("adminUsers.statusDeleted");
+      return u.is_active ? t("adminUsers.statusActive") : t("adminUsers.statusInactive");
+    },
+    [t]
+  );
+
   return (
     <RequireAdmin>
       <main className="min-h-screen bg-transparent">
@@ -44,7 +52,7 @@ export default function AdminUsersPage() {
           </header>
 
           <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-2">
               <div>
                 <label className="text-xs font-semibold text-gray-600">{t("adminUsers.search")}</label>
                 <input
@@ -66,17 +74,30 @@ export default function AdminUsersPage() {
                   <option value="admin">{t("adminUsers.roleAdmin")}</option>
                 </select>
               </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-600">{t("adminUsers.status")}</label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
-                >
-                  <option value="">{t("adminUsers.all")}</option>
-                  <option value="active">{t("adminUsers.statusActive")}</option>
-                  <option value="inactive">{t("adminUsers.statusInactive")}</option>
-                </select>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-gray-600">{t("adminUsers.status")}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {[
+                  { key: "", label: t("adminUsers.all") },
+                  { key: "active", label: t("adminUsers.statusActive") },
+                  { key: "inactive", label: t("adminUsers.statusInactive") },
+                  { key: "deleted", label: t("adminUsers.statusDeleted") }
+                ].map((it) => (
+                  <button
+                    key={it.key || "all"}
+                    type="button"
+                    onClick={() => setStatus(it.key)}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                      status === it.key
+                        ? "bg-primary/10 text-primary"
+                        : "border border-gray-200 text-gray-700 hover:border-primary/30 hover:text-primary"
+                    }`}
+                  >
+                    {it.label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -91,6 +112,7 @@ export default function AdminUsersPage() {
                 <thead>
                   <tr className="border-b border-gray-200 text-xs font-semibold text-gray-500">
                     <th className="py-2 pr-4">{t("adminUsers.email")}</th>
+                    <th className="py-2 pr-4">{t("adminUsers.status")}</th>
                     <th className="py-2 pr-4">{t("adminUsers.role")}</th>
                     <th className="py-2 pr-4">{t("adminUsers.plan")}</th>
                     <th className="py-2 pr-4">{t("adminUsers.createdAt")}</th>
@@ -100,7 +122,7 @@ export default function AdminUsersPage() {
                 <tbody>
                   {items.length === 0 && !usersQ.isFetching ? (
                     <tr>
-                      <td colSpan={5} className="py-6 text-center text-sm text-gray-500">
+                      <td colSpan={6} className="py-6 text-center text-sm text-gray-500">
                         {t("adminUsers.empty")}
                       </td>
                     </tr>
@@ -112,6 +134,19 @@ export default function AdminUsersPage() {
                           {u.email}
                         </Link>
                         <div className="mt-1 text-xs text-gray-500">{u.id}</div>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                            u.deleted_at
+                              ? "bg-red-50 text-red-700"
+                              : u.is_active
+                                ? "bg-green-50 text-green-700"
+                                : "bg-gray-100 text-gray-700"
+                          }`}
+                        >
+                          {statusText(u)}
+                        </span>
                       </td>
                       <td className="py-3 pr-4">
                         <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-700">
@@ -146,4 +181,3 @@ export default function AdminUsersPage() {
     </RequireAdmin>
   );
 }
-

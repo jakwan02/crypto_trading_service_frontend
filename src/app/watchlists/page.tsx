@@ -303,7 +303,6 @@ export default function WatchlistsPage() {
                         >
                           <option value="spot">{t("watchlists.market.spot")}</option>
                           <option value="um">{t("watchlists.market.um")}</option>
-                          <option value="cm">{t("watchlists.market.cm")}</option>
                         </select>
                         <input
                           value={addSymbol}

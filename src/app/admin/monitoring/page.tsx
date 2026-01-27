@@ -12,7 +12,10 @@ export default function AdminMonitoringPage() {
   const [range, setRange] = useState<"1h" | "24h" | "7d">("1h");
   const q = useQuery({ queryKey: ["admin.kpi", range], queryFn: async () => await adminGetKpi(range) });
 
-  const ingestLagItems = q.data?.ingest_lag_sec_by_market ? Object.entries(q.data.ingest_lag_sec_by_market) : [];
+  // 변경 이유: cm 마켓은 관리 심볼이 아니므로 관리자 모니터링에서도 노출하지 않는다.
+  const ingestLagItems = q.data?.ingest_lag_sec_by_market
+    ? Object.entries(q.data.ingest_lag_sec_by_market).filter(([m]) => String(m).trim().toLowerCase() !== "cm")
+    : [];
   const maxLag = ingestLagItems.reduce((m, [, v]) => Math.max(m, Number(v) || 0), 0) || 1;
 
   return (
@@ -102,12 +105,14 @@ export default function AdminMonitoringPage() {
                 <p className="text-xs font-semibold text-gray-700">{t("adminMonitoring.ingestRetry")}</p>
                 <div className="mt-2 space-y-1 text-sm text-gray-700">
                   {q.data?.retry_queue_sizes?.ingest_retry
-                    ? Object.entries(q.data.retry_queue_sizes.ingest_retry).map(([k, v]) => (
-                        <div key={k} className="flex items-center justify-between">
-                          <span className="text-xs text-gray-600">{k}</span>
+                    ? Object.entries(q.data.retry_queue_sizes.ingest_retry)
+                        .filter(([k]) => String(k).trim().toLowerCase() !== "cm")
+                        .map(([k, v]) => (
+                          <div key={k} className="flex items-center justify-between">
+                            <span className="text-xs text-gray-600">{k}</span>
                           <span className="text-xs font-semibold text-gray-900">{Math.round(Number(v) || 0)}</span>
-                        </div>
-                      ))
+                          </div>
+                        ))
                     : <p className="text-sm text-gray-500">{t("adminMonitoring.noData")}</p>}
                 </div>
               </div>
@@ -115,12 +120,14 @@ export default function AdminMonitoringPage() {
                 <p className="text-xs font-semibold text-gray-700">{t("adminMonitoring.streamWorker")}</p>
                 <div className="mt-2 space-y-1 text-sm text-gray-700">
                   {q.data?.retry_queue_sizes?.stream_worker
-                    ? Object.entries(q.data.retry_queue_sizes.stream_worker).map(([k, v]) => (
-                        <div key={k} className="flex items-center justify-between">
-                          <span className="text-xs text-gray-600">{k}</span>
+                    ? Object.entries(q.data.retry_queue_sizes.stream_worker)
+                        .filter(([k]) => String(k).trim().toLowerCase() !== "cm")
+                        .map(([k, v]) => (
+                          <div key={k} className="flex items-center justify-between">
+                            <span className="text-xs text-gray-600">{k}</span>
                           <span className="text-xs font-semibold text-gray-900">{Math.round(Number(v) || 0)}</span>
-                        </div>
-                      ))
+                          </div>
+                        ))
                     : <p className="text-sm text-gray-500">{t("adminMonitoring.noData")}</p>}
                 </div>
               </div>

@@ -1,4 +1,4 @@
-export type PortfolioMarket = "spot" | "um" | "cm" | (string & {});
+export type PortfolioMarket = "spot" | "um" | (string & {});
 export type PortfolioPosSide = "long" | "short" | (string & {});
 export type PortfolioSide = "buy" | "sell" | (string & {});
 
@@ -96,4 +96,3 @@ export type PortfolioPerfResponse = {
   pnl?: { realized_net_quote?: number; unrealized_quote?: number };
   risk?: { mdd?: number; volatility?: number; sharpe?: number; sortino?: number };
 };
-

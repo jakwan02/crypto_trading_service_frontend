@@ -1,4 +1,4 @@
-export type AlertMarket = "spot" | "um" | "cm" | (string & {});
+export type AlertMarket = "spot" | "um" | (string & {});
 export type AlertWindow = "1m" | "5m" | "15m" | "1h" | "4h" | "1d" | "1w" | (string & {});
 export type AlertType = "price" | "pct" | "volume" | "indicator" | (string & {});
 export type AlertOp = "gt" | "ge" | "lt" | "le" | "cross_up" | "cross_down" | (string & {});
@@ -80,4 +80,3 @@ export type AlertEventListResponse = {
   items?: AlertEvent[];
   cursor_next?: string | null;
 };
-

@@ -1,4 +1,4 @@
-export type WatchlistMarket = "spot" | "um" | "cm" | (string & {});
+export type WatchlistMarket = "spot" | "um" | (string & {});
 
 export type WatchlistItem = {
   market: WatchlistMarket;
@@ -50,4 +50,3 @@ export type PublicSharedWatchlistResponse = {
 export type NormalizedSharedWatchlist = {
   items: Array<{ market: WatchlistMarket; symbol: string }>;
 };
-

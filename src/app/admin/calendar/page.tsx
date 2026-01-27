@@ -93,7 +93,16 @@ export default function AdminCalendarPage() {
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600">{t("adminCalendar.market")}</label>
-                <input value={form.market} onChange={(e) => setForm((p) => ({ ...p, market: e.target.value }))} className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700" placeholder="spot|um|cm" />
+                <input
+                  value={form.market}
+                  onChange={(e) => {
+                    const v = String(e.target.value || "").trim().toLowerCase();
+                    // 변경 이유: cm 마켓은 관리 심볼이 아니므로 입력/생성 경로에서 제거한다.
+                    setForm((p) => ({ ...p, market: v === "cm" ? "" : v }));
+                  }}
+                  className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+                  placeholder="spot|um"
+                />
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600">{t("adminCalendar.symbol")}</label>
@@ -145,4 +154,3 @@ export default function AdminCalendarPage() {
     </RequireAdmin>
   );
 }
-

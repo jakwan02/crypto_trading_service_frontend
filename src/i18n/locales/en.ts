@@ -1169,6 +1169,7 @@ const en = {
     roleAdmin: "Admin",
     statusActive: "active",
     statusInactive: "inactive",
+    statusDeleted: "deleted",
     email: "Email",
     plan: "Plan",
     createdAt: "Created",

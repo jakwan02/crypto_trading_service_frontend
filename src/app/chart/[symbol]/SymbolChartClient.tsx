@@ -49,7 +49,7 @@ export default function SymbolChartClient({ symbol }: Props) {
   const sym = (symbol || "").toUpperCase();
   const marketParam = useMemo(() => {
     const m = String(searchParams.get("market") || "").trim().toLowerCase();
-    return m === "spot" || m === "um" || m === "cm" ? m : "";
+    return m === "spot" || m === "um" ? m : "";
   }, [searchParams]);
   const tfWin = tf as MetricWindow;
   const tickerSymbols = useMemo(() => (sym ? [sym] : []), [sym]);

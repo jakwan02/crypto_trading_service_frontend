@@ -1541,3 +1541,40 @@ Next:
   - none
 - Next:
   - 브라우저에서 KR/US/JP/DE 표시/굵기 확인
+
+## 2026-01-27 07:51 (local)
+- Task: /settings 404 및 Admin Users 상태 구분 UX 보강
+- Scope: src/app/settings/page.tsx, src/components/LanguageSwitcher.tsx, src/app/admin/users/page.tsx, src/i18n/locales/{ko.ts,en.ts}, docs/RECENT.md, codex_log.md
+- Why: 헤더 온보딩 CTA가 `/settings`로 이동하며 404가 발생하고, Admin Users에서 inactive에 탈퇴 계정이 섞여 상태 구분이 어렵고, LanguageSwitcher 옵션에 보조 텍스트가 노출될 수 있다.
+- Key changes:
+  - `/settings` → `/account/settings` 호환 리다이렉트 추가(Next App Router)
+  - Admin Users에 active/inactive/deleted 상태 탭 + 테이블 상태 컬럼 추가
+  - LanguageSwitcher 옵션 버튼의 보조 label/title 속성 제거(표시 중복 가능성 차단)
+- Commands run:
+  - npm run lint
+  - npm run build
+- Logs/Artifacts:
+  - none
+
+## 2026-01-27 08:03 (local)
+- Task: cm(coin-m) 마켓 UI 제거(관리 심볼 아님)
+- Scope: src/{app,onboarding,watchlists,calendar,admin/monitoring}/**, src/hooks/{useSymbols.ts,useChart.ts}, src/lib/publicClient.ts, src/types/{alerts,portfolio,screener,watchlists}.ts, docs/RECENT.md, codex_log.md
+- Why: cm은 관리 심볼이 아니므로 프론트에서 선택/필터/표시되면 운영/UX 혼선을 만든다.
+- Key changes:
+  - 온보딩/워치리스트/차트 market 파라미터에서 cm 선택/허용 제거
+  - 캘린더(유저/어드민) market 입력에서 cm 입력 시 무시 처리
+  - 관리자 모니터링(ingest lag/queue)에서 cm 항목 숨김
+  - 공유 워치리스트 응답에서도 cm 아이템은 표시/정규화 제외
+- Commands run:
+  - (pending)
+- Logs/Artifacts:
+  - none
+
+## 2026-01-27 08:01 (local)
+- Task: cm 제거 변경 검증
+- Scope: (commands only)
+- Commands run:
+  - npm run lint
+  - npm run build
+- Logs/Artifacts:
+  - eslint warnings(existing): 13 warnings, 0 errors

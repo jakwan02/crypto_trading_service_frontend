@@ -1,4 +1,4 @@
-export type ScreenerMarket = "spot" | "um" | "cm" | (string & {});
+export type ScreenerMarket = "spot" | "um" | (string & {});
 export type ScreenerWindow = "1m" | "5m" | "15m" | "1h" | "4h" | "1d" | "1w" | (string & {});
 export type ScreenerMetricField = "pct" | "qv" | "volume" | "price" | (string & {});
 export type ScreenerOp = "gt" | "ge" | "lt" | "le" | (string & {});
@@ -89,4 +89,3 @@ export type SavedScreenerCreateRequest = {
 export type SavedScreenerCreateResponse = {
   id?: string;
 };
-

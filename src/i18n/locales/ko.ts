@@ -1169,6 +1169,7 @@ const ko = {
     roleAdmin: "Admin",
     statusActive: "active",
     statusInactive: "inactive",
+    statusDeleted: "deleted",
     email: "이메일",
     plan: "플랜",
     createdAt: "가입일",

@@ -15,9 +15,10 @@ export default function WatchlistTable({ items, onRemove }: Props) {
     if (!v) return "-";
     if (v === "spot") return t("watchlists.market.spot");
     if (v === "um") return t("watchlists.market.um");
-    if (v === "cm") return t("watchlists.market.cm");
     return String(raw || "").toUpperCase();
   };
+  // 변경 이유: cm 마켓은 관리 심볼이 아니므로 프론트에서 노출/조작 기능을 제공하지 않는다.
+  const safeItems = (items ?? []).filter((it) => String(it.market || "").trim().toLowerCase() !== "cm");
   return (
     <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
       <table className="w-full table-fixed">
@@ -29,8 +30,8 @@ export default function WatchlistTable({ items, onRemove }: Props) {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
-          {items.length ? (
-            items.map((it) => (
+          {safeItems.length ? (
+            safeItems.map((it) => (
               <tr key={`${it.market}:${it.symbol}`} className="bg-white">
                 <td className="px-4 py-3">{marketLabel(it.market)}</td>
                 <td className="px-4 py-3 font-semibold text-gray-900">{String(it.symbol || "").toUpperCase()}</td>
