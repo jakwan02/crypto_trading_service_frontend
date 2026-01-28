@@ -37,16 +37,11 @@ function stripApiSuffix(u: string) {
 
 function toApiBase(): string {
   const envRaw = String(process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
-  if (envRaw === "/" || envRaw.startsWith("/")) return "/api";
+  // 변경 이유: env 미설정(또는 "/") 시 브라우저에서는 단일 오리진(/api)을 기본으로 사용해 CORS를 제거한다.
+  if (!envRaw || envRaw === "/" || envRaw.startsWith("/")) return "/api";
   const env = (envRaw || DEFAULT_API_BASE_URL).trim();
   const root = stripApiSuffix(env);
   return root.endsWith("/api") ? root : `${root}/api`;
-}
-
-function withApiToken(headers?: HeadersInit): HeadersInit | undefined {
-  const token = String(process.env.NEXT_PUBLIC_API_TOKEN || "").trim();
-  if (!token) return headers;
-  return { ...(headers || {}), "X-API-Token": token };
 }
 
 function numOrNull(v: unknown): number | null {
@@ -115,7 +110,7 @@ async function fetchBootstrap(params: {
     limit: String(params.limit)
   });
   const url = `${api}/market/bootstrap?${q.toString()}`;
-  const res = await fetch(url, { cache: "no-store", headers: withApiToken() });
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`rankings_bootstrap_${res.status}`);
   return (await res.json()) as MarketBootstrapPayload;
 }

@@ -38,19 +38,10 @@ function stripApiSuffix(url: string): string {
 
 function toApiBase(): string {
   const apiEnv = String(process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
-  if (apiEnv === "/" || apiEnv.startsWith("/")) return "/api";
+  // 변경 이유: env 미설정(또는 "/") 시 브라우저에서는 단일 오리진(/api)을 기본으로 사용해 CORS를 제거한다.
+  if (!apiEnv || apiEnv === "/" || apiEnv.startsWith("/")) return "/api";
   const base = stripApiSuffix((apiEnv || DEFAULT_API_BASE_URL).trim());
   return base.endsWith("/api") ? base : `${base}/api`;
-}
-
-function getApiToken(): string {
-  return String(process.env.NEXT_PUBLIC_API_TOKEN || "").trim();
-}
-
-function withApiToken(headers?: HeadersInit): HeadersInit | undefined {
-  const token = getApiToken();
-  if (!token) return headers;
-  return { ...(headers || {}), "X-API-Token": token };
 }
 
 type Props = {
@@ -261,7 +252,6 @@ export default function SymbolChartClient({ symbol }: Props) {
     if (prefetchRef.current.inFlight) return;
     prefetchRef.current = { key, inFlight: true };
     const apiBase = toApiBase();
-    const headers = withApiToken();
 
     void (async () => {
       try {
@@ -273,8 +263,7 @@ export default function SymbolChartClient({ symbol }: Props) {
             market: orderMarket,
             symbol: s,
             tf: tfNorm,
-            tfs,
-            headers
+            tfs
           });
           const savedAt = Number(res.bundle?.now || 0) || Date.now();
           await putIdbBundleBytes(cacheKey, res.bytes, savedAt);

@@ -73,6 +73,9 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
   const lastLenRef = useRef<number>(0);
   const firstTimeRef = useRef<number>(0);
   const restoreRangeRef = useRef<{ from: number; to: number } | null>(null);
+  const autoLoadAtRef = useRef<number>(0);
+  const loadMoreRef = useRef<(() => void) | null>(null);
+  const loadingMoreRef = useRef<boolean>(false);
   const syncingRangeRef = useRef(false);
   const syncingCrosshairRef = useRef(false);
   const crosshairMapsRef = useRef<{
@@ -89,6 +92,14 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
 
   // 변경 이유: 차트 경로 market 파라미터를 우선 적용
   const { data: candles, error, loadMore, loadingMore, historyNotice } = useChart(symbol, timeframe, market);
+
+  useEffect(() => {
+    loadMoreRef.current = loadMore ? () => void loadMore() : null;
+  }, [loadMore]);
+
+  useEffect(() => {
+    loadingMoreRef.current = !!loadingMore;
+  }, [loadingMore]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -182,6 +193,9 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
           scaleMargins: { top: 0.1, bottom: 0.1 }
         },
         crosshair: { mode: 1 },
+        // 변경 이유: 모바일에서 핀치 확대/축소가 의도대로 동작하도록 차트 제스처 옵션을 명시한다.
+        handleScroll: { pressedMouseMove: true, mouseWheel: true, horzTouchDrag: true, vertTouchDrag: false },
+        handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
 
         // 가격 라벨(축/크로스헤어) 포맷: 이 버전에서는 여기만이 타입 안전한 경로입니다.
         localization: {
@@ -242,7 +256,10 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
           grid: { vertLines: { color: "#e5e7eb" }, horzLines: { color: "#f3f4f6" } },
           timeScale: { visible: false, borderColor: "#e5e7eb", timeVisible: false, secondsVisible: false },
           rightPriceScale: { borderColor: "#e5e7eb", scaleMargins: { top: 0.2, bottom: 0.1 } },
-          crosshair: { mode: 1 }
+          crosshair: { mode: 1 },
+          // 변경 이유: 보조 패널은 조회용(메인 차트만 스크롤/줌)으로 고정해 패널 간 상호 간섭을 제거한다.
+          handleScroll: { pressedMouseMove: false, mouseWheel: false, horzTouchDrag: false, vertTouchDrag: false },
+          handleScale: { axisPressedMouseMove: false, mouseWheel: false, pinch: false }
         });
         volumeChartRef.current = volumeChart;
         volumeSeriesRef.current = volumeChart.addSeries(mod.HistogramSeries, {
@@ -262,7 +279,10 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
           grid: { vertLines: { color: "#e5e7eb" }, horzLines: { color: "#f3f4f6" } },
           timeScale: { visible: false, borderColor: "#e5e7eb", timeVisible: false, secondsVisible: false },
           rightPriceScale: { borderColor: "#e5e7eb", scaleMargins: { top: 0.2, bottom: 0.2 } },
-          crosshair: { mode: 1 }
+          crosshair: { mode: 1 },
+          // 변경 이유: 보조 패널은 조회용(메인 차트만 스크롤/줌)으로 고정해 패널 간 상호 간섭을 제거한다.
+          handleScroll: { pressedMouseMove: false, mouseWheel: false, horzTouchDrag: false, vertTouchDrag: false },
+          handleScale: { axisPressedMouseMove: false, mouseWheel: false, pinch: false }
         });
         rsiChartRef.current = rsiChart;
         const series = rsiChart.addSeries(mod.LineSeries, {
@@ -289,7 +309,10 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
           grid: { vertLines: { color: "#e5e7eb" }, horzLines: { color: "#f3f4f6" } },
           timeScale: { visible: false, borderColor: "#e5e7eb", timeVisible: false, secondsVisible: false },
           rightPriceScale: { borderColor: "#e5e7eb", scaleMargins: { top: 0.2, bottom: 0.2 } },
-          crosshair: { mode: 1 }
+          crosshair: { mode: 1 },
+          // 변경 이유: 보조 패널은 조회용(메인 차트만 스크롤/줌)으로 고정해 패널 간 상호 간섭을 제거한다.
+          handleScroll: { pressedMouseMove: false, mouseWheel: false, horzTouchDrag: false, vertTouchDrag: false },
+          handleScale: { axisPressedMouseMove: false, mouseWheel: false, pinch: false }
         });
         macdChartRef.current = macdChart;
         macdHistSeriesRef.current = macdChart.addSeries(mod.HistogramSeries, {
@@ -327,6 +350,22 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
       if (rsiChart) charts.push(rsiChart);
       if (macdChart) charts.push(macdChart);
 
+      // 변경 이유: 좌측 스크롤 기반 과거 자동 로드를 지원한다(버튼은 보조 UX로 유지).
+      const autoLoad = (range: { from: number; to: number } | null) => {
+        if (!range) return;
+        if (!loadMoreRef.current) return;
+        if (loadingMoreRef.current) return;
+        const now = Date.now();
+        if (now - autoLoadAtRef.current < 1500) return;
+        // visible range의 from이 매우 작으면(왼쪽 끝 근접) 과거 페이지를 추가 로드
+        if (range.from > 8) return;
+        autoLoadAtRef.current = now;
+        restoreRangeRef.current = range;
+        loadMoreRef.current();
+      };
+      priceChart.timeScale().subscribeVisibleLogicalRangeChange(autoLoad);
+      unsubs.push(() => priceChart?.timeScale().unsubscribeVisibleLogicalRangeChange(autoLoad));
+
       const syncRange = (src: IChartApi, dest: IChartApi) => {
         const handler = (range: { from: number; to: number } | null) => {
           if (!range) return;
@@ -341,11 +380,10 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
         return () => src.timeScale().unsubscribeVisibleLogicalRangeChange(handler);
       };
 
-      for (let i = 0; i < charts.length; i += 1) {
-        for (let j = 0; j < charts.length; j += 1) {
-          if (i === j) continue;
-          unsubs.push(syncRange(charts[i], charts[j]));
-        }
+      // 변경 이유: 시간축 동기화는 메인(가격) → 보조 패널(단방향)로 제한해 보조 패널 조작이 다른 패널에 영향 주는 문제를 제거한다.
+      for (const dest of charts) {
+        if (dest === priceChart) continue;
+        unsubs.push(syncRange(priceChart, dest));
       }
 
       const syncCrosshair = (src: IChartApi) => {

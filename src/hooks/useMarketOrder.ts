@@ -19,7 +19,8 @@ type MarketOrderPayload = {
   server_time_ms?: number;
 };
 
-const DEFAULT_API_BASE_URL = "http://localhost:8001";
+// 변경 이유: NEXT_PUBLIC_API_BASE_URL 미설정 시에도 단일 오리진(/api) 기본값으로 동작하게 한다.
+const DEFAULT_API_BASE_URL = "/";
 
 function stripSlash(u: string) {
   return String(u || "").trim().replace(/\/+$/, "");
@@ -36,16 +37,6 @@ function toApiBase(): string {
   const env = (envRaw || DEFAULT_API_BASE_URL).trim();
   const root = stripApiSuffix(env);
   return root.endsWith("/api") ? root : `${root}/api`;
-}
-
-function getApiToken(): string {
-  return String(process.env.NEXT_PUBLIC_API_TOKEN || "").trim();
-}
-
-function withApiToken(headers?: HeadersInit): HeadersInit | undefined {
-  const token = getApiToken();
-  if (!token) return headers;
-  return { ...(headers || {}), "X-API-Token": token };
 }
 
 function toSortParam(key: SortKey): string {
@@ -116,7 +107,7 @@ async function fetchOrderAll(args: {
     });
     if (q) params.set("q", q);
     const url = `${api}/market/order?${params.toString()}`;
-    const res = await fetch(url, { cache: "no-store", headers: withApiToken() });
+    const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) throw new Error(`market_order_http_${res.status}`);
     const js = (await res.json()) as MarketOrderPayload;
     const chunk = Array.isArray(js.order) ? js.order : [];
@@ -218,4 +209,3 @@ export function useMarketOrder(
 
   return { key, order, savedAt, isLoading, isError };
 }
-

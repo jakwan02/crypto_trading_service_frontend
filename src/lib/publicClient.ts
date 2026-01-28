@@ -17,18 +17,18 @@ function stripKnownSuffix(value: string): string {
 
 function resolveApiBase(): string {
   const envRaw = String(process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
-  if (envRaw === "/" || envRaw.startsWith("/")) return "/api";
+  // 변경 이유: env 미설정(또는 "/") 시 브라우저에서는 단일 오리진(/api)을 기본으로 사용해 CORS를 제거한다.
+  if (!envRaw || envRaw === "/" || envRaw.startsWith("/")) {
+    if (typeof window !== "undefined") return "/api";
+    const root = stripKnownSuffix(DEFAULT_API_BASE_URL);
+    return `${root}/api`;
+  }
   const env = (envRaw || DEFAULT_API_BASE_URL).trim();
   const root = stripKnownSuffix(env);
   return `${root}/api`;
 }
 
 const API_BASE_URL = resolveApiBase();
-
-function withApiToken(headers: Headers): void {
-  const token = String(process.env.NEXT_PUBLIC_API_TOKEN || "").trim();
-  if (token) headers.set("X-API-Token", token);
-}
 
 function withRequestId(headers: Headers): void {
   if (headers.has("X-Request-Id")) return;
@@ -83,7 +83,6 @@ function buildUrl(path: string): string {
 
 export async function publicRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
-  withApiToken(headers);
   withRequestId(headers);
 
   const url = buildUrl(path);

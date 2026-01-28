@@ -23,18 +23,18 @@ function stripKnownSuffix(value: string): string {
 
 function resolveAppBase(): string {
   const envRaw = String(process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
-  if (envRaw === "/" || envRaw.startsWith("/")) return "/app";
+  // 변경 이유: env 미설정(또는 "/") 시 브라우저에서는 단일 오리진(/app)을 기본으로 사용해 CORS를 제거한다.
+  if (!envRaw || envRaw === "/" || envRaw.startsWith("/")) {
+    if (typeof window !== "undefined") return "/app";
+    const root = stripKnownSuffix(DEFAULT_API_BASE_URL);
+    return `${root}/app`;
+  }
   const env = (envRaw || DEFAULT_API_BASE_URL).trim();
   const root = stripKnownSuffix(env);
   return `${root}/app`;
 }
 
 const APP_BASE_URL = resolveAppBase();
-
-function withApiToken(headers: Headers): void {
-  const token = String(process.env.NEXT_PUBLIC_API_TOKEN || "").trim();
-  if (token) headers.set("X-API-Token", token);
-}
 
 function withRequestId(headers: Headers): void {
   if (headers.has("X-Request-Id")) return;
@@ -119,7 +119,6 @@ async function tryRefreshAccessToken(): Promise<string | null> {
   if (!csrf) return null;
 
   const headers = new Headers();
-  withApiToken(headers);
   headers.set("X-CSRF-Token", csrf);
   try {
     const res = await fetch(buildUrl("/auth/refresh"), {
@@ -140,7 +139,6 @@ async function tryRefreshAccessToken(): Promise<string | null> {
 
 export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
-  withApiToken(headers);
   withRequestId(headers);
   if (init.csrf) {
     const csrf = getCookieValue("csrf");

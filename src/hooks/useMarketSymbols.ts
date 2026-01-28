@@ -59,8 +59,9 @@ type UseMarketSymbolsOptions = {
   scope?: MarketScope;
 };
 
-const DEFAULT_API_BASE_URL = "http://localhost:8001";
-const DEFAULT_WS_BASE_URL = "ws://localhost:8002";
+// 변경 이유: NEXT_PUBLIC_* 미설정 시에도 단일 오리진(/api + /ws_*)을 기본으로 해 CORS/포트 드리프트를 제거한다.
+const DEFAULT_API_BASE_URL = "/";
+const DEFAULT_WS_BASE_URL = "/";
 const METRICS_FLUSH_MS = Number(process.env.NEXT_PUBLIC_OVERVIEW_FLUSH_MS || 1200);
 const SWAP_DEBOUNCE_MS = Number(process.env.NEXT_PUBLIC_OVERVIEW_REPLACE_DEBOUNCE_MS || 200);
 const BOOTSTRAP_LIMIT = 30;
@@ -87,35 +88,20 @@ function toApiBase(): string {
 function toWsBase(): string {
   const raw = String(process.env.NEXT_PUBLIC_WS_BASE_URL || DEFAULT_WS_BASE_URL).trim();
   let base = stripSlash(raw);
+  if (base === "" || base === "/") {
+    if (typeof window === "undefined") return "";
+    const proto = window.location.protocol === "https:" ? "wss://" : "ws://";
+    return proto + window.location.host;
+  }
   if (base.startsWith("https://")) base = "wss://" + base.slice("https://".length);
   if (base.startsWith("http://")) base = "ws://" + base.slice("http://".length);
   return base;
 }
 
-function getApiToken(): string {
-  return String(process.env.NEXT_PUBLIC_API_TOKEN || "").trim();
-}
-
-function getWsToken(): string {
-  return String(process.env.NEXT_PUBLIC_WS_TOKEN || "").trim();
-}
-
-function getWsAuthToken(): string {
-  return getWsToken() || getApiToken();
-}
-
-function withApiToken(headers?: HeadersInit): HeadersInit | undefined {
-  const token = getApiToken();
-  if (!token) return headers;
-  return { ...(headers || {}), "X-API-Token": token };
-}
-
 function getWsProtocols(): string[] | undefined {
   // 변경 이유: 기본은 subprotocol 미사용(프록시/서버 호환성)
   if (process.env.NEXT_PUBLIC_WS_SUBPROTO !== "1") return undefined;
-  const token = getWsAuthToken();
-  if (!token) return undefined;
-  return [`token.${token}`];
+  return undefined;
 }
 
 function numOrNull(v: unknown): number | null {
@@ -179,10 +165,6 @@ function buildWsUrl(
   const w = encodeURIComponent(window);
   const sc = encodeURIComponent(scope);
   let url = `${base}/ws_rt?market=${m}&window=${w}&scope=${sc}`;
-  const token = getWsAuthToken();
-  if (token) {
-    url += `&token=${encodeURIComponent(token)}`;
-  }
   if (symbols.length) {
     url += `&symbols=${encodeURIComponent(symbols.join(","))}`;
   } else {
@@ -223,7 +205,7 @@ async function fetchMarketPayload(
   if (endpoint === "page") params.set("cursor", String(cursor || 0));
   if (query) params.set("q", query);
   const url = `${api}/market/${endpoint}?${params.toString()}`;
-  const res = await fetch(url, { cache: "no-store", headers: withApiToken() });
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`market_${endpoint}_${res.status}`);
   return (await res.json()) as MarketPayload;
 }

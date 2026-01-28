@@ -28,7 +28,12 @@ function stripKnownSuffix(value: string): string {
 
 function resolveAppBase(): string {
   const envRaw = String(process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
-  if (envRaw === "/" || envRaw.startsWith("/")) return "/app";
+  // 변경 이유: env 미설정(또는 "/") 시 브라우저에서는 단일 오리진(/app)을 기본으로 사용해 CORS를 제거한다.
+  if (!envRaw || envRaw === "/" || envRaw.startsWith("/")) {
+    if (typeof window !== "undefined") return "/app";
+    const root = stripKnownSuffix(DEFAULT_API_BASE_URL);
+    return `${root}/app`;
+  }
   const env = (envRaw || DEFAULT_API_BASE_URL).trim();
   const root = stripKnownSuffix(env);
   return `${root}/app`;

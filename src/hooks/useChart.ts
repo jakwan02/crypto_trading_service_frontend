@@ -52,12 +52,13 @@ type WsUpd = {
   volume?: number;
 };
 
-const DEFAULT_API_BASE_URL = "http://localhost:8001";
-const DEFAULT_WS_BASE_URL = "ws://localhost:8002";
+// 변경 이유: NEXT_PUBLIC_* 미설정 시에도 단일 오리진(/api + /ws_*)을 기본으로 해 CORS/포트 드리프트를 제거한다.
+const DEFAULT_API_BASE_URL = "/";
+const DEFAULT_WS_BASE_URL = "/";
 const REVALIDATE_MS = 300_000;
 const HARD_REFRESH_COOLDOWN_MS = 10_000;
 const TF_LIMIT: Record<string, number> = {
-  "1m": 720,
+  "1m": 2000,
   "5m": 720,
   "15m": 720,
   "1h": 720,
@@ -149,35 +150,26 @@ function toApiBase(): string {
 function toWsBase(): string {
   const raw = String(process.env.NEXT_PUBLIC_WS_BASE_URL || DEFAULT_WS_BASE_URL).trim();
   let base = raw.replace(/\/+$/, "");
+  if (base === "" || base === "/") {
+    if (typeof window === "undefined") return "";
+    const proto = window.location.protocol === "https:" ? "wss://" : "ws://";
+    return proto + window.location.host;
+  }
   if (base.startsWith("https://")) base = "wss://" + base.slice("https://".length);
   if (base.startsWith("http://")) base = "ws://" + base.slice("http://".length);
   return base;
 }
 
-function getApiToken(): string {
-  return String(process.env.NEXT_PUBLIC_API_TOKEN || "").trim();
-}
-
-function getWsToken(): string {
-  return String(process.env.NEXT_PUBLIC_WS_TOKEN || "").trim();
-}
-
-function getWsAuthToken(): string {
-  return getWsToken() || getApiToken();
-}
-
-function withApiToken(headers?: HeadersInit): HeadersInit | undefined {
-  const token = getApiToken();
-  if (!token) return headers;
-  return { ...(headers || {}), "X-API-Token": token };
+function shouldTrimContiguous(): boolean {
+  // 변경 이유: gap(누락)이 있어도 "최근 몇 개만 남는" UX를 방지하기 위해 기본은 fail-open(트림 비활성).
+  const raw = String(process.env.NEXT_PUBLIC_CHART_TRIM_CONTIGUOUS_SUFFIX || "").trim().toLowerCase();
+  return raw === "1" || raw === "true";
 }
 
 function getWsProtocols(): string[] | undefined {
   // 변경 이유: 기본은 subprotocol 미사용(프록시/서버 호환성)
   if (process.env.NEXT_PUBLIC_WS_SUBPROTO !== "1") return undefined;
-  const token = getWsAuthToken();
-  if (!token) return undefined;
-  return [`token.${token}`];
+  return undefined;
 }
 
 function toMs(raw: unknown): number {
@@ -339,15 +331,13 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
 
       let out = _dedupSortCandles(parsed);
       if (limit > 0 && out.length > limit) out = out.slice(out.length - limit);
-      out = _trimToContiguousSuffix(out, step);
+      if (shouldTrimContiguous()) out = _trimToContiguousSuffix(out, step);
 
       const temp = parseCandle(tempRaw);
       if (temp) {
         const lastTime = out.length ? out[out.length - 1].time : 0;
-        // 변경 이유: temp가 gap을 만들면(예: 스냅샷이 suffix로 트림됨) 차트에 빈 구간이 생기므로, 연속일 때만 반영한다.
-        if (_canAppendNoGap(lastTime, temp.time, step)) {
-          return upsert(out, temp, Math.max(limit, 1));
-        }
+        // 변경 이유: 스냅샷이 dirty/갭 상태여도 최신 temp는 사용자에게 즉시 보여주는 것이 UX/운영 최선이다.
+        if (!lastTime || temp.time >= lastTime) return upsert(out, temp, Math.max(limit, 1));
       }
       return out;
     },
@@ -370,17 +360,17 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
 
       // 변경 이유: 캐시 미리보기 동안 WS 델타를 즉시 붙이지 않아 "잠깐 생겼다 사라지는" 마지막 캔들(현재 티커) 플리커를 제거
       const pending = source === "server" ? pendingDeltaRef.current : null;
-      // 변경 이유: 스냅샷/WS 델타 결합이 gap을 만들면 차트에 빈 구간이 생기므로, 연속일 때만 결합한다.
-      const base = _trimToContiguousSuffix(_dedupSortCandles(next || []), step);
+      const base0 = _dedupSortCandles(next || []);
+      const base = shouldTrimContiguous() ? _trimToContiguousSuffix(base0, step) : base0;
       const baseLast = base.length ? base[base.length - 1].time : 0;
-      const merged = pending && _canAppendNoGap(baseLast, pending.time, step) ? upsert(base, pending, 1200) : base;
+      const merged = pending && (!baseLast || pending.time >= baseLast) ? upsert(base, pending, 1200) : base;
 
       if (source === "server") {
         if (!pending) {
           pendingDeltaRef.current = null;
         } else if (baseLast && pending.time <= baseLast) {
           pendingDeltaRef.current = null;
-        } else if (_canAppendNoGap(baseLast, pending.time, step)) {
+        } else if (!baseLast || pending.time >= baseLast) {
           pendingDeltaRef.current = null;
         }
         restReadyRef.current = true;
@@ -433,8 +423,7 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
           symbol: s,
           tf: t,
           // 변경 이유: 차트 초기 진입 지연 편차(모든 TF 번들 다운로드/파싱)를 줄이기 위해 현재 TF만 요청한다.
-          tfs: [t],
-          headers: withApiToken()
+          tfs: [t]
         });
         if (rid !== bundleReqIdRef.current) return;
         if (bundleKeyRef.current && bundleKeyRef.current !== cacheKey) return;
@@ -547,12 +536,10 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         `&symbol=${encodeURIComponent(nextParams.symbol)}` +
         `&tf=${encodeURIComponent(nextParams.tf)}` +
         `&limit=${encodeURIComponent(String(nextParams.limit))}`;
-      const token = getWsAuthToken();
-      const finalUrl = token ? `${url}&token=${encodeURIComponent(token)}` : url;
 
       let next: WebSocket;
       try {
-        next = new WebSocket(finalUrl, getWsProtocols());
+        next = new WebSocket(url, getWsProtocols());
       } catch {
         scheduleReconnect();
         return;
@@ -775,7 +762,7 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
         `&before=${encodeURIComponent(String(oldest))}` +
         `&limit=${encodeURIComponent(String(limit))}`;
 
-      const res = await fetch(url, { cache: "no-store", headers: withApiToken() });
+      const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error(`history_http_${res.status}`);
       const js = await res.json();
       const items = Array.isArray(js?.items) ? js.items : [];
@@ -788,14 +775,8 @@ export function useChart(symbol: string | null, timeframe: string, marketOverrid
 
       if (older.length > 0) {
         const step = getTfStepMs(tfNorm);
-        const olderSorted = _trimToContiguousSuffix(_dedupSortCandles(older), step);
-        const olderLast = olderSorted.length ? olderSorted[olderSorted.length - 1].time : 0;
-        // 변경 이유: 과거 데이터를 prepend할 때도 gap이 생기면 차트에 빈 구간이 생기므로, 경계가 연속일 때만 병합한다.
-        if (olderLast && oldest && olderLast !== oldest - step) {
-          pushNotice("error", "과거 데이터에 빈 구간이 있어 복구 중입니다. 잠시 후 다시 시도해주세요.");
-          triggerHardRefresh("gap");
-          return;
-        }
+        const olderSorted0 = _dedupSortCandles(older);
+        const olderSorted = shouldTrimContiguous() ? _trimToContiguousSuffix(olderSorted0, step) : olderSorted0;
         const merged = _dedupSortCandles([...olderSorted, ...(data || [])]);
         setData(merged);
         const cacheKey = `${m}:${sym}`;
