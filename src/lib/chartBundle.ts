@@ -17,6 +17,7 @@ type FetchArgs = {
   market: string;
   symbol: string;
   tf?: string;
+  tfs?: string[];
   headers?: HeadersInit;
 };
 
@@ -36,11 +37,12 @@ export async function fetchChartBundle(args: FetchArgs): Promise<{
   bytes: Uint8Array;
   contentType: string;
 }> {
-  const { apiBase, market, symbol, tf, headers } = args;
+  const { apiBase, market, symbol, tf, tfs, headers } = args;
   const url =
     `${apiBase}/chart/bundle` +
     `?market=${encodeURIComponent(market)}` +
     `&symbol=${encodeURIComponent(symbol)}` +
+    (tfs?.length ? `&tfs=${encodeURIComponent(tfs.join(","))}` : "") +
     (tf ? `&tf=${encodeURIComponent(tf)}` : "");
   const reqHeaders: HeadersInit = {
     Accept: MSGPACK_MIME,
