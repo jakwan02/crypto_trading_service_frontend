@@ -19,7 +19,18 @@ export default function ResetPasswordPage() {
     /* # 변경 이유: Next prerender 시 useSearchParams 사용으로 빌드 오류가 발생해, 클라이언트에서만 token 파라미터를 파싱 */
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    setToken(params.get("token") || "");
+    const tok = params.get("token") || "";
+    setToken(tok);
+    // 변경 이유: URL 쿼리의 토큰이 Referrer 등으로 유출될 여지를 줄이기 위해, 파싱 직후 history에서 제거한다.
+    if (tok) {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("token");
+        window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+      } catch {
+        // ignore
+      }
+    }
   }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {

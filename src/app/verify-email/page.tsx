@@ -35,6 +35,16 @@ export default function VerifyEmailPage() {
     setNextPath(next);
     if (nextEmail) setEmail(nextEmail);
     if (nextEmail && !nextToken) setStatus(t("auth.signupSuccess"));
+    // 변경 이유: URL 쿼리의 토큰이 Referrer 등으로 유출될 여지를 줄이기 위해, 파싱 직후 history에서 제거한다.
+    if (nextToken) {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("token");
+        window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+      } catch {
+        // ignore
+      }
+    }
   }, []);
 
   useEffect(() => {

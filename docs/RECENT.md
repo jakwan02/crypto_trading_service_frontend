@@ -3,6 +3,10 @@
 > 규칙: 최신 30개까지만 유지. 오래된 항목은 아래로 밀고 제거.
 > 항목 1개는 2~4줄 이내로 압축(무조건).
 
+## 2026-01-28
+- [security/design2] 브라우저 공유 시크릿(NEXT_PUBLIC_API_TOKEN/NEXT_PUBLIC_WS_TOKEN) 제거 + 공용 Markdown 렌더러(validateLink/rel)로 XSS 링크 스킴 보강 + verify/reset 쿼리 토큰 즉시 제거 + Next 보안 헤더(보조)
+  - impact: 번들 시크릿 노출/쿼리 토큰 referrer 유출/XSS 링크 스킴 리스크 완화(계약 변경)
+
 ## 2026-01-23
 - [ops/env] 배포용 `.env.production.example` 추가(+ `.env.production`은 VPS에서 생성) + 도커 빌드에서 `.env.local` 제외(.dockerignore)로 로컬/배포 env 드리프트 방지(HTTPS OFF 전제)
   - impact: VPS 도커 빌드에서 local env(localhost)가 섞여 배포 번들이 잘못되는 문제 차단, 운영 WS base는 `http://<host>`로 통일

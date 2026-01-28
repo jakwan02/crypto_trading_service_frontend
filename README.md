@@ -28,11 +28,6 @@ npm run dev
 
 - `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
 
-선택 (API/WS 토큰 보호 사용 시):
-
-- `NEXT_PUBLIC_API_TOKEN`
-- `NEXT_PUBLIC_WS_TOKEN`
-
 선택 (개발용 Mock 결제 테스트):
 
 - `NEXT_PUBLIC_ENABLE_DEV_BILLING` (`1`이면 `/dev/billing`, `/api/dev/billing/checkout` 활성화; production에서는 404)

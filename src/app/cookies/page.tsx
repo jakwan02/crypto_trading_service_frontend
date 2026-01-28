@@ -5,12 +5,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import ApiErrorView from "@/components/common/ApiErrorView";
 import { getLatestLegal } from "@/lib/legalClient";
-import MarkdownIt from "markdown-it";
+import { getMarkdownRenderer } from "@/lib/markdown";
 
 export default function CookiesPolicyPage() {
   const { t, i18n } = useTranslation();
   const locale = String(i18n.language || "ko").split("-")[0];
-  const md = useMemo(() => new MarkdownIt({ html: false, linkify: true, breaks: true }), []);
+  const md = useMemo(() => getMarkdownRenderer(), []);
 
   const q = useQuery({ queryKey: ["legal.cookie", locale], queryFn: () => getLatestLegal("cookie", locale), retry: 1 });
   const doc = q.data;
@@ -34,4 +34,3 @@ export default function CookiesPolicyPage() {
     </main>
   );
 }
-

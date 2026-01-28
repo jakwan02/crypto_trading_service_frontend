@@ -11,8 +11,7 @@
   - 예: `ws://localhost:8002` 또는 `https://example.com`(코드에서 wss로 변환)
 
 ## Optional (토큰 보호 사용 시)
-- `NEXT_PUBLIC_API_TOKEN` (REST `/api/*` 토큰 보호 시)
-- `NEXT_PUBLIC_WS_TOKEN` (WS 토큰 보호 시)
+- (없음) 브라우저 번들에 공유 시크릿을 포함하지 않는다(`NEXT_PUBLIC_*` 토큰 미사용)
 
 ## Optional (Google OIDC)
 - `NEXT_PUBLIC_GOOGLE_CLIENT_ID`

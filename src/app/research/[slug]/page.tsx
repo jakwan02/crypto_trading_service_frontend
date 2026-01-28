@@ -7,13 +7,13 @@ import { useTranslation } from "react-i18next";
 import ApiErrorView from "@/components/common/ApiErrorView";
 import Link from "next/link";
 import { getPost, listRecommendations, trackPostView } from "@/lib/postsClient";
-import MarkdownIt from "markdown-it";
+import { getMarkdownRenderer } from "@/lib/markdown";
 
 export default function ResearchPostPage() {
   const { t } = useTranslation();
   const params = useParams<{ slug?: string }>();
   const slug = String(params?.slug || "").trim();
-  const md = useMemo(() => new MarkdownIt({ html: false, linkify: true, breaks: true }), []);
+  const md = useMemo(() => getMarkdownRenderer(), []);
 
   const q = useQuery({
     queryKey: ["posts", slug],

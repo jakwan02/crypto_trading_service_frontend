@@ -6,13 +6,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import ApiErrorView from "@/components/common/ApiErrorView";
 import { getChangelog } from "@/lib/changelogClient";
-import MarkdownIt from "markdown-it";
+import { getMarkdownRenderer } from "@/lib/markdown";
 
 export default function ChangelogDetailPage() {
   const { t } = useTranslation();
   const params = useParams<{ slug?: string }>();
   const slug = String(params?.slug || "").trim();
-  const md = useMemo(() => new MarkdownIt({ html: false, linkify: true, breaks: true }), []);
+  const md = useMemo(() => getMarkdownRenderer(), []);
 
   const q = useQuery({
     queryKey: ["changelog", slug],
@@ -59,4 +59,3 @@ export default function ChangelogDetailPage() {
     </main>
   );
 }
-
