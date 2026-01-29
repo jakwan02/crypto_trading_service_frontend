@@ -74,6 +74,14 @@ export default function SymbolChartClient({ symbol }: Props) {
     const m = String(searchParams.get("market") || "").trim().toLowerCase();
     return m === "spot" || m === "um" ? m : "";
   }, [searchParams]);
+  const focusTsMs = useMemo(() => {
+    const raw = String(searchParams.get("ts") || "").trim();
+    if (!raw) return 0;
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return 0;
+    // 변경 이유: seconds epoch(1e9대) 입력도 허용해 외부 링크 호환성을 높인다.
+    return n < 100_000_000_000 ? Math.floor(n * 1000) : Math.floor(n);
+  }, [searchParams]);
   const tfWin = tf as MetricWindow;
   const tickerSymbols = useMemo(() => (sym ? [sym] : []), [sym]);
   const { data: symbols } = useSymbols(tfWin, {
@@ -212,6 +220,12 @@ export default function SymbolChartClient({ symbol }: Props) {
   const priceValue = Number.isFinite(livePrice ?? NaN) ? Number(livePrice) : info?.price ?? NaN;
   const favMarket = marketParam || info?.market || "spot";
   const orderMarket = marketParam || info?.market || storeMarket || "spot";
+  const focusBadge = useMemo(() => {
+    if (!focusTsMs) return "";
+    const d = new Date(focusTsMs);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleString();
+  }, [focusTsMs]);
 
   const { order: orderedSymbols, isLoading: orderLoading } = useMarketOrder(
     {
@@ -706,11 +720,30 @@ export default function SymbolChartClient({ symbol }: Props) {
                   {t("chart.freeHistory")}
                 </span>
               ) : null}
+              {focusTsMs ? (
+                <span className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-800">
+                  <span className="font-semibold">{t("chart.replay")}</span>
+                  <span className="text-amber-700">{focusBadge || "-"}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = new URLSearchParams(searchParams.toString());
+                      next.delete("ts");
+                      const qs = next.toString();
+                      router.replace(qs ? `?${qs}` : "?", { scroll: false });
+                    }}
+                    className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-amber-800 ring-1 ring-amber-200"
+                  >
+                    {t("chart.replayClear")}
+                  </button>
+                </span>
+              ) : null}
             </div>
             <ChartContainer
               symbol={sym}
               timeframe={tf}
               market={marketParam || undefined}
+              focusTsMs={focusTsMs || undefined}
               onLastCandle={handleLastCandle}
               onIndicators={handleIndicators}
               indicatorConfig={indicatorCfg}

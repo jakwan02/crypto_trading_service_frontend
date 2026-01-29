@@ -14,6 +14,7 @@ type Props = {
   symbol: string | null;
   timeframe: string;
   market?: string;
+  focusTsMs?: number;
   onLastCandle?: (candle: Candle | null) => void;
   onIndicators?: (indicators: TechIndicators | null) => void;
   indicatorConfig?: ChartIndicatorConfigV1;
@@ -39,7 +40,7 @@ function fmtPrice(px: number, precision: number, locale: string): string {
   });
 }
 
-export default function ChartContainer({ symbol, timeframe, market, onLastCandle, onIndicators, indicatorConfig }: Props) {
+export default function ChartContainer({ symbol, timeframe, market, focusTsMs, onLastCandle, onIndicators, indicatorConfig }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const priceRef = useRef<HTMLDivElement | null>(null);
   const volumeRef = useRef<HTMLDivElement | null>(null);
@@ -76,6 +77,9 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
   const autoLoadAtRef = useRef<number>(0);
   const loadMoreRef = useRef<(() => void) | null>(null);
   const loadingMoreRef = useRef<boolean>(false);
+  const focusKeyRef = useRef<string>("");
+  const focusLoadAttemptsRef = useRef<number>(0);
+  const focusLoadAtRef = useRef<number>(0);
   const syncingRangeRef = useRef(false);
   const syncingCrosshairRef = useRef(false);
   const crosshairMapsRef = useRef<{
@@ -100,6 +104,76 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
   useEffect(() => {
     loadingMoreRef.current = !!loadingMore;
   }, [loadingMore]);
+
+  useEffect(() => {
+    focusKeyRef.current = "";
+    focusLoadAttemptsRef.current = 0;
+    focusLoadAtRef.current = 0;
+  }, [symbol, timeframe, focusTsMs]);
+
+  useEffect(() => {
+    // 변경 이유: focus(ts) 리플레이 진입 시 과거 데이터가 부족하면 자동으로 history를 추가 로드해 앵커로 이동할 수 있게 한다.
+    const focus = Number(focusTsMs || 0);
+    if (!Number.isFinite(focus) || focus <= 0) return;
+    if (!symbol) return;
+    if (!candles || candles.length === 0) return;
+    if (!loadMoreRef.current) return;
+
+    const focusSec = Math.floor(focus / 1000);
+    const firstSec = Math.floor(Number(candles[0]?.time || 0) / 1000);
+    if (!Number.isFinite(focusSec) || !Number.isFinite(firstSec)) return;
+    if (focusSec >= firstSec) return;
+    if (loadingMoreRef.current) return;
+
+    const now = Date.now();
+    if (now - focusLoadAtRef.current < 900) return;
+    if (focusLoadAttemptsRef.current >= 12) return;
+    focusLoadAtRef.current = now;
+    focusLoadAttemptsRef.current += 1;
+    const ts = priceChartRef.current?.timeScale();
+    const prevRange = ts ? ts.getVisibleLogicalRange() : null;
+    if (prevRange) restoreRangeRef.current = prevRange;
+    loadMoreRef.current();
+  }, [candles, focusTsMs, symbol]);
+
+  useEffect(() => {
+    // 변경 이유: focus(ts) 리플레이는 1회만 앵커로 이동하고 이후에는 사용자의 스크롤/줌을 존중한다.
+    const focus = Number(focusTsMs || 0);
+    if (!Number.isFinite(focus) || focus <= 0) return;
+    if (!symbol) return;
+    if (!seriesReady) return;
+    if (!candles || candles.length === 0) return;
+    const priceChart = priceChartRef.current;
+    if (!priceChart) return;
+
+    const focusSec = Math.floor(focus / 1000);
+    const firstSec = Math.floor(Number(candles[0]?.time || 0) / 1000);
+    const lastSec = Math.floor(Number(candles[candles.length - 1]?.time || 0) / 1000);
+    if (!Number.isFinite(focusSec) || !Number.isFinite(firstSec) || !Number.isFinite(lastSec)) return;
+    if (focusSec < firstSec || focusSec > lastSec) return;
+
+    const key = `${String(symbol)}:${String(timeframe)}:${String(focusSec)}`;
+    if (focusKeyRef.current === key) return;
+
+    const times = candles.map((c) => Math.floor(Number(c.time || 0) / 1000));
+    let idx = 0;
+    for (let i = 0; i < times.length; i += 1) {
+      if (times[i] >= focusSec) {
+        idx = i;
+        break;
+      }
+      idx = i;
+    }
+
+    const ts = priceChart.timeScale();
+    const to = Math.min(times.length - 1, idx + Math.floor(INITIAL_FOCUS_BARS / 2));
+    const from0 = Math.max(0, idx - Math.floor(INITIAL_FOCUS_BARS / 2));
+    const from = Math.min(from0, Math.max(0, to - (INITIAL_FOCUS_BARS - 1)));
+    try {
+      ts.setVisibleLogicalRange({ from, to });
+    } catch {}
+    focusKeyRef.current = key;
+  }, [candles, focusTsMs, seriesReady, symbol, timeframe]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -561,9 +635,26 @@ export default function ChartContainer({ symbol, timeframe, market, onLastCandle
       macdHistSeriesRef.current?.setData(ind.macdHist);
 
       if (!initialFocusRef.current) {
-        const to = mapped.length - 1;
-        const from = Math.max(0, to - (INITIAL_FOCUS_BARS - 1));
-        ts.setVisibleLogicalRange({ from, to });
+        const focus = Number(focusTsMs || 0);
+        const focusSec = Number.isFinite(focus) && focus > 0 ? Math.floor(focus / 1000) : 0;
+        if (focusSec > 0 && focusSec >= firstTime && focusSec <= lastTime) {
+          let idx = 0;
+          for (let i = 0; i < mapped.length; i += 1) {
+            if ((mapped[i].time as number) >= focusSec) {
+              idx = i;
+              break;
+            }
+            idx = i;
+          }
+          const to = Math.min(mapped.length - 1, idx + Math.floor(INITIAL_FOCUS_BARS / 2));
+          const from0 = Math.max(0, idx - Math.floor(INITIAL_FOCUS_BARS / 2));
+          const from = Math.min(from0, Math.max(0, to - (INITIAL_FOCUS_BARS - 1)));
+          ts.setVisibleLogicalRange({ from, to });
+        } else {
+          const to = mapped.length - 1;
+          const from = Math.max(0, to - (INITIAL_FOCUS_BARS - 1));
+          ts.setVisibleLogicalRange({ from, to });
+        }
         restoreRangeRef.current = null;
         initialFocusRef.current = true;
       // 변경 이유: null range 전달로 인한 타입 오류 방지

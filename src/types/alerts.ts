@@ -72,8 +72,10 @@ export type AlertEvent = {
   status?: string | null;
   channel?: string | null;
   err?: string | null;
+  trigger_ts_ms?: number;
   created_at?: string;
   sent_at?: string | null;
+  outcomes?: Array<{ horizon_sec: number; ret_pct?: number | null }>;
 };
 
 export type AlertEventListResponse = {

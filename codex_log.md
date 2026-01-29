@@ -1594,3 +1594,17 @@ Next:
   - none
 - Next:
   - (user run) `npm run lint && npm run build`
+
+## 2026-01-28 10:31 (local)
+- Task: [설계안 3] Week7 인사이트/브리핑/전략/웹훅 UI + 알림 리플레이/사후성과 + 차트 ts 앵커
+- Scope: src/app/{breadth,anomalies,briefing,strategy,methodology,start,alerts,account,chart}, src/components/{Navigation.tsx,ChartContainer.tsx}, src/lib/{insightsClient.ts,briefingsClient.ts,strategyClient.ts,webhooksClient.ts,alertsClient.ts}, src/types/{insights.ts,briefings.ts,strategy.ts,webhooks.ts,alerts.ts}, src/i18n/locales/{ko.ts,en.ts}, docs/RECENT.md, codex_log.md
+- Why: “추천/리딩”이 아닌 데이터 도구 중심으로 습관화(브리핑/인사이트) + 검증(Strategy) + 자동화(Webhook) + 로그(Alerts outcomes/replay)를 제공해 리텐션/전환을 강화하기 위해
+- Key changes:
+  - 라우트: `/breadth`, `/anomalies`, `/briefing`, `/strategy`, `/methodology`, `/start` 추가(ko/en i18n 포함)
+  - Alerts: events에 replay 링크(+outcomes 표시) + Webhook 엔드포인트 관리 UI(시크릿 1회 노출)
+  - Chart: `?ts=` 쿼리로 리플레이 앵커 로딩(부족한 과거 데이터는 자동 loadMore)
+  - Account: “오늘 브리핑” 카드 + settings에 브리핑 스케줄 토글 추가
+- Commands run:
+  - (pending) `npm run typecheck && npm run build`
+- Logs/Artifacts:
+  - none

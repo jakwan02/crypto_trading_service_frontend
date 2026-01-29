@@ -16,9 +16,11 @@ export function getMarkdownRenderer(): MarkdownIt {
   const md = new MarkdownIt({
     html: false,
     linkify: true,
-    breaks: true,
-    validateLink: (url) => isAllowedLink(String(url || ""))
+    breaks: true
   });
+  // 변경 이유: markdown-it Options 타입에는 validateLink가 없으므로(타입 정의 차이),
+  //           인스턴스 메서드 override로 동일한 보안 정책을 유지한다.
+  md.validateLink = (url) => isAllowedLink(String(url || ""));
 
   const defaultLinkOpen =
     md.renderer.rules.link_open ||
@@ -39,4 +41,3 @@ export function getMarkdownRenderer(): MarkdownIt {
 export function renderMarkdown(mdText: string): string {
   return getMarkdownRenderer().render(String(mdText || ""));
 }
-

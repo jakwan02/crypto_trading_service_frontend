@@ -84,7 +84,7 @@ export default function AccountPage() {
             </div>
           </section>
 
-          <section className="grid gap-4 lg:grid-cols-2">
+          <section className="grid gap-4 lg:grid-cols-3">
             <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
               <h2 className="text-sm font-semibold text-gray-900">{t("account.payment")}</h2>
               <p className="mt-2 text-sm text-gray-600">{t("account.paymentDesc")}</p>
@@ -94,6 +94,18 @@ export default function AccountPage() {
                 className="mt-4 inline-flex rounded-full border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition hover:border-primary/30 hover:text-primary"
               >
                 {t("account.paymentEdit")}
+              </Link>
+            </div>
+
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h2 className="text-sm font-semibold text-gray-900">{t("account.briefing")}</h2>
+              <p className="mt-2 text-sm text-gray-600">{t("account.briefingDesc")}</p>
+              <p className="mt-1 text-xs text-gray-500">{t("account.briefingNext")}</p>
+              <Link
+                href="/briefing"
+                className="mt-4 inline-flex rounded-full bg-primary px-4 py-2 text-xs font-semibold text-ink hover:bg-primary-dark"
+              >
+                {t("account.briefingCta")}
               </Link>
             </div>
 

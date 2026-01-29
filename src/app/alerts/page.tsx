@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -8,6 +9,7 @@ import ApiErrorView from "@/components/common/ApiErrorView";
 import PushGate from "@/components/push/PushGate";
 import TelegramGate from "@/components/telegram/TelegramGate";
 import { createAlertRule, deleteAlertRule, listAlertEvents, listAlertRules, patchAlertRule } from "@/lib/alertsClient";
+import { createWebhook, deleteWebhook, listWebhooks, patchWebhook } from "@/lib/webhooksClient";
 import type { AlertRuleCreateRequest, AlertWindow } from "@/types/alerts";
 
 const WINDOWS: AlertWindow[] = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
@@ -17,6 +19,15 @@ function asNum(v: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function fmtHorizon(sec: unknown): string {
+  const n = Math.trunc(Number(sec));
+  if (!Number.isFinite(n) || n <= 0) return "-";
+  if (n % (24 * 3600) === 0) return `${n / (24 * 3600)}d`;
+  if (n % 3600 === 0) return `${n / 3600}h`;
+  if (n % 60 === 0) return `${n / 60}m`;
+  return `${n}s`;
+}
+
 export default function AlertsPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
@@ -24,10 +35,12 @@ export default function AlertsPage() {
   const rulesQ = useQuery({ queryKey: ["alerts.rules"], queryFn: listAlertRules });
   const eventsQ = useInfiniteQuery({
     queryKey: ["alerts.events"],
-    queryFn: ({ pageParam }) => listAlertEvents((pageParam as string | null | undefined) ?? null, 50),
+    queryFn: ({ pageParam }) => listAlertEvents((pageParam as string | null | undefined) ?? null, 50, true),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.cursor_next ?? undefined
   });
+
+  const webhooksQ = useQuery({ queryKey: ["webhooks"], queryFn: listWebhooks, staleTime: 10_000 });
 
   const [form, setForm] = useState<AlertRuleCreateRequest>({
     market: "um",
@@ -75,6 +88,38 @@ export default function AlertsPage() {
     () => (eventsQ.data?.pages ?? []).flatMap((p) => (p.items ?? []) as Array<Record<string, unknown>>),
     [eventsQ.data?.pages]
   );
+  const webhookItems = useMemo(() => webhooksQ.data?.items ?? [], [webhooksQ.data?.items]);
+
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [oneTimeSecret, setOneTimeSecret] = useState<string | null>(null);
+
+  const webhookCreateM = useMutation({
+    mutationFn: async () => {
+      const url = String(webhookUrl || "").trim();
+      if (!url) throw new Error("missing_url");
+      return await createWebhook({ url, enabled: true });
+    },
+    onSuccess: async (res) => {
+      setWebhookUrl("");
+      setOneTimeSecret(String(res.secret || "") || null);
+      await qc.invalidateQueries({ queryKey: ["webhooks"] });
+    }
+  });
+  const webhookPatchM = useMutation({
+    mutationFn: async (arg: { id: string; enabled?: boolean; rotate?: boolean }) => {
+      return await patchWebhook(arg.id, { enabled: arg.enabled, rotate_secret: arg.rotate });
+    },
+    onSuccess: async (res) => {
+      if (res.secret) setOneTimeSecret(String(res.secret));
+      await qc.invalidateQueries({ queryKey: ["webhooks"] });
+    }
+  });
+  const webhookDeleteM = useMutation({
+    mutationFn: async (id: string) => await deleteWebhook(id),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["webhooks"] });
+    }
+  });
 
   return (
     <RequireAuth>
@@ -294,17 +339,140 @@ export default function AlertsPage() {
               </div>
 
               <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-gray-900">{t("alerts.webhooksTitle")}</h2>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">{t("alerts.webhooksDesc")}</p>
+
+                {webhooksQ.error ? <ApiErrorView error={webhooksQ.error} onRetry={() => webhooksQ.refetch()} /> : null}
+
+                {oneTimeSecret ? (
+                  <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-xs font-semibold text-amber-800">{t("alerts.webhookSecretTitle")}</p>
+                    <p className="mt-1 text-xs text-amber-700">{t("alerts.webhookSecretDesc")}</p>
+                    <pre className="mt-2 whitespace-pre-wrap break-all rounded-xl bg-white p-3 text-[11px] text-gray-800 ring-1 ring-amber-200">
+                      {oneTimeSecret}
+                    </pre>
+                    <button
+                      type="button"
+                      onClick={() => setOneTimeSecret(null)}
+                      className="mt-2 text-xs font-semibold text-amber-800 hover:text-amber-900"
+                    >
+                      {t("alerts.webhookSecretClose")}
+                    </button>
+                  </div>
+                ) : null}
+
+                <div className="mt-4 flex gap-2">
+                  <input
+                    value={webhookUrl}
+                    onChange={(e) => setWebhookUrl(e.target.value)}
+                    placeholder={t("alerts.webhookUrlPlaceholder")}
+                    className="min-w-0 flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => webhookCreateM.mutate()}
+                    disabled={webhookCreateM.isPending || !String(webhookUrl || "").trim()}
+                    className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-ink hover:bg-primary-dark disabled:opacity-60"
+                  >
+                    {t("alerts.webhookAdd")}
+                  </button>
+                </div>
+                {webhookCreateM.error ? <div className="mt-3"><ApiErrorView error={webhookCreateM.error} /></div> : null}
+
+                <div className="mt-4 space-y-2">
+                  {webhookItems.map((wh) => (
+                    <div key={wh.id} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-gray-900">{wh.url}</p>
+                          <p className="mt-1 text-xs text-gray-500">{wh.created_at ? String(wh.created_at).slice(0, 19) : ""}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => webhookPatchM.mutate({ id: wh.id, enabled: !wh.enabled })}
+                            className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
+                              wh.enabled ? "bg-emerald-100 text-emerald-600" : "bg-gray-200 text-gray-500"
+                            }`}
+                          >
+                            {wh.enabled ? t("alerts.on") : t("alerts.off")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => webhookPatchM.mutate({ id: wh.id, rotate: true })}
+                            className="rounded-full border border-gray-200 bg-white px-2 py-1 text-[10px] font-semibold text-gray-700 hover:border-primary/30 hover:text-primary"
+                          >
+                            {t("alerts.webhookRotate")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => webhookDeleteM.mutate(wh.id)}
+                            className="text-xs font-semibold text-gray-500 hover:text-red-600"
+                          >
+                            {t("alerts.delete")}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {(webhookPatchM.error || webhookDeleteM.error) ? <div className="mt-3"><ApiErrorView error={webhookPatchM.error || webhookDeleteM.error} /></div> : null}
+              </div>
+
+              <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
                 <h2 className="text-sm font-semibold text-gray-900">{t("alerts.history")}</h2>
                 {eventsQ.error ? <ApiErrorView error={eventsQ.error} onRetry={() => eventsQ.refetch()} /> : null}
                 <div className="mt-4 space-y-2">
-                  {events.map((ev) => (
-                    <div key={String(ev.id)} className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
-                      <p className="font-semibold text-gray-900">{String(ev.symbol || "")}</p>
-                      <p className="mt-1">
-                        {String(ev.type || "")} {String(ev.window || "")} · {String(ev.channel || "")} · {String(ev.status || "")}
-                      </p>
-                    </div>
-                  ))}
+                  {events.map((ev) => {
+                    const market = String(ev.market || "um").toLowerCase();
+                    const symbol = String(ev.symbol || "").toUpperCase();
+                    const triggerTs = Number(ev.trigger_ts_ms || 0);
+                    const replayHref =
+                      triggerTs > 0
+                        ? `/chart/${encodeURIComponent(symbol)}?market=${encodeURIComponent(market)}&tf=1m&ts=${encodeURIComponent(String(triggerTs))}`
+                        : "";
+                    const outcomes = Array.isArray(ev.outcomes) ? (ev.outcomes as Array<Record<string, unknown>>) : [];
+                    const outcomesText = outcomes
+                      .slice(0, 6)
+                      .map((o) => {
+                        const h = fmtHorizon(o.horizon_sec);
+                        const ret = typeof o.ret_pct === "number" ? o.ret_pct : NaN;
+                        const retText = Number.isFinite(ret) ? `${ret >= 0 ? "+" : ""}${ret.toFixed(2)}%` : "-";
+                        return `${h}:${retText}`;
+                      })
+                      .join(" · ");
+
+                    const createdAt = String(ev.created_at || "");
+                    const createdText = createdAt ? createdAt.slice(0, 19).replace("T", " ") : "";
+
+                    return (
+                      <div key={String(ev.id)} className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-xs text-gray-600">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-gray-900">{symbol}</p>
+                            <p className="mt-1">
+                              {createdText ? `${createdText} · ` : ""}
+                              {String(ev.type || "")} {String(ev.window || "")} · {String(ev.channel || "")} · {String(ev.status || "")}
+                            </p>
+                            {outcomesText ? <p className="mt-1 text-[11px] text-gray-500">{t("alerts.outcomes")}: {outcomesText}</p> : null}
+                            {String(ev.err || "") ? <p className="mt-1 text-[11px] text-rose-600">{t("alerts.err")}</p> : null}
+                          </div>
+
+                          {replayHref ? (
+                            <Link
+                              href={replayHref}
+                              className="shrink-0 rounded-full border border-gray-200 bg-white px-3 py-1 text-[11px] font-semibold text-gray-700 hover:border-primary/30 hover:text-primary"
+                            >
+                              {t("alerts.replay")}
+                            </Link>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
                 {eventsQ.isLoading ? <p className="mt-3 text-sm text-gray-500">{t("common.loading")}</p> : null}
                 {eventsQ.hasNextPage ? (

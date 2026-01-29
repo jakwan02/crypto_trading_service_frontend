@@ -27,11 +27,17 @@ export const NAV_FEATURES: NavLink[] = [
   { href: "/screener", labelKey: "nav.screener" },
   { href: "/portfolio", labelKey: "nav.portfolio" },
   { href: "/research", labelKey: "nav.research" },
+  { href: "/methodology", labelKey: "nav.methodology" },
+  { href: "/breadth", labelKey: "nav.breadth" },
+  { href: "/anomalies", labelKey: "nav.anomalies" },
+  { href: "/briefing", labelKey: "nav.briefing" },
+  { href: "/strategy", labelKey: "nav.strategy" },
   { href: "/indicators", labelKey: "nav.ai", pro: true }
 ];
 
 export const NAV_MORE: NavLink[] = [
   { href: "/", labelKey: "nav.home" },
+  { href: "/start", labelKey: "nav.start" },
   { href: "/pricing", labelKey: "nav.pricing" },
   { href: "/status", labelKey: "nav.status" },
   { href: "/changelog", labelKey: "nav.changelog" },
@@ -45,7 +51,7 @@ const PRIMARY_HREFS = NAV_PRIMARY.map((it) => it.href);
 const WORK_HREFS = NAV_FEATURES.map((it) => it.href);
 const MORE_HREFS = NAV_MORE.map((it) => it.href);
 
-const AUTH_REQUIRED_PREFIXES = ["/watchlists", "/alerts", "/portfolio", "/research", "/screener", "/usage", "/billing", "/indicators"];
+const AUTH_REQUIRED_PREFIXES = ["/watchlists", "/alerts", "/portfolio", "/research", "/screener", "/usage", "/billing", "/indicators", "/briefing", "/strategy"];
 
 type Props = {
   className?: string;

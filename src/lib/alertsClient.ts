@@ -41,14 +41,14 @@ export async function deleteAlertRule(id: string): Promise<{ ok?: boolean }> {
   });
 }
 
-export async function listAlertEvents(cursor?: string | null, limit?: number | null): Promise<AlertEventListResponse> {
+export async function listAlertEvents(cursor?: string | null, limit?: number | null, includeOutcomes?: boolean): Promise<AlertEventListResponse> {
   const q = new URLSearchParams();
   if (cursor) q.set("cursor", cursor);
   if (limit) q.set("limit", String(limit));
+  if (includeOutcomes) q.set("include_outcomes", "1");
   const qs = q.toString();
   return await apiRequest<AlertEventListResponse>(`/alerts/events${qs ? `?${qs}` : ""}`, {
     method: "GET",
     headers: requireAuthHeaders()
   });
 }
-

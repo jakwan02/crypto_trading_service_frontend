@@ -34,6 +34,11 @@ type Notify = {
   weekly_digest_enabled: boolean;
   weekly_digest_dow: number; // 0..6
   weekly_digest_hour: number; // 0..23
+  briefing_daily_enabled: boolean;
+  briefing_daily_hour: number; // 0..23
+  briefing_weekly_enabled: boolean;
+  briefing_weekly_dow: number; // 0..6
+  briefing_weekly_hour: number; // 0..23
   updated_at: string;
 };
 
@@ -225,7 +230,12 @@ export default function AccountSettingsPage() {
         quiet_end: draftNotify.quiet_end,
         weekly_digest_enabled: draftNotify.weekly_digest_enabled,
         weekly_digest_dow: draftNotify.weekly_digest_dow,
-        weekly_digest_hour: draftNotify.weekly_digest_hour
+        weekly_digest_hour: draftNotify.weekly_digest_hour,
+        briefing_daily_enabled: draftNotify.briefing_daily_enabled,
+        briefing_daily_hour: draftNotify.briefing_daily_hour,
+        briefing_weekly_enabled: draftNotify.briefing_weekly_enabled,
+        briefing_weekly_dow: draftNotify.briefing_weekly_dow,
+        briefing_weekly_hour: draftNotify.briefing_weekly_hour
       }
     };
     saveMutation.mutate(payload);
@@ -519,6 +529,78 @@ export default function AccountSettingsPage() {
                       ))}
                     </select>
                   </label>
+                </div>
+
+                <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-xs font-semibold text-gray-700">{t("accountSettings.briefingTitle")}</p>
+                  <p className="mt-1 text-xs text-gray-500">{t("accountSettings.briefingDesc")}</p>
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-3">
+                    <label className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-3">
+                      <span className="text-sm text-gray-700">{t("accountSettings.briefingDaily")}</span>
+                      <input
+                        type="checkbox"
+                        checked={draftNotify.briefing_daily_enabled}
+                        onChange={(e) => setDraftNotify({ ...draftNotify, briefing_daily_enabled: e.target.checked })}
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="text-xs font-medium text-gray-700">{t("accountSettings.briefingDailyHour")}</span>
+                      <select
+                        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"
+                        value={String(draftNotify.briefing_daily_hour)}
+                        onChange={(e) => setDraftNotify({ ...draftNotify, briefing_daily_hour: Number(e.target.value) })}
+                      >
+                        {Array.from({ length: 24 }).map((_, idx) => (
+                          <option key={idx} value={String(idx)}>
+                            {idx}:00
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-3">
+                    <label className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-3">
+                      <span className="text-sm text-gray-700">{t("accountSettings.briefingWeekly")}</span>
+                      <input
+                        type="checkbox"
+                        checked={draftNotify.briefing_weekly_enabled}
+                        onChange={(e) => setDraftNotify({ ...draftNotify, briefing_weekly_enabled: e.target.checked })}
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="text-xs font-medium text-gray-700">{t("accountSettings.briefingWeeklyDow")}</span>
+                      <select
+                        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"
+                        value={String(draftNotify.briefing_weekly_dow)}
+                        onChange={(e) => setDraftNotify({ ...draftNotify, briefing_weekly_dow: Number(e.target.value) })}
+                      >
+                        {[0, 1, 2, 3, 4, 5, 6].map((x) => (
+                          <option key={x} value={String(x)}>
+                            {t(`accountSettings.dow.${x}`)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="block">
+                      <span className="text-xs font-medium text-gray-700">{t("accountSettings.briefingWeeklyHour")}</span>
+                      <select
+                        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"
+                        value={String(draftNotify.briefing_weekly_hour)}
+                        onChange={(e) => setDraftNotify({ ...draftNotify, briefing_weekly_hour: Number(e.target.value) })}
+                      >
+                        {Array.from({ length: 24 }).map((_, idx) => (
+                          <option key={idx} value={String(idx)}>
+                            {idx}:00
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
                 </div>
               </section>
 
