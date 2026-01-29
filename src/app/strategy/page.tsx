@@ -233,8 +233,8 @@ export default function StrategyPage() {
   useEffect(() => {
     if (!detailQ.data) return;
     const s = detailQ.data;
-    setMode("edit");
     queueMicrotask(() => {
+      setMode("edit");
       setDraftName(String(s.name || ""));
       setDraftMarket(String(s.market || "um") as StrategyMarket);
       setDraftTf(String(s.tf || "1h") as StrategyTf);

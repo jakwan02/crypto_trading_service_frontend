@@ -3,6 +3,10 @@
 > 규칙: 최신 30개까지만 유지. 오래된 항목은 아래로 밀고 제거.
 > 항목 1개는 2~4줄 이내로 압축(무조건).
 
+## 2026-01-29
+- [lint] react-hooks/set-state-in-effect ESLint 오류 수정(Strategy 페이지, useMarketOrder)
+  - impact: `npm run lint/test/build` 통과(경고만 남음), 캐시/로딩 UX 동작은 유지
+
 ## 2026-01-28
 - [security/design2] 브라우저 공유 시크릿(NEXT_PUBLIC_API_TOKEN/NEXT_PUBLIC_WS_TOKEN) 제거 + 공용 Markdown 렌더러(validateLink/rel)로 XSS 링크 스킴 보강 + verify/reset 쿼리 토큰 즉시 제거 + Next 보안 헤더(보조)
   - impact: 번들 시크릿 노출/쿼리 토큰 referrer 유출/XSS 링크 스킴 리스크 완화(계약 변경)

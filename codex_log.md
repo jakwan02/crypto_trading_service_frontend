@@ -29,6 +29,23 @@
   - none
 - Logs/Artifacts:
   - none
+
+## 2026-01-29 06:25 (local)
+- Task: ESLint 오류(react-hooks/set-state-in-effect) 수정 + lint/test/build 재검증
+- Scope: src/app/strategy/page.tsx, src/hooks/useMarketOrder.ts, docs/RECENT.md, codex_log.md
+- Why: effect body에서 동기 setState로 인한 린트 오류로 `npm run lint`가 실패해, 빌드/배포 전 검증 루틴이 막혔다.
+- Key changes:
+  - Strategy: detail 로드 후 `setMode("edit")`를 microtask로 이관(동기 setState-in-effect 제거)
+  - useMarketOrder: mem cache hit/로딩 플래그 업데이트를 microtask로 이관 + stale 요청(rid) 가드 유지
+- Commands run (agent):
+  - /mnt/c/Program\\ Files/nodejs/npm ci
+  - /mnt/c/Program\\ Files/nodejs/npm run lint
+  - /mnt/c/Program\\ Files/nodejs/npm run test
+  - /mnt/c/Program\\ Files/nodejs/npm run build
+- Logs/Artifacts:
+  - eslint: 0 errors, 14 warnings(existing)
+  - vitest: 1 passed
+  - next build: success
 - Next:
   - market 페이지 스크롤/윈도우 변경/새로고침 WS 갱신 확인
   - /api/market/bootstrap/page 응답과 연동 확인

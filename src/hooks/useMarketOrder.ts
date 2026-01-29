@@ -162,16 +162,28 @@ export function useMarketOrder(
     if (!enabled) return;
     reqIdRef.current += 1;
     const rid = reqIdRef.current;
-    setIsError(false);
-    setIsLoading(true);
+    const apply = (fn: () => void) => {
+      queueMicrotask(() => {
+        if (rid !== reqIdRef.current) return;
+        fn();
+      });
+    };
 
     const mem = getMemoryMarketOrderCache(key);
     if (mem?.order?.length) {
-      setOrder(mem.order);
-      setSavedAt(mem.savedAt || 0);
-      setIsLoading(false);
+      apply(() => {
+        setOrder(mem.order);
+        setSavedAt(mem.savedAt || 0);
+        setIsError(false);
+        setIsLoading(false);
+      });
       return;
     }
+
+    apply(() => {
+      setIsError(false);
+      setIsLoading(true);
+    });
 
     void (async () => {
       const cached = await getIdbMarketOrderCache(key);
@@ -180,6 +192,7 @@ export function useMarketOrder(
         setMemoryMarketOrderCache(key, cached);
         setOrder(cached.order);
         setSavedAt(cached.savedAt || 0);
+        setIsError(false);
         setIsLoading(false);
         return;
       }
@@ -198,6 +211,7 @@ export function useMarketOrder(
         await putIdbMarketOrderCache(key, fetched);
         setOrder(fetched.order);
         setSavedAt(fetched.savedAt || 0);
+        setIsError(false);
         setIsLoading(false);
       } catch {
         if (rid !== reqIdRef.current) return;
